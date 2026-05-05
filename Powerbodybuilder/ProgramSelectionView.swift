@@ -15,13 +15,15 @@ struct ProgramSelectionView: View {
     var profile: UserProfile? { profiles.first }
 
     let recommendedId: Int
-    
+    var onComplete: (() -> Void)? = nil
+
     @State private var selectedId: Int
     @State private var showDetail: ProgramDef? = nil
     @State private var showGeneratedPreview = false
-    
-    init(recommendedId: Int) {
+
+    init(recommendedId: Int, onComplete: (() -> Void)? = nil) {
         self.recommendedId = recommendedId
+        self.onComplete = onComplete
         _selectedId = State(initialValue: recommendedId)
     }
     
@@ -130,6 +132,21 @@ struct ProgramSelectionView: View {
     func startProgram() {
         let program = allAvailablePrograms.first(where: { $0.id == selectedId })
         guard let program = program else { return }
+
+        // Infer goal from program choice and update profile
+        if let prof = profile {
+            switch selectedId {
+            case 2, 7: prof.goal = .hypertrophy
+            case 3: prof.goal = .strength
+            case 1: prof.goal = .powerbuilding
+            case 5: prof.goal = .powerbuilding
+            default: break
+            }
+            let days = program.days_per_week_range.lowerBound
+            if prof.daysPerWeek < days || prof.daysPerWeek > program.days_per_week_range.upperBound {
+                prof.daysPerWeek = days
+            }
+        }
 
         // 1. Deactivate ALL existing instances & legacy programs
         for inst in allInstances {
@@ -240,9 +257,10 @@ struct ProgramSelectionView: View {
         }
 
         try? modelContext.save()
+        onComplete?()
         dismiss()
     }
-    
+
     // ═══════════════════════════════════════════
     // PROGRAM CARD
     // ═══════════════════════════════════════════
