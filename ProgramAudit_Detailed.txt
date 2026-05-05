@@ -1,0 +1,3290 @@
+================================================================================
+POWERBODYBUILDER — COMPLETE PROGRAM GENERATION AUDIT
+Every user profile → exact program with exercises, sets, reps, RPE
+================================================================================
+
+================================================================================
+  PROGRAM: BEGINNER | HYPERTROPHY | 4 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           6    22    6
+    Back          neutral           8    24    6
+    Quads         neutral           6    22    6
+    Hamstrings    neutral           4    18    4
+    Glutes        neutral           4    18    4
+    Delts         neutral           6    20    4
+    Triceps       neutral           4    16    4
+    Biceps        neutral           4    18    4
+    Calves        neutral           6    16    6
+                               ──────
+    TOTAL                          48 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             3 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             3 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             3 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             3 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: INTERMEDIATE | HYPERTROPHY | 4 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: ADVANCED | HYPERTROPHY | 4 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 4 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral          12    29    6
+    Back          neutral          16    32    6
+    Quads         neutral          12    29    6
+    Hamstrings    neutral           8    24    4
+    Glutes        neutral           4    24    4
+    Delts         neutral          12    27    4
+    Triceps       neutral           8    21    4
+    Biceps        neutral           8    24    4
+    Calves        neutral           8    21    6
+                               ──────
+    TOTAL                          88 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 4 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 5 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Heavy Upper: 24 sets (very high density)
+    ⚠️  Week 1 Hyp Upper: 24 sets (very high density)
+    ⚠️  Week 4 Heavy Upper: 24 sets (very high density)
+    ⚠️  Week 4 Hyp Upper: 24 sets (very high density)
+
+================================================================================
+  PROGRAM: ELITE | HYPERTROPHY | 4 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 4 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral          13    31    6
+    Back          neutral          18    34    6
+    Quads         neutral          13    31    6
+    Hamstrings    neutral           9    26    4
+    Glutes        neutral           4    26    4
+    Delts         neutral          13    29    4
+    Triceps       neutral           9    23    4
+    Biceps        neutral           9    26    4
+    Calves        neutral           9    23    6
+                               ──────
+    TOTAL                          97 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Cable Fly                       2 × 8-12   RPE 7.0  Rest 2:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Cable Lateral Raise             2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Leg Extension                   2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             5 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 4 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Cable Fly                       2 × 8-12   RPE 8.0  Rest 2:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Cable Lateral Raise             2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Leg Extension                   2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             5 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 5 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Heavy Upper: Triceps gets only 1 set (below minimum)
+    ⚠️  Week 1 Heavy Upper: Biceps gets only 1 set (below minimum)
+    ⚠️  Week 1 Heavy Upper: 23 sets (very high density)
+    ⚠️  Week 1 Hyp Upper: Biceps gets only 1 set (below minimum)
+    ⚠️  Week 1 Hyp Upper: 23 sets (very high density)
+    ⚠️  Week 4 Heavy Upper: Triceps gets only 1 set (below minimum)
+    ⚠️  Week 4 Heavy Upper: Biceps gets only 1 set (below minimum)
+    ⚠️  Week 4 Heavy Upper: 23 sets (very high density)
+    ⚠️  Week 4 Hyp Upper: Biceps gets only 1 set (below minimum)
+    ⚠️  Week 4 Hyp Upper: 23 sets (very high density)
+
+================================================================================
+  PROGRAM: INTERMEDIATE | HYPERTROPHY | 4 DAYS/WEEK
+  Calories: moderate_deficit | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    22    6
+    Back          neutral          11    23    6
+    Quads         neutral           8    22    6
+    Hamstrings    neutral           5    17    4
+    Glutes        neutral           4    17    4
+    Delts         neutral           8    20    4
+    Triceps       neutral           5    16    4
+    Biceps        neutral           5    17    4
+    Calves        neutral           6    16    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: INTERMEDIATE | HYPERTROPHY | 4 DAYS/WEEK
+  Calories: aggressive_deficit | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    19    6
+    Back          neutral          11    21    6
+    Quads         neutral           8    19    6
+    Hamstrings    neutral           5    15    4
+    Glutes        neutral           4    15    4
+    Delts         neutral           8    18    4
+    Triceps       neutral           5    14    4
+    Biceps        neutral           5    15    4
+    Calves        neutral           6    14    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: BEGINNER | HYPERTROPHY | 3 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Push                 → Chest, Delts, Triceps
+    Pull                 → Back, Biceps
+    Legs                 → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           6    22    6
+    Back          neutral           8    24    6
+    Quads         neutral           6    22    6
+    Hamstrings    neutral           4    18    4
+    Glutes        neutral           4    18    4
+    Delts         neutral           6    20    4
+    Triceps       neutral           4    16    4
+    Biceps        neutral           4    18    4
+    Calves        neutral           6    16    6
+                               ──────
+    TOTAL                          48 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 2: Pull
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Legs
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 5-8    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Seated Calf Raise               2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 2: Pull
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Legs
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 5-8    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Seated Calf Raise               2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: INTERMEDIATE | STRENGTH | 3 DAYS/WEEK
+  Calories: maintenance | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Full Body A          → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+    Full Body B          → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+    Full Body C          → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Full Body A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 2-5    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 2-5    RPE 7.0  Rest 3:30
+      T1   Barbell Squat                   4 × 2-5    RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          3 × 2-5    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 2-5    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 2-5    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 2-5    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Full Body B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Dumbbell Row                    3 × 4-8    RPE 7.0  Rest 2:30
+      T2   Hack Squat                      2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             2 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 3: Full Body C
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Dumbbell Row                    3 × 4-8    RPE 7.0  Rest 2:30
+      T2   Hack Squat                      2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             2 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Full Body A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 2-5    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 2-5    RPE 7.5  Rest 3:30
+      T1   Barbell Squat                   4 × 2-5    RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          3 × 2-5    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 2-5    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 2-5    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 2-5    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Full Body B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Dumbbell Row                    3 × 4-8    RPE 8.0  Rest 2:30
+      T2   Hack Squat                      2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             2 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 3: Full Body C
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Dumbbell Row                    3 × 4-8    RPE 8.0  Rest 2:30
+      T2   Hack Squat                      2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             2 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Full Body A: 24 sets (very high density)
+    ⚠️  Week 1 Full Body B: Hamstrings gets only 1 set (below minimum)
+    ⚠️  Week 1 Full Body B: Glutes gets only 1 set (below minimum)
+    ⚠️  Week 1 Full Body B: Triceps gets only 1 set (below minimum)
+    ⚠️  Week 1 Full Body B: Biceps gets only 1 set (below minimum)
+    ⚠️  Week 1 Full Body C: Hamstrings gets only 1 set (below minimum)
+    ⚠️  Week 1 Full Body C: Glutes gets only 1 set (below minimum)
+    ⚠️  Week 1 Full Body C: Triceps gets only 1 set (below minimum)
+    ⚠️  Week 1 Full Body C: Biceps gets only 1 set (below minimum)
+    ⚠️  Week 5 Full Body A: 24 sets (very high density)
+    ⚠️  Week 5 Full Body B: Hamstrings gets only 1 set (below minimum)
+    ⚠️  Week 5 Full Body B: Glutes gets only 1 set (below minimum)
+    ⚠️  Week 5 Full Body B: Triceps gets only 1 set (below minimum)
+    ⚠️  Week 5 Full Body B: Biceps gets only 1 set (below minimum)
+    ⚠️  Week 5 Full Body C: Hamstrings gets only 1 set (below minimum)
+    ⚠️  Week 5 Full Body C: Glutes gets only 1 set (below minimum)
+    ⚠️  Week 5 Full Body C: Triceps gets only 1 set (below minimum)
+    ⚠️  Week 5 Full Body C: Biceps gets only 1 set (below minimum)
+
+================================================================================
+  PROGRAM: INTERMEDIATE | POWERBUILDING | 3 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Push                 → Chest, Delts, Triceps
+    Pull                 → Back, Biceps
+    Legs                 → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Cable Fly                       3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Cable Lateral Raise             3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Close-Grip Bench Press          5 × 3-6    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 21 sets
+
+    DAY 2: Pull
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Straight Arm Pulldown           2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Legs
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Sissy Squat                     3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Romanian Deadlift (BB)          5 × 3-6    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 3-6    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Seated Calf Raise               2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Cable Fly                       3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Cable Lateral Raise             3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Close-Grip Bench Press          5 × 3-6    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 21 sets
+
+    DAY 2: Pull
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Straight Arm Pulldown           2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Legs
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Sissy Squat                     3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Romanian Deadlift (BB)          5 × 3-6    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 3-6    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Seated Calf Raise               2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Push: 21 sets (very high density)
+    ⚠️  Week 1 Legs: 23 sets (very high density)
+    ⚠️  Week 5 Push: 21 sets (very high density)
+    ⚠️  Week 5 Legs: 23 sets (very high density)
+
+================================================================================
+  PROGRAM: INTERMEDIATE | RECOMP | 3 DAYS/WEEK
+  Calories: maintenance | Block: accumulation | Block length: 3 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Push                 → Chest, Delts, Triceps
+    Pull                 → Back, Biceps
+    Legs                 → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 6-10   RPE 7.0  Rest 3:30
+      T2   Cable Fly                       3 × 10-15  RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 6-10   RPE 7.0  Rest 3:30
+      T2   Cable Lateral Raise             3 × 10-15  RPE 7.0  Rest 2:30
+      T1   Close-Grip Bench Press          5 × 6-10   RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 21 sets
+
+    DAY 2: Pull
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 6-10   RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    4 × 10-15  RPE 7.0  Rest 2:30
+      T2   Straight Arm Pulldown           2 × 10-15  RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 4 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Legs
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 6-10   RPE 7.0  Rest 3:30
+      T2   Sissy Squat                     3 × 10-15  RPE 7.0  Rest 2:30
+      T1   Romanian Deadlift (BB)          5 × 6-10   RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 6-10   RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             4 × 10-15  RPE 7.0  Rest 2:30
+      T2   Seated Calf Raise               2 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+  ── WEEK 3 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 6-10   RPE 7.5  Rest 3:30
+      T2   Cable Fly                       3 × 10-15  RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 6-10   RPE 7.5  Rest 3:30
+      T2   Cable Lateral Raise             3 × 10-15  RPE 8.0  Rest 2:30
+      T1   Close-Grip Bench Press          5 × 6-10   RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 21 sets
+
+    DAY 2: Pull
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 6-10   RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    4 × 10-15  RPE 8.0  Rest 2:30
+      T2   Straight Arm Pulldown           2 × 10-15  RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 4 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Legs
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 6-10   RPE 7.5  Rest 3:30
+      T2   Sissy Squat                     3 × 10-15  RPE 8.0  Rest 2:30
+      T1   Romanian Deadlift (BB)          5 × 6-10   RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 6-10   RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             4 × 10-15  RPE 8.0  Rest 2:30
+      T2   Seated Calf Raise               2 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+  ── WEEK 4 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Push: 21 sets (very high density)
+    ⚠️  Week 1 Legs: 23 sets (very high density)
+    ⚠️  Week 3 Push: 21 sets (very high density)
+    ⚠️  Week 3 Legs: 23 sets (very high density)
+
+================================================================================
+  PROGRAM: INTERMEDIATE | HYPERTROPHY | 6 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Push A               → Chest, Delts, Triceps
+    Pull A               → Back, Biceps
+    Legs A               → Quads, Hamstrings, Glutes, Calves
+    Push B               → Chest, Delts, Triceps
+    Pull B               → Back, Biceps
+    Legs B               → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          3 × 5-8    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          3 × 5-8    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: INTERMEDIATE | HYPERTROPHY | 6 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+  Priority muscles: Quads
+================================================================================
+
+  WEEKLY SPLIT:
+    Push A               → Chest, Delts, Triceps
+    Pull A               → Back, Biceps
+    Legs-Quad            → Quads, Calves
+    Push B               → Chest, Delts, Triceps
+    Pull B               → Back, Biceps
+    Legs B               → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         priority         12    39    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          64 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs-Quad
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 5-8    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs-Quad
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 5-8    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: INTERMEDIATE | HYPERTROPHY | 6 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+  Priority muscles: Chest, Quads
+================================================================================
+
+  WEEKLY SPLIT:
+    Push A               → Chest, Delts, Triceps
+    Pull A               → Back, Biceps
+    Legs-Quad            → Quads, Calves
+    Push B               → Chest, Delts, Triceps
+    Pull B               → Back, Biceps
+    Legs B               → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         priority         12    39    6
+    Back          neutral          11    28    6
+    Quads         priority         12    39    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          68 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs-Quad
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 5-8    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs-Quad
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 5-8    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: ADVANCED | HYPERTROPHY | 6 DAYS/WEEK
+  Calories: moderate_deficit | Block: accumulation | Block length: 4 weeks + 1 deload
+  Priority muscles: Chest, Back
+================================================================================
+
+  WEEKLY SPLIT:
+    Push A               → Chest, Delts, Triceps
+    Pull A               → Back, Biceps
+    Legs A               → Quads, Hamstrings, Glutes, Calves
+    Push B               → Chest, Delts, Triceps
+    Pull B               → Back, Biceps
+    Legs B               → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         priority         16    36    6
+    Back          priority         20    40    6
+    Quads         neutral          12    24    6
+    Hamstrings    neutral           8    20    4
+    Glutes        neutral           4    20    4
+    Delts         neutral          12    22    4
+    Triceps       neutral           8    17    4
+    Biceps        neutral           8    20    4
+    Calves        neutral           8    17    6
+                               ──────
+    TOTAL                          96 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Cable Fly                       3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 13 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Pec Deck                        3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Overhead Tricep Extension       4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Straight Arm Pulldown           3 × 8-12   RPE 7.0  Rest 2:30
+      T3   Face Pull                       2 × 12-20  RPE 7.5  Rest 1:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 4 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Cable Fly                       3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 13 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Pec Deck                        3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Overhead Tricep Extension       4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Straight Arm Pulldown           3 × 8-12   RPE 8.0  Rest 2:30
+      T3   Face Pull                       2 × 12-20  RPE 7.5  Rest 1:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 5 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: BEGINNER | HYPERTROPHY | 2 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Full Body A          → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+    Full Body B          → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           6    22    6
+    Back          neutral           8    24    6
+    Quads         neutral           6    22    6
+    Hamstrings    neutral           4    18    4
+    Glutes        neutral           4    18    4
+    Delts         neutral           6    20    4
+    Triceps       neutral           4    16    4
+    Biceps        neutral           4    18    4
+    Calves        neutral           6    16    6
+                               ──────
+    TOTAL                          48 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Full Body A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Squat                   3 × 5-8    RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          2 × 5-8    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             3 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Full Body B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Sissy Squat                     3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Full Body A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Squat                   3 × 5-8    RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          2 × 5-8    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             3 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Full Body B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Sissy Squat                     3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Full Body A: 24 sets (very high density)
+    ⚠️  Week 1 Full Body B: 24 sets (very high density)
+    ⚠️  Week 5 Full Body A: 24 sets (very high density)
+    ⚠️  Week 5 Full Body B: 24 sets (very high density)
+
+================================================================================
+  PROGRAM: INTERMEDIATE | HYPERTROPHY | 5 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+  Priority muscles: Chest
+================================================================================
+
+  WEEKLY SPLIT:
+    Push A               → Chest, Delts, Triceps
+    Pull A               → Back, Biceps
+    Legs A               → Quads, Hamstrings, Glutes, Calves
+    Priority 1           → Chest
+    Priority 2           → Back, Biceps
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         priority         12    39    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          64 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Cable Lateral Raise             3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Close-Grip Bench Press          5 × 5-8    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 18 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Sissy Squat                     3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Romanian Deadlift (BB)          5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 5-8    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Seated Calf Raise               2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+    DAY 4: Priority 1
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 5 sets
+
+    DAY 5: Priority 2
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Cable Lateral Raise             3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Close-Grip Bench Press          5 × 5-8    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 18 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Sissy Squat                     3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Romanian Deadlift (BB)          5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            4 × 5-8    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Seated Calf Raise               2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 23 sets
+
+    DAY 4: Priority 1
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 5 sets
+
+    DAY 5: Priority 2
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Legs A: 23 sets (very high density)
+    ⚠️  Week 5 Legs A: 23 sets (very high density)
+
+================================================================================
+  PROGRAM: ADVANCED | POWERBUILDING | 5 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 4 weeks + 1 deload
+  Priority muscles: Chest, Quads
+================================================================================
+
+  WEEKLY SPLIT:
+    Push A               → Chest, Delts, Triceps
+    Pull A               → Back, Biceps
+    Legs A               → Quads, Hamstrings, Glutes, Calves
+    Priority 1           → Quads
+    Priority 2           → Chest
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         priority         16    43    6
+    Back          neutral          16    32    6
+    Quads         priority         16    43    6
+    Hamstrings    neutral           8    24    4
+    Glutes        neutral           4    24    4
+    Delts         neutral          12    27    4
+    Triceps       neutral           8    21    4
+    Biceps        neutral           8    24    4
+    Calves        neutral           8    21    6
+                               ──────
+    TOTAL                          96 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Cable Fly                       3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Cable Lateral Raise             4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Rear Delt Fly                   3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Close-Grip Bench Press          4 × 3-6    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Straight Arm Pulldown           3 × 8-12   RPE 7.0  Rest 2:30
+      T3   Face Pull                       3 × 12-20  RPE 7.5  Rest 1:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Barbell Curl                    3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 22 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Sissy Squat                     3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Romanian Deadlift (BB)          5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Hip Thrust (Barbell)            4 × 3-6    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Priority 1
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Sissy Squat                     3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 5: Priority 2
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Pec Deck                        3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+  ── WEEK 4 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Cable Fly                       3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Cable Lateral Raise             4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Rear Delt Fly                   3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Close-Grip Bench Press          4 × 3-6    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Straight Arm Pulldown           3 × 8-12   RPE 8.0  Rest 2:30
+      T3   Face Pull                       3 × 12-20  RPE 7.5  Rest 1:30
+      T2   Incline DB Curl                 4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Barbell Curl                    3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 22 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Sissy Squat                     3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Romanian Deadlift (BB)          5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Hip Thrust (Barbell)            4 × 3-6    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Priority 1
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Sissy Squat                     3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 5: Priority 2
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Pec Deck                        3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+  ── WEEK 5 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Push A: 24 sets (very high density)
+    ⚠️  Week 1 Pull A: 22 sets (very high density)
+    ⚠️  Week 1 Legs A: 24 sets (very high density)
+    ⚠️  Week 4 Push A: 24 sets (very high density)
+    ⚠️  Week 4 Pull A: 22 sets (very high density)
+    ⚠️  Week 4 Legs A: 24 sets (very high density)
+
+================================================================================
+  PROGRAM: BEGINNER | STRENGTH | 4 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           6    22    6
+    Back          neutral           8    24    6
+    Quads         neutral           6    22    6
+    Hamstrings    neutral           4    18    4
+    Glutes        neutral           4    18    4
+    Delts         neutral           6    20    4
+    Triceps       neutral           4    16    4
+    Biceps        neutral           4    18    4
+    Calves        neutral           6    16    6
+                               ──────
+    TOTAL                          48 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 2-5    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     4 × 2-5    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             3 × 2-5    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 2-5    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      3 × 4-8    RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 2-5    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     4 × 2-5    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             3 × 2-5    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 2-5    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      3 × 4-8    RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 2-5    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     4 × 2-5    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             3 × 2-5    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 2-5    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      3 × 4-8    RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 2-5    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     4 × 2-5    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             3 × 2-5    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 2-5    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      3 × 4-8    RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: ADVANCED | STRENGTH | 4 DAYS/WEEK
+  Calories: maintenance | Block: accumulation | Block length: 4 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral          12    29    6
+    Back          neutral          16    32    6
+    Quads         neutral          12    29    6
+    Hamstrings    neutral           8    24    4
+    Glutes        neutral           4    24    4
+    Delts         neutral          12    27    4
+    Triceps       neutral           8    21    4
+    Biceps        neutral           8    24    4
+    Calves        neutral           8    21    6
+                               ──────
+    TOTAL                          88 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 2-5    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 2-5    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    3 × 4-8    RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 2-5    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 2-5    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      5 × 4-8    RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 4-8    RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 2-5    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 2-5    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    3 × 4-8    RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 2-5    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 2-5    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      5 × 4-8    RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 4-8    RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 4 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 2-5    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 2-5    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    3 × 4-8    RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 2-5    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 2-5    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      5 × 4-8    RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 4-8    RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 2-5    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 2-5    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    3 × 4-8    RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 2-5    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 2-5    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      5 × 4-8    RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 4-8    RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 5 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Heavy Upper: 24 sets (very high density)
+    ⚠️  Week 1 Hyp Upper: 24 sets (very high density)
+    ⚠️  Week 4 Heavy Upper: 24 sets (very high density)
+    ⚠️  Week 4 Hyp Upper: 24 sets (very high density)
+
+================================================================================
+  PROGRAM: INTERMEDIATE | STRENGTH | 6 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Push A               → Chest, Delts, Triceps
+    Pull A               → Back, Biceps
+    Legs A               → Quads, Hamstrings, Glutes, Calves
+    Push B               → Chest, Delts, Triceps
+    Pull B               → Back, Biceps
+    Legs B               → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 2-5    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 2-5    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 2-5    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 2-5    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   4 × 2-5    RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          3 × 2-5    RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 2-5    RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             3 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       4 × 4-8    RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 4-8    RPE 7.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 4-8    RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      4 × 4-8    RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 4-8    RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 2-5    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 2-5    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 2-5    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 2-5    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   4 × 2-5    RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          3 × 2-5    RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 2-5    RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             3 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       4 × 4-8    RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 4-8    RPE 8.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 4-8    RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T2   Hack Squat                      4 × 4-8    RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 4-8    RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 4-8    RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: INTERMEDIATE | POWERBUILDING | 4 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 3-6    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 3-6    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 3-6    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 3-6    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 3-6    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 3-6    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 3-6    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 3-6    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 3-6    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 3-6    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 3-6    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 3-6    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 3-6    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 3-6    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 3-6    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 3-6    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: ELITE | POWERBUILDING | 4 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 4 weeks + 1 deload
+  Priority muscles: Chest, Back, Quads, Delts
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         priority         17    46    6
+    Back          priority         22    51    6
+    Quads         priority         17    46    6
+    Hamstrings    neutral           9    26    4
+    Glutes        neutral           4    26    4
+    Delts         priority         17    43    4
+    Triceps       neutral           9    23    4
+    Biceps        neutral           9    26    4
+    Calves        neutral           9    23    6
+                               ──────
+    TOTAL                         113 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Cable Fly                       4 × 8-12   RPE 7.0  Rest 2:30
+      T1   Barbell Row                     5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Straight Arm Pulldown           2 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             4 × 3-6    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Leg Extension                   3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             5 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 20 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Cable Fly                       3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Barbell Row                     5 × 3-6    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Straight Arm Pulldown           2 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 3-6    RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Leg Extension                   3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 18 sets
+
+  ── WEEK 4 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Cable Fly                       4 × 8-12   RPE 8.0  Rest 2:30
+      T1   Barbell Row                     5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Straight Arm Pulldown           2 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             4 × 3-6    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Leg Extension                   3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             5 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 20 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Cable Fly                       3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Barbell Row                     5 × 3-6    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Straight Arm Pulldown           2 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 3-6    RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Leg Extension                   3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 18 sets
+
+  ── WEEK 5 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Heavy Upper: 24 sets (very high density)
+    ⚠️  Week 1 Hyp Upper: 24 sets (very high density)
+    ⚠️  Week 4 Heavy Upper: 24 sets (very high density)
+    ⚠️  Week 4 Hyp Upper: 24 sets (very high density)
+
+================================================================================
+  PROGRAM: BEGINNER | RECOMP | 4 DAYS/WEEK
+  Calories: maintenance | Block: accumulation | Block length: 3 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           6    22    6
+    Back          neutral           8    24    6
+    Quads         neutral           6    22    6
+    Hamstrings    neutral           4    18    4
+    Glutes        neutral           4    18    4
+    Delts         neutral           6    20    4
+    Triceps       neutral           4    16    4
+    Biceps        neutral           4    18    4
+    Calves        neutral           6    16    6
+                               ──────
+    TOTAL                          48 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 6-10   RPE 7.0  Rest 3:30
+      T1   Barbell Row                     4 × 6-10   RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             3 × 6-10   RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 6-10   RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     3 × 10-15  RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 10-15  RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 10-15  RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 6-10   RPE 7.0  Rest 3:30
+      T1   Barbell Row                     4 × 6-10   RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             3 × 6-10   RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 6-10   RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     3 × 10-15  RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 10-15  RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 10-15  RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+  ── WEEK 3 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 6-10   RPE 7.5  Rest 3:30
+      T1   Barbell Row                     4 × 6-10   RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             3 × 6-10   RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 6-10   RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     3 × 10-15  RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 10-15  RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 10-15  RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             3 × 6-10   RPE 7.5  Rest 3:30
+      T1   Barbell Row                     4 × 6-10   RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             3 × 6-10   RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 6-10   RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 14 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     3 × 10-15  RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 10-15  RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 10-15  RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+  ── WEEK 4 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: INTERMEDIATE | RECOMP | 6 DAYS/WEEK
+  Calories: maintenance | Block: accumulation | Block length: 3 weeks + 1 deload
+================================================================================
+
+  WEEKLY SPLIT:
+    Push A               → Chest, Delts, Triceps
+    Pull A               → Back, Biceps
+    Legs A               → Quads, Hamstrings, Glutes, Calves
+    Push B               → Chest, Delts, Triceps
+    Pull B               → Back, Biceps
+    Legs B               → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       neutral           5    19    4
+    Biceps        neutral           5    21    4
+    Calves        neutral           6    19    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 6-10   RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 6-10   RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 6-10   RPE 7.0  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 6-10   RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   4 × 6-10   RPE 7.0  Rest 3:30
+      T1   Romanian Deadlift (BB)          3 × 6-10   RPE 7.0  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 6-10   RPE 7.0  Rest 3:30
+      T2   Standing Calf Raise             3 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       4 × 10-15  RPE 7.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 10-15  RPE 7.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 10-15  RPE 7.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 10-15  RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 10-15  RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 10-15  RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 10-15  RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 3 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Push A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 6-10   RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 6-10   RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 6-10   RPE 7.5  Rest 3:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+    DAY 2: Pull A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Row                     5 × 6-10   RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 8 sets
+
+    DAY 3: Legs A
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Squat                   4 × 6-10   RPE 7.5  Rest 3:30
+      T1   Romanian Deadlift (BB)          3 × 6-10   RPE 7.5  Rest 3:30
+      T1   Hip Thrust (Barbell)            2 × 6-10   RPE 7.5  Rest 3:30
+      T2   Standing Calf Raise             3 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 4: Push B
+    ────────────────────────────────────────────────────────────
+      T2   Cable Fly                       4 × 10-15  RPE 8.0  Rest 2:30
+      T2   Cable Lateral Raise             4 × 10-15  RPE 8.0  Rest 2:30
+      T2   Overhead Tricep Extension       2 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 10 sets
+
+    DAY 5: Pull B
+    ────────────────────────────────────────────────────────────
+      T2   Dumbbell Row                    5 × 10-15  RPE 8.0  Rest 2:30
+      T2   Incline DB Curl                 2 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 7 sets
+
+    DAY 6: Legs B
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 10-15  RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 10-15  RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 10-15  RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 10-15  RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 4 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: INTERMEDIATE | HYPERTROPHY | 4 DAYS/WEEK
+  Calories: surplus | Block: accumulation | Block length: 5 weeks + 1 deload
+  Maintenance muscles: Triceps, Biceps, Calves
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral           8    26    6
+    Back          neutral          11    28    6
+    Quads         neutral           8    26    6
+    Hamstrings    neutral           5    21    4
+    Glutes        neutral           4    21    4
+    Delts         neutral           8    24    4
+    Triceps       maintenance       5    13    4
+    Biceps        maintenance       5    14    4
+    Calves        maintenance       6    13    6
+                               ──────
+    TOTAL                          60 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 5 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          3 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 19 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          3 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 12 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Overhead Press (BB)             4 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          2 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 17 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             3 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 11 sets
+
+  ── WEEK 6 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  ✅ No issues found
+
+================================================================================
+  PROGRAM: ADVANCED | HYPERTROPHY | 4 DAYS/WEEK
+  Calories: aggressive_deficit | Block: accumulation | Block length: 4 weeks + 1 deload
+  Maintenance muscles: Hamstrings, Glutes
+================================================================================
+
+  WEEKLY SPLIT:
+    Heavy Upper          → Chest, Back, Delts, Triceps, Biceps
+    Heavy Lower          → Quads, Hamstrings, Glutes, Calves
+    Hyp Upper            → Chest, Back, Delts, Triceps, Biceps
+    Hyp Lower            → Quads, Hamstrings, Glutes, Calves
+
+  WEEKLY SET TARGETS (accumulation block):
+    Muscle        Tier         Target   MRV   MV
+    ────────────  ───────────  ──────  ────  ───
+    Chest         neutral          12    21    6
+    Back          neutral          16    24    6
+    Quads         neutral          12    21    6
+    Hamstrings    maintenance       8    12    4
+    Glutes        maintenance       4    12    4
+    Delts         neutral          12    20    4
+    Triceps       neutral           8    15    4
+    Biceps        neutral           8    18    4
+    Calves        neutral           8    15    6
+                               ──────
+    TOTAL                          88 sets/week
+
+  ── WEEK 1 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.0  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 7.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.0  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.0  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 7.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 7.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 7.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 7.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 4 (ACCUMULATION) ──────────────────────────────────────────────────
+
+    DAY 1: Heavy Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 2: Heavy Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+    DAY 3: Hyp Upper
+    ────────────────────────────────────────────────────────────
+      T1   Barbell Bench Press             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Barbell Row                     5 × 5-8    RPE 7.5  Rest 3:30
+      T2   Dumbbell Row                    3 × 8-12   RPE 8.0  Rest 2:30
+      T1   Overhead Press (BB)             5 × 5-8    RPE 7.5  Rest 3:30
+      T1   Close-Grip Bench Press          4 × 5-8    RPE 7.5  Rest 3:30
+      T2   Incline DB Curl                 2 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 24 sets
+
+    DAY 4: Hyp Lower
+    ────────────────────────────────────────────────────────────
+      T2   Sissy Squat                     5 × 8-12   RPE 8.0  Rest 2:30
+      T2   Romanian Deadlift (DB)          4 × 8-12   RPE 8.0  Rest 2:30
+      T2   Cable Kickback                  2 × 8-12   RPE 8.0  Rest 2:30
+      T2   Standing Calf Raise             4 × 8-12   RPE 8.0  Rest 2:30
+    ────────────────────────────────────────────────────────────
+    Session total: 15 sets
+
+  ── WEEK 5 (DELOAD) ──────────────────────────────────────────────────
+    All exercises at RPE 6.0, maintenance volume only
+      Chest       : 6 sets
+      Back        : 6 sets
+      Quads       : 6 sets
+      Hamstrings  : 4 sets
+      Glutes      : 4 sets
+      Delts       : 4 sets
+      Triceps     : 4 sets
+      Biceps      : 4 sets
+      Calves      : 6 sets
+
+  FLAGS:
+    ⚠️  Week 1 Heavy Upper: 24 sets (very high density)
+    ⚠️  Week 1 Hyp Upper: 24 sets (very high density)
+    ⚠️  Week 4 Heavy Upper: 24 sets (very high density)
+    ⚠️  Week 4 Hyp Upper: 24 sets (very high density)
+
+================================================================================
+SUMMARY
+================================================================================
+  Total programs generated: 26
+  Total flags/warnings: 64

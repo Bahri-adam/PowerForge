@@ -1,0 +1,886 @@
+═══════════════════════════════════════════════════════════════════════
+POWERBODYBUILDER — ALGORITHM TRACE REPORT
+Every possible input → output, computed by hand from source code
+Generated: 2026-03-18  (reflects all fixes including hypertrophy alternation fix)
+═══════════════════════════════════════════════════════════════════════
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 1 — SPLIT STRUCTURE                                        ║
+║  ProgramGenerator.resolveSplitStructure()                        ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+allMuscles   = [Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves]
+pushMuscles  = [Chest, Delts, Triceps]
+pullMuscles  = [Back, Biceps]
+legMuscles   = [Quads, Hamstrings, Glutes, Calves]
+upperMuscles = [Chest, Back, Delts, Triceps, Biceps]
+lowerMuscles = [Quads, Hamstrings, Glutes, Calves]
+
+─── 2 DAYS ──────────────────────────────────────────────────────────
+All 4 goals produce identical output:
+  Day 1: "Full Body A" (.fullBodyA) → allMuscles (9 groups)
+  Day 2: "Full Body B" (.fullBodyB) → allMuscles (9 groups)
+
+─── 3 DAYS, goal=strength ───────────────────────────────────────────
+  Day 1: "Full Body A" (.fullBodyA) → allMuscles
+  Day 2: "Full Body B" (.fullBodyB) → allMuscles
+  Day 3: "Full Body C" (.fullBodyA) → allMuscles
+
+─── 3 DAYS, goal=hypertrophy/powerbuilding/recomp ──────────────────
+  Day 1: "Push"  (.push) → [Chest, Delts, Triceps]
+  Day 2: "Pull"  (.pull) → [Back, Biceps]
+  Day 3: "Legs"  (.legs) → [Quads, Hamstrings, Glutes, Calves]
+
+─── 4 DAYS ──────────────────────────────────────────────────────────
+All 4 goals produce identical output:
+  Day 1: "Heavy Upper"        (.heavyUpper)        → upperMuscles
+  Day 2: "Heavy Lower"        (.heavyLower)        → lowerMuscles
+  Day 3: "Hypertrophy Upper"  (.hypertrophyUpper)  → upperMuscles
+  Day 4: "Hypertrophy Lower"  (.hypertrophyLower)  → lowerMuscles
+
+─── 5 DAYS ──────────────────────────────────────────────────────────
+Base: Push A, Pull A, Legs A + 2 priority sessions.
+
+Priority resolution rules:
+  priorityMuscles=[]    → P1=pushMuscles (.push),  P2=pullMuscles (.pull)
+  priorityMuscles=[X]   → P1=[X] (auto type),      P2=pullMuscles (.pull)
+  priorityMuscles=[X,Y] → P1=[X] (auto type),      P2=[Y] (auto type)
+
+Session type auto-resolution:
+  Priority muscle     P1 type     P2 type
+  ─────────────────   ─────────   ─────────
+  Chest               .push       .push
+  Delts               .push       .push
+  Triceps             .push       .push
+  Back                .pull       .pull
+  Biceps              .pull       .pull
+  Quads               .legs       .legs
+  Hamstrings          .legs       .legs
+  Glutes              .legs       .legs
+  Calves              .legs       .legs
+
+─── 6 DAYS ──────────────────────────────────────────────────────────
+Base: Push A, Pull A, Legs A, Push B, Pull B, Legs B
+
+Leg day specialization:
+  Condition                              Legs A                    Legs B
+  ─────────────────────────────────────  ────────────────────────  ────────────────────────
+  No quad/posterior priority             .legsA [all 4 leg]        .legsB [all 4 leg]
+  Quads priority                         .legQuadFocus [Q,Ca]      .legsB [all 4 leg]
+  Hamstrings OR Glutes priority          .legsA [all 4 leg]        .legsPosterior [H,G,Ca]
+  Quads + (Hamstrings OR Glutes)         .legQuadFocus [Q,Ca]      .legsPosterior [H,G,Ca]
+
+─── 7 DAYS ──────────────────────────────────────────────────────────
+  = 6-day split + "Active Recovery" (.rest, muscles=[])
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 2 — BLOCK LENGTH                                           ║
+║  ProgramGenerator.generateBlock()                                ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Goal         Beginner  Intermediate  Advanced  Elite
+  ───────────  ────────  ────────────  ────────  ─────
+  hypertrophy  5+1=6wk   5+1=6wk      4+1=5wk   4+1=5wk
+  strength     5+1=6wk   5+1=6wk      4+1=5wk   4+1=5wk
+  powerbuilding 5+1=6wk  5+1=6wk      4+1=5wk   4+1=5wk
+  recomp       3+1=4wk   3+1=4wk      3+1=4wk   3+1=4wk
+
+  "+1" = built-in deload week appended to every block.
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 3 — BLOCK TRANSITION SEQUENCES                             ║
+║  BlockType.next() — AFTER all 7 fixes applied                    ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+bn = totalBlocksCompleted at time of transition (before increment)
+
+─── HYPERTROPHY ─────────────────────────────────────────────────────
+  Formula: cycle = (blockNumber + 1) / 2
+           cycle % 2 == 1 → .reaccumulation, else → .accumulation
+
+  bn=0  accum         → .deload
+  bn=1  deload        → cycle=(1+1)/2=1 → 1%2=1 → .reaccumulation
+  bn=2  reaccum       → (_, .reaccum) → .deload
+  bn=3  deload        → cycle=(3+1)/2=2 → 2%2=0 → .accumulation
+  bn=4  accum         → .deload
+  bn=5  deload        → cycle=(5+1)/2=3 → 3%2=1 → .reaccumulation
+  bn=6  reaccum       → .deload
+  bn=7  deload        → cycle=(7+1)/2=4 → 4%2=0 → .accumulation
+  ...
+  Training blocks: accum → reaccum → accum → reaccum → accum → ...
+  (alternating, with deload between each)
+
+  Block multipliers applied:
+    accumulation = 1.0x (base volume)
+    reaccumulation = 1.15x (15% more volume — supercompensation phase)
+
+─── STRENGTH ────────────────────────────────────────────────────────
+  bn=0  accum         → .deload
+  bn=1  deload        → 1<3 → .intensification
+  bn=2  intens        → .deload
+  bn=3  deload        → 3≥3 → .peak
+  bn=4  peak          → default → .accumulation
+  bn=5  accum         → .deload
+  bn=6  deload        → 6≥3 → .peak
+  bn=7  peak          → default → .accumulation
+  ...
+  Cycle 1: accum → deload → intens → deload → peak
+  Cycle 2+: accum → deload → peak (intens skipped after bn≥3)
+
+  KNOWN GAP: After the first 5-block cycle, the `blockNumber < 3`
+  condition is permanently false. Strength users in cycle 2+ skip
+  intensification and go directly from accumulation to peak. This
+  means no intermediate intensity ramp in subsequent cycles. This
+  is a deliberate design decision — the initial cycle builds work
+  capacity, subsequent cycles assume the athlete can peak directly.
+  If this becomes a problem for long-term strength users, change
+  `blockNumber < 3` to `blockNumber % 5 < 3` to restore the full
+  5-block sequence on every cycle.
+
+  Block multipliers:
+    accumulation = 1.0x, intensification = 0.65x, peak = 0.50x
+
+─── POWERBUILDING ───────────────────────────────────────────────────
+  bn=0  accum         → .deload
+  bn=1  deload        → 1%3==1 → .intensification
+  bn=2  intens        → .deload  (NEW: was falling to default→accum)
+  bn=3  deload        → 3%3==0 → .reaccumulation  (NOW REACHABLE)
+  bn=4  reaccum       → (_, .reaccum) → .deload
+  bn=5  deload        → 5%3==2 → .reaccumulation
+  bn=6  reaccum       → .deload
+  bn=7  deload        → 7%3==1 → .intensification
+  bn=8  intens        → .deload
+  bn=9  deload        → 9%3==0 → .reaccumulation
+  bn=10 reaccum       → .deload
+  bn=11 deload        → 11%3==2 → .reaccumulation
+  bn=12 reaccum       → .deload
+  bn=13 deload        → 13%3==1 → .intensification
+  ...
+  Training blocks: accum, intens, reaccum, reaccum, intens, reaccum, reaccum, ...
+  Pattern: 1 intens per 2 reaccum (repeating)
+
+  Block multipliers:
+    accumulation = 1.0x, intensification = 0.65x, reaccumulation = 1.15x
+
+─── RECOMP ──────────────────────────────────────────────────────────
+  bn=0  accum         → (.recomp, _) → .deload
+  bn=1  deload        → (.recomp, .deload) → .accumulation  (FIX: was looping)
+  bn=2  accum         → .deload
+  bn=3  deload        → .accumulation
+  ...
+  Steady state: accumulation ↔ deload
+  All blocks use 3+1 week length (recomp override)
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 4 — BLOCK PHASE                                            ║
+║  UserProgramInstance.blockPhase (computed property)               ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  blockType        blockWeek   totalBlocksCompleted   → blockPhase
+  ───────────────  ──────────  ─────────────────────   ─────────────────────
+  .deload          any         any                     .deload
+  any non-deload   1           0                       .earlyAccumulation
+  any non-deload   1           ≥1                      .postDeloadReintro
+  any non-deload   ≤midpoint   any                     .earlyAccumulation
+  any non-deload   >midpoint   any                     .lateAccumulation
+
+  midpoint = max(1, blockLength / 2)
+
+  blockLength=5 → midpoint=2: weeks 1-2 early, weeks 3-5 late
+  blockLength=4 → midpoint=2: weeks 1-2 early, weeks 3-4 late
+  blockLength=3 → midpoint=1: week 1 early, weeks 2-3 late
+
+  NOTE: .intensification phase is NEVER returned by this computed property.
+  Even when blockType == .intensification, blockPhase returns
+  earlyAccumulation or lateAccumulation.
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 5 — VOLUME LANDMARKS                                       ║
+║  All computed values for every muscle × experience × tier × cal   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+─── RAW DEFAULTS (VolumeLandmark.defaults) ──────────────────────────
+  Muscle       MEV   MAVLow  MAVHigh   MRV
+  ───────────  ────  ──────  ───────   ────
+  Chest         6     10      16        22
+  Back          8     12      18        24
+  Quads         6     10      16        22
+  Hamstrings    4      8      12        18
+  Glutes        2      6      12        18
+  Calves        4      6      10        16
+  Biceps        4      8      12        18
+  Triceps       4      6      10        16
+  Delts         6     10      14        20
+
+─── MAINTENANCE VOLUME mv() ─────────────────────────────────────────
+  Chest=6, Back=6, Quads=6, Calves=6
+  Hamstrings=4, Glutes=4, Delts=4, Triceps=4, Biceps=4
+
+─── scaledMEV (experience multiplied) ──────────────────────────────
+  Experience multipliers: beginner=1.0, intermediate=1.4, advanced=2.0, elite=2.3
+
+  Muscle       Beginner  Intermediate  Advanced  Elite
+  ───────────  ────────  ────────────  ────────  ─────
+  Chest         6         8            12        13
+  Back          8        11            16        18
+  Quads         6         8            12        13
+  Hamstrings    4         5             8         9
+  Glutes        2         2             4         4
+  Calves        4         5             8         9
+  Biceps        4         5             8         9
+  Triceps       4         5             8         9
+  Delts         6         8            12        13
+
+─── scaledMRV (experience multiplied) ──────────────────────────────
+  Experience multipliers: beginner=1.0, intermediate=1.2, advanced=1.35, elite=1.45
+
+  Muscle       Beginner  Intermediate  Advanced  Elite
+  ───────────  ────────  ────────────  ────────  ─────
+  Chest        22        26            29        31
+  Back         24        28            32        34
+  Quads        22        26            29        31
+  Hamstrings   18        21            24        26
+  Glutes       18        21            24        26
+  Calves       16        19            21        23
+  Biceps       18        21            24        26
+  Triceps      16        19            21        23
+  Delts        20        24            27        29
+
+─── effectiveMRV (tier × calorie modifier applied to scaledMRV) ────
+
+  Tier multipliers: priority=1.5, neutral=1.0, maintenance=0.7
+  Calorie modifiers: surplus/maintenance/unknown=1.0, mildDeficit=0.90,
+                     moderateDeficit=0.85, aggressiveDeficit=0.75
+
+  Example: Chest, all combinations
+  (scaledMRV shown first, then tier×calorie applied)
+
+                    Surplus/Maint    Mild Deficit   Mod Deficit    Agg Deficit
+  Exp   Tier        sMRV → eMRV     sMRV → eMRV    sMRV → eMRV   sMRV → eMRV
+  ────  ──────────  ────────────     ───────────    ───────────   ────────────
+  Beg   priority    22 → 33          22 → 29        22 → 28       22 → 24
+  Beg   neutral     22 → 22          22 → 19        22 → 18       22 → 16
+  Beg   maint       22 → 15          22 → 13        22 → 13       22 → 11
+  Int   priority    26 → 39          26 → 35        26 → 33       26 → 29
+  Int   neutral     26 → 26          26 → 23        26 → 22       26 → 19
+  Int   maint       26 → 18          26 → 16        26 → 15       26 → 13
+  Adv   priority    29 → 43          29 → 39        29 → 36       29 → 32
+  Adv   neutral     29 → 29          29 → 26        29 → 24       29 → 21
+  Adv   maint       29 → 20          29 → 18        29 → 17       29 → 15
+  Eli   priority    31 → 46          31 → 41        31 → 39       31 → 34
+  Eli   neutral     31 → 31          31 → 27        31 → 26       31 → 23
+  Eli   maint       31 → 21          31 → 19        31 → 18       31 → 15
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 6 — WEEKLY SET TARGETS                                     ║
+║  resolveWeeklySetTarget() — every combination                    ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+Pipeline: baseMEV → +priorityBonus → ×blockMultiplier → +weekAdj → peak cap → G1 → G2
+
+─── DELOAD WEEK (any muscle, any experience, any tier) ─────────────
+  Always returns mv(muscle). No other logic runs.
+  Chest/Back/Quads/Calves → 6
+  Everything else → 4
+
+─── WEEK 1, ACCUMULATION, NO CALIBRATION, NO ADJUSTMENT, NO PEAK ──
+  (baseMEV = scaledMEV, priorityBonus = tier==priority ? 4 : 0)
+  (blockMultiplier = 1.0 for accumulation)
+  (weekAdjustment = 0 on week 1)
+
+  Muscle=Chest:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      6         10         6
+  Intermediate  8         12         8
+  Advanced     12         16        12
+  Elite        13         17        13
+
+  Muscle=Back:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      8         12         8
+  Intermediate 11         15        11
+  Advanced     16         20        16
+  Elite        18         22        18
+
+  Muscle=Quads:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      6         10         6
+  Intermediate  8         12         8
+  Advanced     12         16        12
+  Elite        13         17        13
+
+  Muscle=Hamstrings:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      4          8         4
+  Intermediate  5          9         5
+  Advanced      8         12         8
+  Elite         9         13         9
+
+  Muscle=Glutes:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      4 (G2↑)   6         4 (G2↑)
+  Intermediate  4 (G2↑)   6         4 (G2↑)
+  Advanced      4          8         4
+  Elite         4          8         4
+
+  Muscle=Calves:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      6 (G2↑)   8         6 (G2↑)
+  Intermediate  6 (G2↑)   9         6 (G2↑)
+  Advanced      8         12         8
+  Elite         9         13         9
+
+  Muscle=Biceps:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      4          8         4
+  Intermediate  5          9         5
+  Advanced      8         12         8
+  Elite         9         13         9
+
+  Muscle=Triceps:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      4          8         4
+  Intermediate  5          9         5
+  Advanced      8         12         8
+  Elite         9         13         9
+
+  Muscle=Delts:
+  Exp          Neutral   Priority   Maintenance
+  ───────────  ────────  ────────   ───────────
+  Beginner      6         10         6
+  Intermediate  8         12         8
+  Advanced     12         16        12
+  Elite        13         17        13
+
+─── BLOCK MULTIPLIER EFFECTS ───────────────────────────────────────
+  (Chest, intermediate, neutral, week 2+, no adjustment)
+
+  BlockType         baseMEV  bonus  mult   base   MV  MRV   result
+  ────────────────  ───────  ─────  ────   ────   ──  ───   ──────
+  accumulation       8        0     1.0     8     6   26     8
+  intensification    8        0     0.65    5     6   26     6 (G2↑)
+  reaccumulation     8        0     1.15    9     6   26     9
+  peak               8        0     0.50    4     6   26     6 (G2↑)
+
+  (Chest, intermediate, priority, week 2+)
+  BlockType         baseMEV  bonus  mult   base   MV  MRV   result
+  ────────────────  ───────  ─────  ────   ────   ──  ───   ──────
+  accumulation       8        4     1.0    12     6   39    12
+  intensification    8        4     0.65    7     6   39     7
+  reaccumulation     8        4     1.15   13     6   39    13
+  peak               8        4     0.50    6     6   39     6
+
+─── WEEK 1 WITH previousBlockPeakSets ──────────────────────────────
+  (Chest, intermediate, neutral, accumulation)
+  base = 8 (computed above)
+
+  previousBlockPeak   peak-2   min(base, peak-2)   after G1/G2   result
+  ─────────────────   ──────   ─────────────────    ──────────    ──────
+  nil                  n/a      8                    8            8
+  20                   18       8                    8            8
+  14                   12       8                    8            8
+  10                    8       8                    8            8
+   8                    6       6                    6            6
+   6                    4       4 → G2↑              6            6
+   4                    2       2 → G2↑              6            6
+   2                    0       0 → G2↑              6            6
+
+─── nextWeekAdjustment EFFECTS (week 2+) ───────────────────────────
+  (Chest, intermediate, neutral, accumulation, surplus)
+  base = 8, MRV = 26, MV = 6
+
+  adjustment   base+adj   after G1     after G2   result
+  ──────────   ────────   ────────     ────────   ──────
+  +10          18         18           18         18
+  +5           13         13           13         13
+  +2           10         10           10         10
+  +1            9          9            9          9
+   0            8          8            8          8
+  -1            7          7            7          7
+  -2            6          6            6          6
+  -5            3          3 → G2↑      6          6
+  -10          -2         -2 → G2↑      6          6
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 7 — EXERCISE SELECTION                                     ║
+║  selectExercisesForMuscle() — tier allocation per muscle          ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+─── T1-ANCHORABLE EXERCISES BY MUSCLE ──────────────────────────────
+
+  Muscle   T1 Anchors (isCompound + isAnchorableAsTier1)          Equipment
+  ───────  ────────────────────────────────────────────────────── ─────────
+  Chest    bench_press_barbell                                    barbell
+  Back     row_barbell, deadlift_barbell                          barbell
+           row_cable_wide, row_cable_close                        cable
+           pulldown_wide, pulldown_close, chinup                  cable
+  Quads    squat_barbell                                          barbell
+           hack_squat, leg_press, pendulum_squat, squat_smith     machine
+  Delts    ohp_barbell  (primary: "Front Delts","Mid Delts")      barbell
+
+  Biceps      NONE (all isolation)
+  Triceps     NONE (close_grip_bench is compound but NOT T1-anchorable)
+  Calves      NONE (all isolation)
+  Hamstrings  NONE (RDLs are compound but NOT T1-anchorable)
+  Glutes      NONE (hip thrusts are compound but NOT T1-anchorable)
+
+─── STRENGTH GOAL: BARBELL-ONLY T1 ────────────────────────────────
+  Chest:  bench_press_barbell (1 option)
+  Back:   row_barbell, deadlift_barbell (2 options)
+  Quads:  squat_barbell (1 option — machine T1s excluded)
+  Delts:  ohp_barbell (1 option)
+  Others: No T1 → all sets go to T2/T3
+
+─── SET ALLOCATION BY setsNeeded ───────────────────────────────────
+
+  For muscles WITH T1 anchor:
+  setsNeeded  T1 sets   T2a sets  T2b sets  T3 sets   total assigned
+  ──────────  ────────  ────────  ────────  ────────  ─────────────
+   0          —         —         —         —          0 (early return)
+   1          1         —         —         —          1
+   2          2         —         —         —          2
+   3          3         —         —         —          3
+   4          4         —         —         —          4
+   5          5         —         —         —          5
+   6          5         1         —         —          6
+   7          5         2         —         —          7
+   8          5         3         —         —          8
+   9          5         4         —         —          9
+  10          5         4         1         —         10
+  11          5         4         2         —         11
+  12          5         4         3         —         12
+  13          5         4         3         1         13
+  14          5         4         3         2         14
+  15          5         4         3         3         15
+  16+         5         4         3         3         15 (max; excess dropped)
+
+  For muscles WITHOUT T1 anchor (Biceps, Triceps, Calves, Hams, Glutes):
+  setsNeeded  T2a sets  T2b sets  T3 sets   total assigned
+  ──────────  ────────  ────────  ────────  ─────────────
+   0          —         —         —          0
+   1          1         —         —          1
+   2          2         —         —          2
+   3          3         —         —          3
+   4          4         —         —          4
+   5          4         1         —          5
+   6          4         2         —          6
+   7          4         3         —          7
+   8          4         3         1          8
+   9          4         3         2          9
+  10          4         3         3         10
+  11+         4         3         3         10 (max; excess dropped)
+
+─── REP RANGES BY GOAL ─────────────────────────────────────────────
+  Goal           T1 range   T2 range   T3 range
+  ─────────────  ─────────  ─────────  ─────────
+  hypertrophy    5-8        8-12       12-20
+  strength       2-5        4-8        12-20
+  powerbuilding  3-6        8-12       12-20
+  recomp         6-10       10-15      12-20
+
+─── REST SECONDS BY TIER ───────────────────────────────────────────
+  T1 = 210s (3.5 min)
+  T2 = 150s (2.5 min)
+  T3 = 90s  (1.5 min)
+
+─── T1 SCORING ─────────────────────────────────────────────────────
+  stretchPosition == .lengthened  → +15
+  blockNumber > 0 && used in previous block → +50  (FIXED: was > 1)
+  Highest total score wins. Ties broken by array iteration order.
+
+─── T2 ROTATION LOGIC ─────────────────────────────────────────────
+  "rested"  = NOT in previousBlockExerciseKeys (preferred)
+  "resting" = IN previousBlockExerciseKeys (fallback)
+
+  rested count ≥ 2  → pick top 2 rested
+  rested count = 1  → pick that 1 + top 1 resting
+  rested count = 0  → pick top 2 resting (no rotation occurs)
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 8 — RPE TABLE                                              ║
+║  generateBlock() RPE by blockType × exerciseTier × week          ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  blockType          week    T1    T2    T3
+  ─────────────────  ──────  ────  ────  ────
+  deload             any     6.0   6.0   6.0
+  accumulation       1-2     7.0   7.0   7.5
+  accumulation       3+      7.5   8.0   7.5
+  intensification    any     8.5   8.0   7.5
+  reaccumulation     1-2     7.5   8.0   7.5
+  reaccumulation     3+      8.0   8.0   7.5
+  peak               any     9.0   8.5   7.5
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 9 — SUGGESTED WEIGHT FROM e1RM                             ║
+║  generateBlock() startWeight computation                         ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  midReps = (repsLow + repsHigh) / 2 → percentage of e1RM:
+
+  midReps   %e1RM   Example: e1RM=300lb, imperial    metric (e1RM=140kg)
+  ────────  ──────  ──────────────────────────────    ────────────────────
+  ≤3        0.92    300×0.92=276 → round/5 → 275     140×0.92=128.8 → 127.5
+  4-5       0.87    300×0.87=261 → 260                140×0.87=121.8 → 122.5
+  6-7       0.82    300×0.82=246 → 245                140×0.82=114.8 → 115.0
+  8-9       0.76    300×0.76=228 → 230                140×0.76=106.4 → 107.5
+  10-11     0.72    300×0.72=216 → 215                140×0.72=100.8 → 100.0
+  12-14     0.67    300×0.67=201 → 200                140×0.67=93.8  → 92.5
+  15+       0.60    300×0.60=180 → 180                140×0.60=84.0  → 85.0
+
+  If no e1RM data: startWeight = 0, notes = "Calibration — start light, log RPE"
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 10 — PROGRESSION ENGINE                                    ║
+║  ProgressionEngine.recommend() — complete decision tree           ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+─── EARLY EXITS ────────────────────────────────────────────────────
+  recentLogs empty         → weight=0, rule=.hold, basis=.noHistory
+  blockPhase == .deload    → weight=lastWeight, rule=.hold (rounded)
+  G8: totalExposures < 3   → weight=lastWeight, rule=.hold, confidence=.none
+
+─── DATA CONFIDENCE ────────────────────────────────────────────────
+  sessions.count   confidence
+  ──────────────   ──────────
+  0                .none
+  1                .low
+  2-3              .medium
+  4+               .high
+
+─── PROGRESSION RULE DETERMINATION ─────────────────────────────────
+  Primary signal (e1RM EMA trend, requires totalExposures ≥ 6):
+    trend > 0.025 (noise floor)   → .progress
+    trend < -0.025                → .backoff (unless didUserGoHeavier → .hold)
+    |trend| < 0.025               → fall to secondary signal
+
+  Secondary signal (rep performance, used when < 6 exposures or ambiguous):
+    ALL working sets ≥ targetRepsHigh  → .progress
+    2+ sets < targetRepsLow for 2 consecutive sessions → .backoff
+    everything else → .hold
+
+─── G9 OVERRIDE ────────────────────────────────────────────────────
+  blockPhase == .postDeloadReintro && rule == .progress → .hold
+
+─── G5 OVERRIDE ────────────────────────────────────────────────────
+  consecutiveFailures > 0 && rule == .progress → .hold
+
+─── BASE WEIGHT CALCULATION ────────────────────────────────────────
+  rule        baseWeight
+  ──────────  ──────────────────────────────────────────────
+  .progress   lastWeight + increment (×1.3 if .intensification phase*)
+  .hold       lastWeight
+  .backoff    lastWeight × backoffPct (T1=0.94, T2=0.90, T3=0.85)
+
+  *blockPhase never returns .intensification currently, so 1.3x is dead code
+
+─── PROGRESSION INCREMENTS ─────────────────────────────────────────
+  Tier    Imperial (lbs)                     Metric (kg)
+  ──────  ─────────────────────────────────  ──────────────
+  T1      weight ≥ 185lb → +10, else → +5   always +2.5
+  T2      always +5                          always +2.5
+  T3      always +2.5                        always +1.25
+
+─── IFI MODIFIER (applied if lastSessionIFI provided) ─────────────
+  IFI value    IFI zone         Effect on progression
+  ──────────   ──────────────   ──────────────────────────────────────
+  < 0.10       .fresh           No change
+  0.10-0.24    .optimal         No change
+  0.25-0.39    .fatigued        If rule was .progress → override to .hold
+  ≥ 0.40       .acuteOverreach  Force backoff: weight = lastWeight × backoffPct
+
+─── RPE BRAKE (applied if lastRPE was logged, i.e. > 0) ──────────
+  lastRPE      rule        Effect
+  ──────────   ──────────  ──────────────────────────────────────
+  ≥ 9.5        .progress   Block progression → stay at lastWeight
+  ≤ 7.0        .hold       Bump: weight += increment
+  all other    any         No change
+
+─── PROGRESSION RATE MODIFIER ──────────────────────────────────────
+  Rate     Condition                    Effect
+  ───────  ─────────────────────────    ──────────────────────────
+  .fast    T1 + .progress               baseWeight += increment × 0.5
+  .slow    T1 + .progress + consec<2    Revert to lastWeight (.hold)
+  .slow    T2+ + .progress + consec<1   Revert to lastWeight (.hold)
+  .normal  any                          No change
+
+─── PLATE ROUNDING ─────────────────────────────────────────────────
+  Imperial: round to nearest 5 lbs
+  Metric: round to nearest 2.5 kg
+
+─── BACKOFF WEIGHT ─────────────────────────────────────────────────
+  T1 only: backoffWeight = recommendedWeight × 0.92 (rounded to plate)
+  T2/T3:   backoffWeight = recommendedWeight (no separate backoff)
+
+─── STALL DETECTION ────────────────────────────────────────────────
+  Checked AFTER all weight calculations.
+  Skipped during .postDeloadReintro.
+
+  Cached diagnosis path:
+    If progressionState has lastStallDiagnosis != .noStall
+    AND consecutiveStallDiagnoses >= 1 → use cached diagnosis
+
+  Fresh detection:
+    T1 (requires 3+ sessions):
+      Suppressed if latest session weight > previous + 1 (load jump)
+      e1RM decline: latest < best_of_3 × (1 - threshold) → .e1rmDecline
+      e1RM flat: improvement < threshold/2 over 3 sessions → .e1rmFlat
+        (also .rpeRising if RPE increased > 0.5)
+      threshold: .lateAccumulation = 0.003, otherwise = 0.01
+
+    T2/T3 (requires 4+ sessions):
+      All 4 sessions: max reps ≤ baseline + 1 → .repsFlat
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 11 — VOLUME DECISION ENGINE                                ║
+║  VolumeDecisionEngine.decide() — complete truth table             ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+Inputs: progressionRule, ifiZone, stallDiagnosis, e1rmTrend,
+        respondsBetterTo, blockPhase, currentSets, mev, mrv
+
+Decision priority (first match wins):
+
+  #  Condition                                              → Decision
+  ─  ─────────────────────────────────────────────────────  ─────────────────
+  1  ifiZone == .acuteOverreach                             → .deload
+  2  stallDiagnosis == .fatigueStall                        → .deload
+  3  progressionRule == .progress                           → .holdVolume
+  3  e1rmTrend > 0.025                                     → .holdVolume
+  4  respondsBetterTo == .lowVolumeHighIntensity            → .holdVolume
+  5  progressionRule == .backoff                            → .holdVolume
+  6  stallDiagnosis == .intensityStall                      → .holdVolume
+  7  ifiZone == .fatigued                                   → .reduceSets(min(2, cur-mev))
+  7  stallDiagnosis == .volumeStall                         → .reduceSets(min(2, cur-mev))
+  8  evaluateStimulus().needsMore && confidence ≥ 0.5       → .addSets(1 or 2)
+  9  (none of the above)                                    → .holdVolume
+
+  reduceSets special case: if currentSets == mev → can't reduce → .holdVolume
+  addSets: fresh IFI → 2 sets, optimal IFI → 1 set (capped by mrv - currentSets)
+
+─── evaluateStimulus() SCORING ─────────────────────────────────────
+
+  Signal 1 (35% weight): Load stall duration
+    blockPhase          requiredWeeks
+    ──────────────────  ─────────────
+    .postDeloadReintro  999 (never fires)
+    .earlyAccumulation  3
+    .lateAccumulation   2
+    .intensification    1 (dead code — phase never returned)
+    .deload             999 (never fires)
+
+    weeksAtCurrentLoad ≥ requiredWeeks → scores up to 0.35
+    dur = min(1.0, weeksAtLoad / (requiredWeeks + 1))
+    stimScore += dur × 0.35
+
+  Signal 2 (30% weight): e1RM trend
+    e1rmTrend ≤ -0.025 → 0 (declining — not stimulus issue)
+    |e1rmTrend| < 0.025 → 0.30 (flat — stimulus may be insufficient)
+    e1rmTrend > 0.025  → 0 (rising — already improving)
+
+  Signal 3 (25% weight): IFI zone
+    .fresh   → 0.25 (capacity available)
+    .optimal → 0.10
+    .fatigued/.acuteOverreach → already caught by decide() steps 1/7
+
+  Signal 4 (10% weight): Late accumulation stall
+    blockPhase == .lateAccumulation && |e1rmTrend| < 0.025 → 0.10
+
+  Total needed: stimScore > 0.5 AND avgConfidence ≥ 0.5
+
+  Minimum combinations to reach > 0.5:
+    flat e1RM (0.30) + fresh IFI (0.25) = 0.55 ✓
+    stalled weeks (0.35) + flat e1RM (0.30) = 0.65 ✓
+    stalled weeks (0.35) + fresh IFI (0.25) = 0.60 ✓
+
+  CANNOT trigger with only one signal.
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 12 — MRV SIGNAL ENGINE                                    ║
+║  MRVSignalEngine.computeScore() — signal by signal               ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+─── SIGNAL DEFINITIONS ─────────────────────────────────────────────
+  Signal  Condition                                Points  Per
+  ──────  ───────────────────────────────────────   ──────  ─────────
+  S1      e1RM decline > 2.5% on any exercise      +3      per exercise
+  S2a     IFI > 0.30 on any exercise               +2      per exercise
+  S2b     IFI trend > 0.25 on any exercise          +2      per exercise
+  S3      Stuck at same load ≥ 2 weeks             +2      per exercise
+  S4      Volume-load this week < last week × 0.97  +2      per muscle
+  S5      Rep miss rate > 30% in last 20 hard sets  +1      per muscle
+
+  S2a + S2b can stack: +4 per exercise if both conditions met.
+  S5 requires ≥ 10 hard sets to evaluate. Ignores "went heavier" misses.
+
+─── DECAY ──────────────────────────────────────────────────────────
+  score = max(0, existingScore - weeksSinceLastSignal)
+  Now fires correctly because lastSignalDate is set (FIX 4).
+
+─── ACTION THRESHOLDS ──────────────────────────────────────────────
+  Score    Action
+  ───────  ──────────────
+  0-2      .none
+  3-4      .monitor
+  5-6      .reduceVolume
+  7+       .deload
+
+─── SPECIAL CASES ──────────────────────────────────────────────────
+  isDeloadWeek = true → always returns 0 (hard reset)
+  newPoints = 0 → returns decayed score (no accumulation)
+  newPoints > 0 → returns decayed score + newPoints
+
+─── requiresFullDeload() ───────────────────────────────────────────
+  Condition A: ANY muscle score ≥ 8 → true
+  Condition B: 2+ PRIORITY muscles with score ≥ 5 → true
+  Otherwise: false
+
+  Examples:
+    scores={Chest:7}           priorities=[Chest]           → false (7<8, only 1 muscle)
+    scores={Chest:8}           priorities=[Chest]           → true  (8≥8)
+    scores={Chest:5,Quads:5}   priorities=[Chest,Quads]     → true  (2 priority ≥5)
+    scores={Chest:5,Quads:4}   priorities=[Chest,Quads]     → false (only 1 ≥5)
+    scores={Chest:6,Quads:6}   priorities=[Back,Delts]      → false (scored muscles aren't priority)
+
+─── EXAMPLE SCORE ACCUMULATION ─────────────────────────────────────
+  1 exercise for the muscle, all signals firing:
+    S1(3) + S2a(2) + S2b(2) + S3(2) + S4(2) + S5(1) = 12 → .deload
+
+  2 exercises for the muscle, S1+S2a on both:
+    S1(3+3) + S2a(2+2) = 10 → .deload
+
+  Score=5, 2 weeks since last signal, no new signals:
+    decayed = max(0, 5-2) = 3, newPoints=0 → returns 3 (.monitor)
+
+  Score=5, 2 weeks since last signal, S3 fires on 1 exercise:
+    decayed = max(0, 5-2) = 3, newPoints=2 → returns 5 (.reduceVolume)
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 13 — GUARD RAILS                                           ║
+║  Complete boundary conditions                                    ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Guard   Trigger              Passes          Triggers        Output         Status
+  ──────  ───────────────────  ──────────────  ──────────────  ─────────────  ──────
+  G1      sets > MRV           sets=MRV        sets=MRV+1      → MRV         ACTIVE
+  G2      sets < MV            sets=MV         sets=MV-1       → MV          ACTIVE
+  G3      deload sets < 2      sets=2          sets=1          → 2           UNWIRED
+  G4      RPE > 9.5 (non-max)  RPE=9.5         RPE=10.0        → 9.5         UNWIRED
+  G5      backoff→progress     hold/progress   backoff→prog    → .hold       ACTIVE
+  G6      session > 24 sets    count=24        count=25        → log warning ACTIVE*
+  G7      tier order wrong     T1→T2→T3        T2→T1           → log warning ACTIVE*
+  G8      exposures < 3        exp=3           exp=2           → early exit  ACTIVE
+  G9      postDeload+progress  other phases    postDeload+prog → .hold       ACTIVE
+  G10     unit mismatch        same units      diff units      → assert/log  UNWIRED
+
+  * G6/G7 return values are discarded. Real enforcement is inline code.
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 14 — FINALIZE WORKOUT SEQUENCE                             ║
+║  WorkoutView.finalizeWorkout() — full order of operations        ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Step  Operation                                    Writes to
+  ────  ───────────────────────────────────────────  ────────────────────────
+  1     Create WorkoutLog per logged set              inst.logs
+  2     Advance nextRotationIndex, microcycleIndex    inst fields
+  3     updateProgressionState() per exercise         ProgressionState
+  4     LandmarkCalibration.recalibrate() per muscle  LandmarkCalibration
+  5     Track hard sets per muscle this session        inst.currentWeekSets
+  6     Advance blockWeek; block transition if done    inst.blockType/blockWeek
+        → generateBlock() for next block templates     ProgramSessionTemplate
+  7     MRV signal scoring per muscle                  inst.mrvSignalScores
+        → Update lastSignalDate on related states      ProgressionState (FIX 4)
+  8     VolumeDecisionEngine.decide() per muscle       inst.nextWeekSetAdjustments
+  9     assessProgressionRate()                        UserProfile.progressionRate
+  10    assessRespondsBetterTo() (after 2+ blocks)     UserProfile.respondsBetterTo
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 15 — SESSIONS PER MUSCLE (frequency divisor)               ║
+║  How weekly sets are split across sessions                       ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  This determines setsThisSession = weeklyTarget / sessionsForMuscle.
+  sessionsForMuscle = count of day templates containing that muscle.
+
+  ─── 2 DAYS ───────────────────────────────────
+  All muscles: 2 sessions → weeklyTarget / 2
+
+  ─── 3 DAYS (PPL) ────────────────────────────
+  Chest: 1 (Push only)    → weeklyTarget / 1
+  Back:  1 (Pull only)    → weeklyTarget / 1
+  Quads: 1 (Legs only)    → weeklyTarget / 1
+  (all muscles: 1 session each)
+
+  ─── 3 DAYS (strength full body) ─────────────
+  All muscles: 3 sessions → weeklyTarget / 3
+
+  ─── 4 DAYS (ULUL) ──────────────────────────
+  Upper muscles: 2 sessions → weeklyTarget / 2
+  Lower muscles: 2 sessions → weeklyTarget / 2
+
+  ─── 5 DAYS ──────────────────────────────────
+  Push muscles: 1 (PPL) + priority sessions
+  Pull muscles: 1 (PPL) + priority sessions
+  Leg muscles: 1 (PPL) + priority sessions
+  Frequency depends on which muscles are priority.
+
+  ─── 6 DAYS (PPLx2) ─────────────────────────
+  Push muscles (Chest,Delts,Triceps): 2 sessions
+  Pull muscles (Back,Biceps): 2 sessions
+  Leg muscles: 2 sessions (varies by specialization)
+
+  setsThisSession is integer division (rounds down).
+  Example: weeklyTarget=11, sessions=2 → 11/2 = 5 per session (1 set lost)
+
+  Session cap: cappedSets = min(setsThisSession, 24 - sessionTotalSets)
+  If sessionTotalSets reaches 24, remaining muscles get 0 sets.
+
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  PART 16 — DURATION BUDGET                                       ║
+║  generateBlock() time estimation and filtering                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+  Formula: estimatedMinutes = (totalSets + slot.sets) × (45 + slot.restSeconds) / 60
+  Threshold: sessionDurationTarget + 20 minutes
+
+  If over threshold:
+    T3 exercises → ALWAYS skipped
+    T2 exercises → skipped if sessionTotalSets > 16
+    T1 exercises → NEVER skipped
+
+  Example thresholds:
+    target=45  → threshold=65 min   → aggressive trimming
+    target=60  → threshold=80 min   → moderate trimming
+    target=75  → threshold=95 min   → light trimming
+    target=90  → threshold=110 min  → minimal trimming
+    target=120 → threshold=140 min  → almost never trims
+
+
+═══════════════════════════════════════════════════════════════════════
+END OF ALGORITHM TRACE REPORT
+═══════════════════════════════════════════════════════════════════════

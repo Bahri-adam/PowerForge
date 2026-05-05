@@ -1,0 +1,1045 @@
+═══════════════════════════════════════════════════════════════════════════════
+POWERBODYBUILDER — COMPLETE PROGRAM GENERATION AUDIT
+Every possible combination of inputs → exact output values
+Date: 2026-03-21
+═══════════════════════════════════════════════════════════════════════════════
+
+User choices that affect generation:
+  • Goal: hypertrophy, strength, powerbuilding, recomp (4 options)
+  • Experience: beginner, intermediate, advanced, elite (4 options)
+  • Days/week: 2, 3, 4, 5, 6, 7 (6 options)
+  • Calorie context: surplus, maintenance, mild/moderate/aggressive deficit (6 options)
+  • Muscle tiers: priority/neutral/maintenance per muscle (3^9 combinations)
+  • Priority muscles: affects 5-day and 6-day splits
+
+This document traces every combination to its concrete output.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 1 — SPLIT STRUCTURE (24 combinations: 6 days × 4 goals)             ║
+║  What sessions does the user train each week?                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Key: Each row shows [Session Label (SessionType) → muscles trained]
+
+───── 2 DAYS PER WEEK ──────────────────────────────────────────────────────────
+Same for ALL 4 goals:
+  Day 1: Full Body A (.fullBodyA) → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+  Day 2: Full Body B (.fullBodyB) → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+
+  Frequency per muscle: 2x/week (every muscle appears in both sessions)
+  Sessions for muscle divisor: 2
+
+───── 3 DAYS PER WEEK, STRENGTH ────────────────────────────────────────────────
+  Day 1: Full Body A (.fullBodyA) → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+  Day 2: Full Body B (.fullBodyB) → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+  Day 3: Full Body C (.fullBodyA) → Chest, Back, Quads, Hamstrings, Glutes, Delts, Triceps, Biceps, Calves
+
+  Frequency per muscle: 3x/week
+  Sessions for muscle divisor: 3
+
+───── 3 DAYS PER WEEK, HYPERTROPHY / POWERBUILDING / RECOMP ───────────────────
+  Day 1: Push (.push)  → Chest, Delts, Triceps
+  Day 2: Pull (.pull)  → Back, Biceps
+  Day 3: Legs (.legs)  → Quads, Hamstrings, Glutes, Calves
+
+  Frequency per muscle: 1x/week
+  Sessions for muscle divisor: 1
+
+───── 4 DAYS PER WEEK ──────────────────────────────────────────────────────────
+Same for ALL 4 goals:
+  Day 1: Heavy Upper (.heavyUpper)             → Chest, Back, Delts, Triceps, Biceps
+  Day 2: Heavy Lower (.heavyLower)             → Quads, Hamstrings, Glutes, Calves
+  Day 3: Hypertrophy Upper (.hypertrophyUpper) → Chest, Back, Delts, Triceps, Biceps
+  Day 4: Hypertrophy Lower (.hypertrophyLower) → Quads, Hamstrings, Glutes, Calves
+
+  Frequency: Upper muscles 2x/week, Lower muscles 2x/week
+  Sessions for muscle divisor: 2
+
+───── 5 DAYS PER WEEK ──────────────────────────────────────────────────────────
+Same for ALL 4 goals. Output depends on priority muscles.
+
+  Day 1: Push A (.pushA)    → Chest, Delts, Triceps
+  Day 2: Pull A (.pullA)    → Back, Biceps
+  Day 3: Legs A (.legsA)    → Quads, Hamstrings, Glutes, Calves
+  Day 4: Priority 1 (varies) → depends on first priority muscle
+  Day 5: Priority 2 (varies) → depends on second priority muscle
+
+  PRIORITY 1 SESSION TYPE RESOLUTION:
+    First priority muscle    Session type    Muscles trained
+    ─────────────────────    ────────────    ───────────────────────
+    (none specified)         .push           Chest, Delts, Triceps
+    Chest                    .push           [Chest]
+    Delts                    .push           [Delts]
+    Triceps                  .push           [Triceps]
+    Back                     .pull           [Back]
+    Biceps                   .pull           [Biceps]
+    Quads                    .legs           [Quads]
+    Hamstrings               .legs           [Hamstrings]
+    Glutes                   .legs           [Glutes]
+    Calves                   .legs           [Calves]
+
+  PRIORITY 2 SESSION TYPE RESOLUTION:
+    Second priority muscle   Session type    Muscles trained
+    ─────────────────────    ────────────    ───────────────────────
+    (none specified)         .pull           Back, Biceps
+    Chest                    .push           [Chest]
+    Delts                    .push           [Delts]
+    Triceps                  .push           [Triceps]
+    Back                     .pull           [Back]
+    Biceps                   .pull           [Biceps]
+    Quads                    .legs           [Quads]
+    Hamstrings               .legs           [Hamstrings]
+    Glutes                   .legs           [Glutes]
+    Calves                   .legs           [Calves]
+
+  FREQUENCY EXAMPLES:
+    No priorities: Chest 2x (PushA + P1), Back 2x (PullA + P2), Legs 1x
+    Quads priority: Quads 2x (LegsA + P1), other legs 1x, upper 1x
+    Chest+Back priority: Chest 2x, Back 2x, Legs 1x, Delts/Tri/Bi 1x
+
+───── 6 DAYS PER WEEK ──────────────────────────────────────────────────────────
+Same for ALL 4 goals. Leg sessions depend on priority muscles.
+
+  Day 1: Push A (.pushA) → Chest, Delts, Triceps
+  Day 2: Pull A (.pullA) → Back, Biceps
+  Day 3: Legs A (varies)  → see below
+  Day 4: Push B (.pushB) → Chest, Delts, Triceps
+  Day 5: Pull B (.pullB) → Back, Biceps
+  Day 6: Legs B (varies)  → see below
+
+  LEGS A RESOLUTION:
+    Quads is priority?    Legs A session
+    ─────────────────     ───────────────────────────────────────────
+    No                    "Legs A" (.legsA) → Quads, Hamstrings, Glutes, Calves
+    Yes                   "Legs — Quad Focus" (.legQuadFocus) → Quads, Calves
+
+  LEGS B RESOLUTION:
+    Hams or Glutes priority?   Legs B session
+    ────────────────────────   ───────────────────────────────────────────
+    No                         "Legs B" (.legsB) → Quads, Hamstrings, Glutes, Calves
+    Yes                        "Legs — Posterior" (.legsPosterior) → Hamstrings, Glutes, Calves
+
+  ALL POSSIBLE 6-DAY LEG CONFIGURATIONS:
+    Priorities                    Legs A                          Legs B
+    ────────────────────────────  ──────────────────────────────  ──────────────────────────────
+    No leg priorities             LegsA [Q,H,G,Ca]                LegsB [Q,H,G,Ca]
+    Quads only                    QuadFocus [Q,Ca]                LegsB [Q,H,G,Ca]
+    Hamstrings only               LegsA [Q,H,G,Ca]                Posterior [H,G,Ca]
+    Glutes only                   LegsA [Q,H,G,Ca]                Posterior [H,G,Ca]
+    Quads + Hamstrings            QuadFocus [Q,Ca]                Posterior [H,G,Ca]
+    Quads + Glutes                QuadFocus [Q,Ca]                Posterior [H,G,Ca]
+    Hamstrings + Glutes           LegsA [Q,H,G,Ca]                Posterior [H,G,Ca]
+
+  Frequency: Push/Pull muscles 2x/week, Leg muscles 2x/week
+
+───── 7 DAYS PER WEEK ──────────────────────────────────────────────────────────
+  = exact same as 6-day split + Day 7: Active Recovery (.rest, no muscles)
+  Rest day is skipped in generateBlock — effectively identical to 6-day.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 2 — BLOCK LENGTH (16 combinations: 4 goals × 4 experience)          ║
+║  How many weeks per training block?                                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Goal            Beginner   Intermediate   Advanced   Elite
+  ──────────────  ─────────  ────────────   ────────   ─────
+  hypertrophy     5 (+1 DL)  5 (+1 DL)      4 (+1 DL)  4 (+1 DL)
+  strength        5 (+1 DL)  5 (+1 DL)      4 (+1 DL)  4 (+1 DL)
+  powerbuilding   5 (+1 DL)  5 (+1 DL)      4 (+1 DL)  4 (+1 DL)
+  recomp          3 (+1 DL)  3 (+1 DL)      3 (+1 DL)  3 (+1 DL)
+
+  "+1 DL" = one deload week automatically appended to every block.
+  Total weeks per block = blockLength + 1.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 3 — BLOCK SEQUENCES (4 goals)                                       ║
+║  What block types does the user cycle through over months?                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+───── HYPERTROPHY SEQUENCE ─────────────────────────────────────────────────────
+  Block#  BlockType          Multiplier   Notes
+  ──────  ─────────────────  ──────────   ─────────────────────────────
+  0       accumulation       1.0x         Initial block
+  1       deload             mv()         Auto-inserted
+  2       reaccumulation     1.15x        Higher volume
+  3       deload             mv()
+  4       accumulation       1.0x         Cycle repeats
+  5       deload             mv()
+  6       reaccumulation     1.15x
+  7       deload             mv()
+  8       accumulation       1.0x
+  ...     (alternating accum ↔ reaccum with deloads between)
+
+───── STRENGTH SEQUENCE ────────────────────────────────────────────────────────
+  FIRST CYCLE:
+  Block#  BlockType          Multiplier   Notes
+  ──────  ─────────────────  ──────────   ─────────────────────────────
+  0       accumulation       1.0x         Build work capacity
+  1       deload             mv()
+  2       intensification    0.65x        Lower volume, higher intensity
+  3       deload             mv()
+  4       peak               0.50x        Lowest volume, highest intensity
+
+  SUBSEQUENT CYCLES (block 5+):
+  Block#  BlockType          Multiplier   Notes
+  ──────  ─────────────────  ──────────   ─────────────────────────────
+  5       accumulation       1.0x         Restart
+  6       deload             mv()
+  7       peak               0.50x        Skips intensification
+  8       accumulation       1.0x
+  9       deload             mv()
+  10      peak               0.50x
+  ...     (accum → deload → peak, repeating)
+
+  NOTE: Intensification only occurs in the first cycle (blockNumber < 3).
+
+───── POWERBUILDING SEQUENCE ───────────────────────────────────────────────────
+  Block#  BlockType          Multiplier   Notes
+  ──────  ─────────────────  ──────────   ─────────────────────────────
+  0       accumulation       1.0x
+  1       deload             mv()
+  2       intensification    0.65x
+  3       deload             mv()
+  4       reaccumulation     1.15x        Now reachable after fix
+  5       deload             mv()
+  6       reaccumulation     1.15x
+  7       deload             mv()
+  8       intensification    0.65x        Returns every ~6 blocks
+  9       deload             mv()
+  10      reaccumulation     1.15x
+  11      deload             mv()
+  12      reaccumulation     1.15x
+  13      deload             mv()
+  14      intensification    0.65x
+  ...     (1 intens per 2 reaccum, repeating)
+
+───── RECOMP SEQUENCE ──────────────────────────────────────────────────────────
+  Block#  BlockType          Multiplier   Notes
+  ──────  ─────────────────  ──────────   ─────────────────────────────
+  0       accumulation       1.0x         3-week block + 1 deload week
+  1       deload             mv()         3-week block + 1 deload week
+  2       accumulation       1.0x         Fixed after infinite deload bug
+  3       deload             mv()
+  4       accumulation       1.0x
+  ...     (accum ↔ deload, each block is short: 3+1 weeks)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 4 — WEEKLY SET TARGETS: EVERY MUSCLE × EXPERIENCE × TIER × BLOCK    ║
+║  What is the base weekly set prescription before adjustments?               ║
+║  432 combinations (9 muscles × 4 experience × 3 tiers × 4 non-deload)      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+FORMULA:
+  baseMEV = scaledMEV(muscle, experience)
+  priorityBonus = (tier == priority) ? 4 : 0
+  base = Int((baseMEV + priorityBonus) × blockMultiplier)
+  Then clamped: max(MV, min(base, effectiveMRV))
+
+Block multipliers: accum=1.0, intens=0.65, reaccum=1.15, peak=0.50
+
+MV (maintenance volume floor):
+  Chest=6, Back=6, Quads=6, Calves=6
+  Hamstrings=4, Glutes=4, Delts=4, Triceps=4, Biceps=4
+
+═══════════════════════════════════════════════════════════════════════════════
+CHEST (MEV default=6, MV=6)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=6, Int=8, Adv=12, Eli=13
+
+ACCUMULATION (×1.0):
+                 Neutral           Priority (+4)      Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        6    6    6       10   6   10         6   6    6
+  Intermediate    8    6    8       12   6   12         8   6    8
+  Advanced       12    6   12       16   6   16        12   6   12
+  Elite          13    6   13       17   6   17        13   6   13
+
+INTENSIFICATION (×0.65):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        3    6    6↑      6    6    6         3   6    6↑
+  Intermediate    5    6    6↑      7    6    7         5   6    6↑
+  Advanced        7    6    7      10    6   10         7   6    7
+  Elite           8    6    8      11    6   11         8   6    8
+
+REACCUMULATION (×1.15):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        6    6    6      11    6   11         6   6    6
+  Intermediate    9    6    9      13    6   13         9   6    9
+  Advanced       13    6   13      18    6   18        13   6   13
+  Elite          14    6   14      19    6   19        14   6   14
+
+PEAK (×0.50):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        3    6    6↑      5    6    6↑        3   6    6↑
+  Intermediate    4    6    6↑      6    6    6         4   6    6↑
+  Advanced        6    6    6       8    6    8         6   6    6
+  Elite           6    6    6       8    6    8         6   6    6
+
+DELOAD: Always returns MV = 6 (regardless of experience, tier, or calories)
+
+═══════════════════════════════════════════════════════════════════════════════
+BACK (MEV default=8, MV=6)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=8, Int=11, Adv=16, Eli=18
+
+ACCUMULATION (×1.0):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        8    6    8       12   6   12         8   6    8
+  Intermediate   11    6   11       15   6   15        11   6   11
+  Advanced       16    6   16       20   6   20        16   6   16
+  Elite          18    6   18       22   6   22        18   6   18
+
+INTENSIFICATION (×0.65):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        5    6    6↑      7    6    7         5   6    6↑
+  Intermediate    7    6    7       9    6    9         7   6    7
+  Advanced       10    6   10      13    6   13        10   6   10
+  Elite          11    6   11      14    6   14        11   6   11
+
+REACCUMULATION (×1.15):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        9    6    9       13   6   13         9   6    9
+  Intermediate   12    6   12      17    6   17        12   6   12
+  Advanced       18    6   18      23    6   23        18   6   18
+  Elite          20    6   20      25    6   25        20   6   20
+
+PEAK (×0.50):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        4    6    6↑      6    6    6         4   6    6↑
+  Intermediate    5    6    6↑      7    6    7         5   6    6↑
+  Advanced        8    6    8      10    6   10         8   6    8
+  Elite           9    6    9      11    6   11         9   6    9
+
+DELOAD: Always returns MV = 6
+
+═══════════════════════════════════════════════════════════════════════════════
+QUADS (MEV default=6, MV=6)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=6, Int=8, Adv=12, Eli=13
+(Identical structure to CHEST — same MEV defaults)
+
+ACCUMULATION: Beg N=6, Int N=8, Adv N=12, Eli N=13
+              Beg P=10, Int P=12, Adv P=16, Eli P=17
+INTENSIFICATION: Beg N=6↑, Int N=6↑, Adv N=7, Eli N=8
+                 Beg P=6, Int P=7, Adv P=10, Eli P=11
+REACCUMULATION: Beg N=6, Int N=9, Adv N=13, Eli N=14
+                Beg P=11, Int P=13, Adv P=18, Eli P=19
+PEAK: Beg N=6↑, Int N=6↑, Adv N=6, Eli N=6
+      Beg P=6↑, Int P=6, Adv P=8, Eli P=8
+DELOAD: 6
+
+═══════════════════════════════════════════════════════════════════════════════
+HAMSTRINGS (MEV default=4, MV=4)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=4, Int=5, Adv=8, Eli=9
+
+ACCUMULATION (×1.0):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        4    4    4        8   4    8         4   4    4
+  Intermediate    5    4    5        9   4    9         5   4    5
+  Advanced        8    4    8       12   4   12         8   4    8
+  Elite           9    4    9       13   4   13         9   4    9
+
+INTENSIFICATION (×0.65):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        2    4    4↑      5    4    5         2   4    4↑
+  Intermediate    3    4    4↑      5    4    5         3   4    4↑
+  Advanced        5    4    5       7    4    7         5   4    5
+  Elite           5    4    5       8    4    8         5   4    5
+
+REACCUMULATION (×1.15):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        4    4    4       9    4    9         4   4    4
+  Intermediate    5    4    5      10    4   10         5   4    5
+  Advanced        9    4    9      13    4   13         9   4    9
+  Elite          10    4   10      14    4   14        10   4   10
+
+PEAK (×0.50):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        2    4    4↑      4    4    4         2   4    4↑
+  Intermediate    2    4    4↑      4    4    4         2   4    4↑
+  Advanced        4    4    4       6    4    6         4   4    4
+  Elite           4    4    4       6    4    6         4   4    4
+
+DELOAD: 4
+
+═══════════════════════════════════════════════════════════════════════════════
+GLUTES (MEV default=2, MV=4)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=2, Int=2, Adv=4, Eli=4
+NOTE: Glutes MEV is very low. MV floor (4) often dominates.
+
+ACCUMULATION (×1.0):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        2    4    4↑      6    4    6         2   4    4↑
+  Intermediate    2    4    4↑      6    4    6         2   4    4↑
+  Advanced        4    4    4       8    4    8         4   4    4
+  Elite           4    4    4       8    4    8         4   4    4
+
+INTENSIFICATION (×0.65):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        1    4    4↑      3    4    4↑        1   4    4↑
+  Intermediate    1    4    4↑      3    4    4↑        1   4    4↑
+  Advanced        2    4    4↑      5    4    5         2   4    4↑
+  Elite           2    4    4↑      5    4    5         2   4    4↑
+
+REACCUMULATION (×1.15):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        2    4    4↑      6    4    6         2   4    4↑
+  Intermediate    2    4    4↑      6    4    6         2   4    4↑
+  Advanced        4    4    4       9    4    9         4   4    4
+  Elite           4    4    4       9    4    9         4   4    4
+
+PEAK (×0.50):
+  All combinations → base ≤ 4 → result = 4 (MV floor)
+
+DELOAD: 4
+
+═══════════════════════════════════════════════════════════════════════════════
+CALVES (MEV default=4, MV=6)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=4, Int=5, Adv=8, Eli=9
+NOTE: MV=6 is higher than beginner/intermediate MEV. MV floor dominates.
+
+ACCUMULATION (×1.0):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        4    6    6↑      8    6    8         4   6    6↑
+  Intermediate    5    6    6↑      9    6    9         5   6    6↑
+  Advanced        8    6    8      12    6   12         8   6    8
+  Elite           9    6    9      13    6   13         9   6    9
+
+INTENSIFICATION (×0.65):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        2    6    6↑      5    6    6↑        2   6    6↑
+  Intermediate    3    6    6↑      5    6    6↑        3   6    6↑
+  Advanced        5    6    6↑      7    6    7         5   6    6↑
+  Elite           5    6    6↑      8    6    8         5   6    6↑
+
+REACCUMULATION (×1.15):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        4    6    6↑      9    6    9         4   6    6↑
+  Intermediate    5    6    6↑     10    6   10         5   6    6↑
+  Advanced        9    6    9      13    6   13         9   6    9
+  Elite          10    6   10      14    6   14        10   6   10
+
+PEAK (×0.50):
+  All Beg/Int → 6↑. Adv N=6↑, P=6. Eli N=6↑, P=6.
+
+DELOAD: 6
+
+═══════════════════════════════════════════════════════════════════════════════
+BICEPS (MEV default=4, MV=4)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=4, Int=5, Adv=8, Eli=9
+(Same structure as HAMSTRINGS)
+
+ACCUMULATION: Beg N=4, Int N=5, Adv N=8, Eli N=9
+              Beg P=8, Int P=9, Adv P=12, Eli P=13
+INTENSIFICATION: Beg N=4↑, Int N=4↑, Adv N=5, Eli N=5
+                 Beg P=5, Int P=5, Adv P=7, Eli P=8
+REACCUMULATION: Beg N=4, Int N=5, Adv N=9, Eli N=10
+                Beg P=9, Int P=10, Adv P=13, Eli P=14
+PEAK: Beg N=4↑, Int N=4↑, Adv N=4, Eli N=4
+      Beg P=4, Int P=4, Adv P=6, Eli P=6
+DELOAD: 4
+
+═══════════════════════════════════════════════════════════════════════════════
+TRICEPS (MEV default=4, MV=4)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=4, Int=5, Adv=8, Eli=9
+(Identical to BICEPS and HAMSTRINGS)
+DELOAD: 4
+
+═══════════════════════════════════════════════════════════════════════════════
+DELTS (MEV default=6, MV=4)
+═══════════════════════════════════════════════════════════════════════════════
+
+scaledMEV: Beg=6, Int=8, Adv=12, Eli=13
+
+ACCUMULATION (×1.0):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        6    4    6       10   4   10         6   4    6
+  Intermediate    8    4    8       12   4   12         8   4    8
+  Advanced       12    4   12       16   4   16        12   4   12
+  Elite          13    4   13       17   4   17        13   4   13
+
+INTENSIFICATION (×0.65):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        3    4    4↑      6    4    6         3   4    4↑
+  Intermediate    5    4    5       7    4    7         5   4    5
+  Advanced        7    4    7      10    4   10         7   4    7
+  Elite           8    4    8      11    4   11         8   4    8
+
+REACCUMULATION (×1.15):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        6    4    6      11    4   11         6   4    6
+  Intermediate    9    4    9      13    4   13         9   4    9
+  Advanced       13    4   13      18    4   18        13   4   13
+  Elite          14    4   14      19    4   19        14   4   14
+
+PEAK (×0.50):
+                 Neutral           Priority           Maintenance
+  Experience     base  MV  result  base  MV  result   base  MV  result
+  ───────────    ────  ──  ──────  ────  ──  ──────   ────  ──  ──────
+  Beginner        3    4    4↑      5    4    5         3   4    4↑
+  Intermediate    4    4    4       6    4    6         4   4    4
+  Advanced        6    4    6       8    4    8         6   4    6
+  Elite           6    4    6       8    4    8         6   4    6
+
+DELOAD: 4
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 5 — MRV CEILINGS (calorie context effect)                           ║
+║  Maximum sets/week the algorithm will ever prescribe                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+effectiveMRV = Int(scaledMRV × tierMultiplier × calorieModifier)
+
+Calorie modifiers: surplus/maint/unknown=1.0, mild=0.90, mod=0.85, agg=0.75
+Tier multipliers: priority=1.5, neutral=1.0, maintenance=0.7
+
+───── CHEST (scaledMRV: Beg=22, Int=26, Adv=29, Eli=31) ───────────────────────
+                    Surplus    MildDef   ModDef    AggDef
+  Beg  neutral      22         19        18        16
+  Beg  priority     33         29        28        24
+  Beg  maint        15         13        13        11
+  Int  neutral      26         23        22        19
+  Int  priority     39         35        33        29
+  Int  maint        18         16        15        13
+  Adv  neutral      29         26        24        21
+  Adv  priority     43         39        36        32
+  Adv  maint        20         18        17        15
+  Eli  neutral      31         27        26        23
+  Eli  priority     46         41        39        34
+  Eli  maint        21         19        18        15
+
+───── BACK (scaledMRV: Beg=24, Int=28, Adv=32, Eli=34) ────────────────────────
+                    Surplus    MildDef   ModDef    AggDef
+  Beg  neutral      24         21        20        18
+  Beg  priority     36         32        30        27
+  Beg  maint        16         14        14        12
+  Int  neutral      28         25        23        21
+  Int  priority     42         37        35        31
+  Int  maint        19         17        16        14
+  Adv  neutral      32         28        27        24
+  Adv  priority     48         43        40        36
+  Adv  maint        22         19        19        16
+  Eli  neutral      34         30        28        25
+  Eli  priority     51         45        43        38
+  Eli  maint        23         21        20        17
+
+───── QUADS (same as CHEST) ────────────────────────────────────────────────────
+───── HAMSTRINGS (scaledMRV: Beg=18, Int=21, Adv=24, Eli=26) ──────────────────
+                    Surplus    MildDef   ModDef    AggDef
+  Beg  neutral      18         16        15        13
+  Beg  priority     27         24        22        20
+  Int  neutral      21         18        17        15
+  Int  priority     31         28        26        23
+  Adv  neutral      24         21        20        18
+  Adv  priority     36         32        30        27
+  Eli  neutral      26         23        22        19
+  Eli  priority     39         35        33        29
+
+───── GLUTES (same as HAMSTRINGS) ──────────────────────────────────────────────
+───── BICEPS (same as HAMSTRINGS) ──────────────────────────────────────────────
+───── CALVES (scaledMRV: Beg=16, Int=19, Adv=21, Eli=23) ──────────────────────
+                    Surplus    MildDef   ModDef    AggDef
+  Beg  neutral      16         14        13        12
+  Beg  priority     24         21        20        18
+  Int  neutral      19         17        16        14
+  Int  priority     28         25        24        21
+  Adv  neutral      21         18        17        15
+  Adv  priority     31         28        26        23
+  Eli  neutral      23         20        19        17
+  Eli  priority     34         31        29        25
+
+───── TRICEPS (same as CALVES) ─────────────────────────────────────────────────
+───── DELTS (scaledMRV: Beg=20, Int=24, Adv=27, Eli=29) ───────────────────────
+                    Surplus    MildDef   ModDef    AggDef
+  Beg  neutral      20         18        17        15
+  Beg  priority     30         27        25        22
+  Int  neutral      24         21        20        18
+  Int  priority     36         32        30        27
+  Adv  neutral      27         24        22        20
+  Adv  priority     40         36        34        30
+  Eli  neutral      29         26        24        21
+  Eli  priority     43         39        36        32
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 6 — SETS PER SESSION (weekly target ÷ frequency)                    ║
+║  How many sets does each muscle get per workout?                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+setsThisSession = weeklyTarget / sessionsForMuscle (integer division)
+
+  Days  Split type     Muscles           Sessions   Example: weeklyTarget=12
+  ────  ────────────   ──────────────    ────────   ────────────────────────
+  2     Full Body      all 9 muscles     2          12/2 = 6 per session
+  3     PPL            each group        1          12/1 = 12 per session
+  3     Strength FB    all 9 muscles     3          12/3 = 4 per session
+  4     Upper/Lower    upper muscles     2          12/2 = 6 per session
+  4     Upper/Lower    lower muscles     2          12/2 = 6 per session
+  5     PPL+priority   base muscles      1          12/1 = 12 per session
+  5     PPL+priority   priority muscles  2          12/2 = 6 per session
+  6     PPL×2          all muscles       2          12/2 = 6 per session
+
+  SESSION CAP: max 24 sets total per session.
+  If setsThisSession would push total above 24, it is reduced.
+
+  EXAMPLE: 3-day PPL, intermediate, accumulation, neutral tier
+    Push day: Chest(8) + Delts(8) + Triceps(5) = 21 sets → under 24 ✓
+    Pull day: Back(11) + Biceps(5) = 16 sets → under 24 ✓
+    Legs day: Quads(8) + Hams(5) + Glutes(4) + Calves(6) = 23 sets → under 24 ✓
+
+  EXAMPLE: 3-day PPL, elite, priority all, reaccumulation
+    Push day: Chest(19) + Delts(19) + Triceps(14) = 52 → CAPPED at 24
+    Chest gets 19, Delts gets 5 (24-19=5), Triceps gets 0
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 7 — EXERCISE TIER ALLOCATION                                        ║
+║  For a given setsNeeded, what tiers are used?                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+───── MUSCLES WITH T1 ANCHOR (Chest, Back, Quads, Delts) ──────────────────────
+
+  sets   T1     T2a    T2b    T3     Exercises
+  ────   ────   ────   ────   ────   ──────────────────────────────────
+   0     —      —      —      —      none
+   1     1      —      —      —      1 compound anchor
+   2     2      —      —      —      1 compound anchor
+   3     3      —      —      —      1 compound anchor
+   4     4      —      —      —      1 compound anchor
+   5     5      —      —      —      1 compound anchor
+   6     5      1      —      —      anchor + 1 accessory
+   7     5      2      —      —      anchor + 1 accessory
+   8     5      3      —      —      anchor + 1 accessory
+   9     5      4      —      —      anchor + 1 accessory
+  10     5      4      1      —      anchor + 2 accessories
+  11     5      4      2      —      anchor + 2 accessories
+  12     5      4      3      —      anchor + 2 accessories
+  13     5      4      3      1      anchor + 2 access + 1 isolation
+  14     5      4      3      2      anchor + 2 access + 1 isolation
+  15     5      4      3      3      anchor + 2 access + 1 isolation
+  16+    5      4      3      3      MAX 15 assigned, excess dropped
+
+───── MUSCLES WITHOUT T1 ANCHOR (Biceps, Triceps, Calves, Hams, Glutes) ────────
+
+  sets   T2a    T2b    T3     Exercises
+  ────   ────   ────   ────   ──────────────────────────────────────────
+   0     —      —      —      none
+   1     1      —      —      1 compound or isolation
+   2     2      —      —      1 exercise
+   3     3      —      —      1 exercise
+   4     4      —      —      1 exercise
+   5     4      1      —      2 exercises
+   6     4      2      —      2 exercises
+   7     4      3      —      2 exercises
+   8     4      3      1      2 exercises + 1 isolation
+   9     4      3      2      2 exercises + 1 isolation
+  10     4      3      3      2 exercises + 1 isolation
+  11+    4      3      3      MAX 10 assigned, excess dropped
+
+───── T1 ANCHOR OPTIONS PER MUSCLE ─────────────────────────────────────────────
+
+  Muscle   All goals                    Strength (barbell only)
+  ───────  ──────────────────────────   ──────────────────────────
+  Chest    bench_press_barbell          bench_press_barbell
+  Back     row_barbell, deadlift_bb,    row_barbell, deadlift_bb
+           row_cable_wide/close,
+           pulldown_wide/close, chinup
+  Quads    squat_barbell, hack_squat,   squat_barbell ONLY
+           leg_press, pendulum_squat,
+           squat_smith
+  Delts    ohp_barbell                  ohp_barbell
+  Biceps   NONE — all are isolation     NONE
+  Triceps  NONE — close_grip_bench      NONE
+           is compound but NOT T1
+  Calves   NONE — all are isolation     NONE
+  Hams     NONE — RDLs are compound     NONE
+           but NOT T1-anchorable
+  Glutes   NONE — hip thrusts compound  NONE
+           but NOT T1-anchorable
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 8 — REP RANGES BY GOAL × TIER                                      ║
+║  What reps are prescribed?                                                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Goal           T1 reps     T2 reps     T3 reps
+  ─────────────  ──────────  ──────────  ──────────
+  hypertrophy    5-8         8-12        12-20
+  strength       2-5         4-8         12-20
+  powerbuilding  3-6         8-12        12-20
+  recomp         6-10        10-15       12-20
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 9 — RPE BY BLOCK TYPE × TIER × WEEK                                ║
+║  What intensity is prescribed?                                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Block Type        Week     T1    T2    T3
+  ────────────────  ───────  ────  ────  ────
+  deload            any      6.0   6.0   6.0
+  accumulation      1-2      7.0   7.0   7.5
+  accumulation      3+       7.5   8.0   7.5
+  intensification   any      8.5   8.0   7.5
+  reaccumulation    1-2      7.5   8.0   7.5
+  reaccumulation    3+       8.0   8.0   7.5
+  peak              any      9.0   8.5   7.5
+
+  Rest seconds: T1=210s, T2=150s, T3=90s
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 10 — SUGGESTED WEIGHT FROM e1RM                                     ║
+║  What weight does the app suggest based on history?                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  midReps = (repsLow + repsHigh) / 2
+
+  Goal+Tier        Rep range   midReps   %e1RM   Example (e1RM=300lb)
+  ───────────────  ──────────  ───────   ─────   ────────────────────
+  Strength T1      2-5         3         92%     276 → 275
+  Powerbuilding T1 3-6         4         87%     261 → 260
+  Hypertrophy T1   5-8         6         82%     246 → 245
+  Recomp T1        6-10        8         76%     228 → 230
+  Strength T2      4-8         6         82%     246 → 245
+  Hyp/PB T2        8-12        10        72%     216 → 215
+  Recomp T2        10-15       12        67%     201 → 200
+  All T3           12-20       16        60%     180 → 180
+
+  No history → suggestedWeight = 0, notes = "Calibration — start light, log RPE"
+  Rounding: imperial = nearest 5lb, metric = nearest 2.5kg
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 11 — COMPLETE SAMPLE PROGRAMS                                       ║
+║  End-to-end output for representative user profiles                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+═══ SAMPLE 1: Beginner, Hypertrophy, 4 days, Neutral tiers, Surplus ═══════════
+
+Block length: 5 weeks + 1 deload = 6 weeks total
+Split: Heavy Upper / Heavy Lower / Hypertrophy Upper / Hypertrophy Lower
+
+WEEK 1-5 (Accumulation, blockMultiplier=1.0):
+  Weekly targets → sets per session (÷2 sessions):
+  Muscle       Weekly  Per session
+  ───────────  ──────  ───────────
+  Chest          6      3
+  Back           8      4
+  Delts          6      3
+  Triceps        4      2
+  Biceps         4      2
+  Quads          6      3
+  Hamstrings     4      2
+  Glutes         4      2
+  Calves         6      3
+
+  Upper session total: 3+4+3+2+2 = 14 sets ✓
+  Lower session total: 3+2+2+3 = 10 sets ✓
+
+  Upper session exercises:
+    Chest:  bench_press_barbell T1 ×3 (5-8 reps, RPE 7.0 wk1-2 / 7.5 wk3+)
+    Back:   row_barbell T1 ×4 (5-8 reps)
+    Delts:  ohp_barbell T1 ×3 (5-8 reps)
+    Triceps: [T2 compound] ×2 (8-12 reps)
+    Biceps:  [T2 isolation] ×2 (8-12 reps)
+
+  Lower session exercises:
+    Quads:  squat_barbell T1 ×3 (5-8 reps)
+    Hams:   [T2 e.g. rdl_barbell] ×2 (8-12 reps)
+    Glutes: [T2 e.g. hip_thrust] ×2 (8-12 reps)
+    Calves: [T2 e.g. calf_raise] ×3 (8-12 reps)
+
+WEEK 6 (Deload):
+  All muscles → MV: Chest=6/2=3, Back=6/2=3, Quads=6/2=3, etc.
+  RPE: 6.0 across all tiers
+
+BLOCK 2 (Reaccumulation, ×1.15):
+  Chest: Int(6×1.15)=6→6, Back: Int(8×1.15)=9→4/session
+  Delts: 6→6→3, Triceps: Int(4×1.15)=4→2, Biceps: 4→2
+  Quads: 6→6→3, Hams: 4→4→2, Glutes: 4↑→4→2, Calves: 6↑→6→3
+  (Most values identical because beginner MEV is low)
+
+═══ SAMPLE 2: Intermediate, Strength, 3 days, Neutral, Maintenance ════════════
+
+Block length: 5+1 = 6 weeks
+Split: Full Body A / Full Body B / Full Body C (all 9 muscles, 3 sessions)
+
+WEEK 1-5 (Accumulation):
+  Weekly targets → sets per session (÷3):
+  Muscle       Weekly  Per session
+  ───────────  ──────  ───────────
+  Chest          8      2
+  Back          11      3
+  Delts          8      2
+  Triceps        5      1
+  Biceps         5      1
+  Quads          8      2
+  Hamstrings     5      1
+  Glutes         4      1
+  Calves         6      2
+
+  Session total: 2+3+2+1+1+2+1+1+2 = 15 sets ✓
+
+  Exercise selection (strength = barbell T1 only):
+    Chest:  bench_press_barbell T1 ×2 (2-5 reps, RPE 7.0/7.5)
+    Back:   row_barbell T1 ×3 (2-5 reps)
+    Quads:  squat_barbell T1 ×2 (2-5 reps)
+    Delts:  ohp_barbell T1 ×2 (2-5 reps)
+    Hams:   [T2 rdl_barbell] ×1 (4-8 reps)
+    Others: T2 ×1-2 each
+
+═══ SAMPLE 3: Advanced, Powerbuilding, 6 days, Quad+Chest priority, Mod deficit ═
+
+Block length: 4+1 = 5 weeks
+Split: Push A, Pull A, Legs(QuadFocus), Push B, Pull B, Legs B
+
+WEEK 1-4 (Accumulation):
+  Weekly targets:
+  Muscle       Tier     scaledMEV  bonus  base  MRV(modDef)  result  /session
+  ───────────  ───────  ────────   ─────  ────  ───────────  ──────  ────────
+  Chest        priority  12        +4     16    36            16      8
+  Back         neutral   16         0     16    27            16      8
+  Delts        neutral   12         0     12    22            12      6
+  Triceps      neutral    8         0      8    17             8      4
+  Biceps       neutral    8         0      8    20             8      4
+  Quads        priority  12        +4     16    24            16      8
+  Hamstrings   neutral    8         0      8    20             8      4
+  Glutes       neutral    4         0      4    16             4      2
+  Calves       neutral    8         0      8    17             8      4
+
+  Push A session: Chest(8) + Delts(6) + Triceps(4) = 18 sets ✓
+  Pull A session: Back(8) + Biceps(4) = 12 sets ✓
+  Legs A (QuadFocus): Quads(8) + Calves(4) = 12 sets ✓
+  Push B = same as Push A
+  Pull B = same as Pull A
+  Legs B: Quads(8) + Hams(4) + Glutes(2) + Calves(4) = 18 sets ✓
+
+  Quads exercises (8 sets, T1 anchor):
+    squat_barbell T1 ×5 (3-6 reps, RPE 7.0/7.5)
+    [T2 e.g. hack_squat] ×3 (8-12 reps)
+
+  Chest exercises (8 sets, T1 anchor):
+    bench_press_barbell T1 ×5 (3-6 reps)
+    [T2 e.g. incline_db] ×3 (8-12 reps)
+
+═══ SAMPLE 4: Elite, Hypertrophy, 6 days, 4 priorities, Aggressive deficit ═════
+
+Block length: 4+1 = 5 weeks
+Split: Push A, Pull A, Legs A, Push B, Pull B, Legs B
+Priorities: Chest, Back, Quads, Delts
+
+WEEK 1-4 (Accumulation):
+  Muscle       Tier     sMEV  bonus  base  MRV(aggDef)  result  /session
+  ───────────  ───────  ────  ─────  ────  ───────────  ──────  ────────
+  Chest        priority  13   +4     17    34            17      8
+  Back         priority  18   +4     22    25            22     11
+  Delts        priority  13   +4     17    32            17      8
+  Triceps      neutral    9    0      9    17             9      4
+  Biceps       neutral    9    0      9    19             9      4
+  Quads        priority  13   +4     17    23            17      8
+  Hamstrings   neutral    9    0      9    19             9      4
+  Glutes       neutral    4    0      4    19             4      2
+  Calves       neutral    9    0      9    17             9      4
+
+  Push A: Chest(8)+Delts(8)+Triceps(4) = 20 ✓
+  Pull A: Back(11)+Biceps(4) = 15 ✓
+  Legs A: Quads(8)+Hams(4)+Glutes(2)+Calves(4) = 18 ✓
+
+  NOTE: Back at 11 sets/session is very high. Exercise allocation:
+    T1 ×5, T2a ×4, T2b ×2 = 11 sets across 3 exercises.
+
+  NOTE: Aggressive deficit MRV caps are significantly lower.
+  Back priority MRV = 25 (vs 51 in surplus). This matters when
+  VolumeDecisionEngine tries to add sets later.
+
+═══ SAMPLE 5: Intermediate, Recomp, 4 days, Neutral, Maintenance ══════════════
+
+Block length: 3+1 = 4 weeks (shortest blocks)
+Split: Heavy Upper / Heavy Lower / Hypertrophy Upper / Hypertrophy Lower
+Block sequence: accum → deload → accum → deload → ... (simple cycle)
+
+WEEK 1-3 (Accumulation):
+  Same set targets as Intermediate/Neutral/Accumulation (see Table 4)
+  Chest=8/2=4, Back=11/2=5, Quads=8/2=4, etc.
+
+WEEK 4 (Deload): All at MV, RPE 6.0
+
+  Recomp cycles are SHORT: only 3 training weeks before deload.
+  Progression has less time to develop per block.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 12 — PROGRESSION ENGINE DECISIONS                                   ║
+║  What happens after each workout?                                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+───── WEIGHT PROGRESSION RULES ─────────────────────────────────────────────────
+
+  Condition (all working sets)        Rule        Weight change
+  ──────────────────────────────────  ──────────  ─────────────────────────
+  All sets ≥ targetRepsHigh           .progress   +increment
+  Not all at top, not 2+ misses      .hold       same weight
+  2+ sets < targetRepsLow, 2 in row  .backoff    ×backoff% (T1=94%, T2=90%, T3=85%)
+
+───── INCREMENTS ───────────────────────────────────────────────────────────────
+
+  Tier   Imperial                           Metric
+  ─────  ─────────────────────────────────  ──────────
+  T1     ≥185lb → +10lb, <185lb → +5lb     +2.5kg
+  T2     +5lb                               +2.5kg
+  T3     +2.5lb                             +1.25kg
+
+───── MODIFIERS (applied in order) ─────────────────────────────────────────────
+
+  1. IFI modifier:
+     IFI < 0.10 (fresh)       → no change
+     IFI 0.10-0.24 (optimal)  → no change
+     IFI 0.25-0.39 (fatigued) → if progressing, override to hold
+     IFI ≥ 0.40 (overreach)   → force backoff
+
+  2. RPE brake (if RPE logged):
+     RPE ≥ 9.5 + progressing  → block, hold at current weight
+     RPE ≤ 7.0 + holding      → bump, add one increment
+     RPE 7.1-9.4              → no change
+
+  3. Progression rate:
+     .fast + T1 + progress    → add 50% more increment
+     .slow + T1 + progress    → require 2 consecutive successes first
+     .normal                  → no change
+
+───── BACKOFF WEIGHT (T1 only) ─────────────────────────────────────────────────
+  backoffWeight = recommendedWeight × 0.92, rounded to plate
+
+  Example: recommend=235lb → 235×0.92=216.2 → 215lb
+  Example: recommend=100kg → 100×0.92=92 → 92.5kg
+
+  T2/T3: backoffWeight = recommendedWeight (no separate backoff)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 13 — VOLUME DECISION ENGINE                                         ║
+║  After each workout, should next week have more/fewer/same sets?           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Priority  Condition                                    Decision
+  ────────  ───────────────────────────────────────────  ──────────────────
+  1         IFI ≥ 0.40 (acute overreach)                 DELOAD
+  2         Fatigue stall diagnosed                       DELOAD
+  3         Weight is progressing (or e1RM rising)        HOLD VOLUME
+  4         User responds to intensity not volume         HOLD VOLUME
+  5         Weight was just backed off                    HOLD VOLUME
+  6         Intensity stall (not pushing hard enough)     HOLD VOLUME
+  7         IFI 0.25-0.39 OR volume stall                REDUCE (1-2 sets)
+  8         Stimulus evaluation says insufficient         ADD (1-2 sets)
+  9         None of the above                            HOLD VOLUME
+
+  ADD sets requires: (stimScore > 0.5) AND (confidence ≥ 0.5)
+  Minimum 2 of these 3 signals must fire:
+    • e1RM flat (not declining, not rising)
+    • IFI fresh (< 0.10)
+    • Stalled at same load for ≥ requiredWeeks (2-3 depending on phase)
+
+  Sets added: 2 if IFI fresh, 1 if IFI optimal (capped at MRV)
+  Sets removed: min(2, currentSets - MEV) — never below MEV
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 14 — DURATION BUDGET                                                ║
+║  How session length affects exercise selection                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  sessionDurationTarget   Threshold      Effect
+  ─────────────────────   ─────────────  ─────────────────────────────────
+  45 min                  65 min         Aggressive: T3 dropped early, T2 trimmed >16 sets
+  60 min                  80 min         Moderate trimming
+  75 min (default)        95 min         Light trimming — most exercises kept
+  90 min                  110 min        Minimal trimming
+  120 min                 140 min        Almost never trims
+
+  Estimate formula: (totalSets + slotSets) × (45 + restSeconds) / 60
+  T1 never dropped. T3 dropped first. T2 dropped only if >16 total sets.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  TABLE 15 — GUARD RAILS SUMMARY                                           ║
+║  Safety limits that override algorithm decisions                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Guard  What it does                    Threshold       Status
+  ─────  ──────────────────────────────  ──────────────  ──────
+  G1     Cap sets at MRV                 sets > MRV      ACTIVE
+  G2     Floor sets at MV               sets < MV       ACTIVE
+  G5     Block progress after backoff    consec.fail>0   ACTIVE
+  G6     Session set cap                 >24 sets        ACTIVE
+  G7     Tier order validation           T2 before T1    ACTIVE (log only)
+  G8     Minimum data before signals     <3 exposures    ACTIVE
+  G9     No progress after deload        week 1 of block ACTIVE
+  G3     Deload set floor               <2 sets          DEFINED NOT WIRED
+  G4     RPE ceiling                    >9.5 RPE         DEFINED NOT WIRED
+  G10    Unit consistency               mixed units      DEFINED NOT WIRED
+
+
+═══════════════════════════════════════════════════════════════════════════════
+END OF COMPLETE PROGRAM GENERATION AUDIT
+═══════════════════════════════════════════════════════════════════════════════

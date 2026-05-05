@@ -1,0 +1,2006 @@
+================================================================================
+EXERCISE LIBRARY AUDIT
+ExerciseDictionary.swift — Comprehensive Review
+Generated: 2026-03-28
+Total Exercises: 131
+================================================================================
+
+Tracking Muscles (9): Chest, Back, Quads, Hamstrings, Glutes, Calves, Biceps,
+                      Triceps, Delts
+Filter Muscles (11):  All, Chest, Back, Quads, Hamstrings, Glutes, Calves,
+                      Biceps, Triceps, Delts, Core
+
+Note on normalization:
+  "Upper Chest" / "Lower Chest"           -> Chest
+  "Lats" / "Mid Back" / "Traps" / etc.    -> Back
+  "Front Delts" / "Mid Delts" / "Rear Delts" -> Delts
+  "Gastrocnemius" / "Soleus"               -> Calves
+  "Brachialis" / "Brachioradialis"         -> Biceps
+  "Adductors"                              -> Glutes
+  "Rectus Abdominis" / "Obliques" / etc.   -> Core
+
+
+################################################################################
+SECTION 1: COMPLETE EXERCISE INVENTORY BY MUSCLE GROUP
+################################################################################
+
+================================================================================
+CHEST (17 exercises)
+================================================================================
+
+  1. bench_press_barbell
+     Display:    Barbell Bench Press
+     Primary:    Chest
+     Secondary:  Triceps (0.5), Front Delts (0.5)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       mid
+     Pattern:    horizontal_press
+
+  2. bench_press_incline_barbell
+     Display:    Incline Barbell Bench Press
+     Primary:    Upper Chest
+     Secondary:  Triceps (0.5), Front Delts (0.5)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       upper
+     Pattern:    incline_press
+
+  3. bench_press_decline_barbell
+     Display:    Decline Barbell Bench Press
+     Primary:    Lower Chest
+     Secondary:  Triceps (0.5), Front Delts (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       lower
+     Pattern:    decline_press
+
+  4. bench_press_dumbbell
+     Display:    Dumbbell Bench Press
+     Primary:    Chest
+     Secondary:  Triceps (0.5), Front Delts (0.5)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       mid
+     Pattern:    horizontal_press
+
+  5. bench_press_incline_dumbbell
+     Display:    Incline Dumbbell Press
+     Primary:    Upper Chest
+     Secondary:  Triceps (0.5), Front Delts (0.5)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       upper
+     Pattern:    incline_press
+
+  6. bench_press_decline_dumbbell
+     Display:    Decline Dumbbell Press
+     Primary:    Lower Chest
+     Secondary:  Triceps (0.5), Front Delts (0.3)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       lower
+     Pattern:    decline_press
+
+  7. fly_dumbbell
+     Display:    Dumbbell Fly
+     Primary:    Chest
+     Secondary:  Front Delts (0.3)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       mid
+     Pattern:    fly
+
+  8. fly_incline_dumbbell
+     Display:    Incline Dumbbell Fly
+     Primary:    Upper Chest
+     Secondary:  Front Delts (0.3)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       upper
+     Pattern:    fly
+
+  9. cable_fly_low_to_high
+     Display:    Cable Fly (Low to High)
+     Primary:    Upper Chest
+     Secondary:  Front Delts (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       upper
+     Pattern:    fly
+
+ 10. cable_fly_high_to_low
+     Display:    Cable Fly (High to Low)
+     Primary:    Lower Chest
+     Secondary:  Front Delts (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       lower
+     Pattern:    fly
+
+ 11. cable_fly_neutral
+     Display:    Cable Fly (Neutral)
+     Primary:    Chest
+     Secondary:  Front Delts (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       mid
+     Pattern:    fly
+
+ 12. pec_deck
+     Display:    Pec Deck / Machine Fly
+     Primary:    Chest
+     Secondary:  Front Delts (0.2)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       mid
+     Pattern:    fly
+
+ 13. pushup
+     Display:    Push-Up
+     Primary:    Chest
+     Secondary:  Triceps (0.5), Front Delts (0.4)
+     Equipment:  bodyweight
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       mid
+     Pattern:    horizontal_press
+
+ 14. dips_chest
+     Display:    Dips (Chest-Focused)
+     Primary:    Lower Chest
+     Secondary:  Triceps (0.5), Front Delts (0.3)
+     Equipment:  bodyweight
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       lower
+     Pattern:    decline_press
+
+ 15. landmine_press
+     Display:    Landmine Press
+     Primary:    Upper Chest
+     Secondary:  Front Delts (0.5), Triceps (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       upper
+     Pattern:    incline_press
+
+ 16. bench_press_smith
+     Display:    Smith Machine Bench Press
+     Primary:    Chest
+     Secondary:  Triceps (0.5), Front Delts (0.5)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       mid
+     Pattern:    horizontal_press
+
+ 17. (MISSING exercises referenced in swapKeys but not defined:
+      bench_press_incline_smith, bench_press_decline_smith,
+      incline_machine_press, machine_chest_press)
+
+================================================================================
+BACK (21 exercises)
+================================================================================
+
+  1. row_barbell
+     Display:    Barbell Row (Overhand)
+     Primary:    Lats, Mid Back
+     Secondary:  Biceps (0.5), Rear Delts (0.5), Traps (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       thickness
+     Pattern:    horizontal_row
+
+  2. row_barbell_underhand
+     Display:    Barbell Row (Underhand)
+     Primary:    Lats, Mid Back
+     Secondary:  Biceps (0.7), Rear Delts (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    horizontal_row
+
+  3. row_dumbbell
+     Display:    Dumbbell Row
+     Primary:    Lats, Mid Back
+     Secondary:  Biceps (0.5), Rear Delts (0.3)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    horizontal_row
+
+  4. row_cable_narrow
+     Display:    Cable Row (Narrow Grip)
+     Primary:    Lats, Mid Back
+     Secondary:  Biceps (0.5), Rear Delts (0.3)
+     Equipment:  cable
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       thickness
+     Pattern:    horizontal_row
+
+  5. row_cable_wide
+     Display:    Cable Row (Wide Grip)
+     Primary:    Mid Back, Rear Delts
+     Secondary:  Biceps (0.3), Lats (0.5)
+     Equipment:  cable
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       thickness
+     Pattern:    horizontal_row
+
+  6. pulldown_wide
+     Display:    Lat Pulldown (Wide Overhand)
+     Primary:    Lats
+     Secondary:  Biceps (0.5), Rear Delts (0.3)
+     Equipment:  cable
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       width
+     Pattern:    vertical_pull
+
+  7. pulldown_close
+     Display:    Lat Pulldown (Close Neutral)
+     Primary:    Lats
+     Secondary:  Biceps (0.6), Mid Back (0.3)
+     Equipment:  cable
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       width
+     Pattern:    vertical_pull
+
+  8. pullup
+     Display:    Pull-Up (Overhand)
+     Primary:    Lats
+     Secondary:  Biceps (0.5), Rear Delts (0.3)
+     Equipment:  bodyweight
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       width
+     Pattern:    vertical_pull
+
+  9. chinup
+     Display:    Chin-Up (Underhand)
+     Primary:    Lats
+     Secondary:  Biceps (0.7)
+     Equipment:  bodyweight
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       width
+     Pattern:    vertical_pull
+
+ 10. pullup_neutral
+     Display:    Neutral Grip Pull-Up
+     Primary:    Lats
+     Secondary:  Biceps (0.6)
+     Equipment:  bodyweight
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       width
+     Pattern:    vertical_pull
+
+ 11. row_meadows
+     Display:    Meadows Row
+     Primary:    Lats, Mid Back
+     Secondary:  Biceps (0.4), Rear Delts (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    horizontal_row
+
+ 12. row_tbar
+     Display:    T-Bar Row
+     Primary:    Lats, Mid Back
+     Secondary:  Biceps (0.5), Rear Delts (0.4)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    horizontal_row
+
+ 13. row_machine
+     Display:    Machine Row
+     Primary:    Lats, Mid Back
+     Secondary:  Biceps (0.4)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    horizontal_row
+
+ 14. row_chest_supported
+     Display:    Chest-Supported Row
+     Primary:    Mid Back, Lats
+     Secondary:  Biceps (0.4), Rear Delts (0.4)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    horizontal_row
+
+ 15. pulldown_straight_arm
+     Display:    Straight-Arm Pulldown
+     Primary:    Lats
+     Secondary:  Triceps (0.2)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       width
+     Pattern:    vertical_pull
+
+ 16. rack_pull
+     Display:    Rack Pull
+     Primary:    Traps, Mid Back, Lats
+     Secondary:  Glutes (0.3), Hamstrings (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    hinge
+
+ 17. deadlift_barbell
+     Display:    Barbell Deadlift
+     Primary:    Lats, Mid Back, Traps
+     Secondary:  Glutes (0.7), Hamstrings (0.7), Quads (0.4)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       thickness
+     Pattern:    hinge
+
+ 18. deadlift_trap_bar
+     Display:    Trap Bar Deadlift
+     Primary:    Lats, Mid Back
+     Secondary:  Glutes (0.7), Quads (0.7), Hamstrings (0.5)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    hinge
+
+ 19. good_morning
+     Display:    Good Morning
+     Primary:    Mid Back, Lats
+     Secondary:  Hamstrings (0.7), Glutes (0.5)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    hinge
+
+ 20. pulldown_cable
+     Display:    Cable Lat Pulldown (alias)
+     Primary:    Lats
+     Secondary:  Biceps (0.5), Rear Delts (0.3)
+     Equipment:  cable
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       width
+     Pattern:    vertical_pull
+
+ 21. pullover_cable
+     Display:    Cable Pullover
+     Primary:    Lats
+     Secondary:  (none)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       width
+     Pattern:    vertical_pull
+
+ 22. row_cable_neutral
+     Display:    Cable Row (Neutral Grip)
+     Primary:    Lats, Mid Back
+     Secondary:  Biceps (0.5), Rear Delts (0.3)
+     Equipment:  cable
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    horizontal_row
+
+    Also listed under Back due to primaryMuscles containing Back-normalized muscles:
+    - hyperextension (primary: Lower Back)
+    - reverse_hyperextension (primary: Lower Back, Glutes)
+
+================================================================================
+SHOULDERS / DELTS (20 exercises)
+================================================================================
+
+  1. ohp_barbell
+     Display:    Overhead Press (Barbell)
+     Primary:    Front Delts, Mid Delts
+     Secondary:  Triceps (0.5), Upper Traps (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       anterior
+     Pattern:    vertical_press
+
+  2. ohp_dumbbell
+     Display:    Dumbbell Shoulder Press
+     Primary:    Front Delts, Mid Delts
+     Secondary:  Triceps (0.5), Upper Traps (0.3)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       anterior
+     Pattern:    vertical_press
+
+  3. arnold_press
+     Display:    Arnold Press
+     Primary:    Front Delts, Mid Delts
+     Secondary:  Triceps (0.4), Upper Traps (0.3)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       anterior
+     Pattern:    vertical_press
+
+  4. shoulder_press_seated_dumbbell
+     Display:    Seated DB Shoulder Press
+     Primary:    Front Delts, Mid Delts
+     Secondary:  Triceps (0.5)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       anterior
+     Pattern:    vertical_press
+
+  5. shoulder_press_machine
+     Display:    Machine Shoulder Press
+     Primary:    Front Delts, Mid Delts
+     Secondary:  Triceps (0.4)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       anterior
+     Pattern:    vertical_press
+
+  6. lateral_raise_dumbbell
+     Display:    Dumbbell Lateral Raise
+     Primary:    Mid Delts
+     Secondary:  Upper Traps (0.3)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       medial
+     Pattern:    lateral_raise
+
+  7. lateral_raise_cable
+     Display:    Cable Lateral Raise
+     Primary:    Mid Delts
+     Secondary:  Upper Traps (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       medial
+     Pattern:    lateral_raise
+
+  8. lateral_raise_machine
+     Display:    Machine Lateral Raise
+     Primary:    Mid Delts
+     Secondary:  Upper Traps (0.2)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       medial
+     Pattern:    lateral_raise
+
+  9. front_raise_dumbbell
+     Display:    Dumbbell Front Raise
+     Primary:    Front Delts
+     Secondary:  Mid Delts (0.3)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       anterior
+     Pattern:    lateral_raise
+
+ 10. front_raise_cable
+     Display:    Cable Front Raise
+     Primary:    Front Delts
+     Secondary:  Mid Delts (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       anterior
+     Pattern:    lateral_raise
+
+ 11. rear_delt_fly_dumbbell
+     Display:    Rear Delt Fly (Dumbbell)
+     Primary:    Rear Delts
+     Secondary:  Mid Delts (0.3), Traps (0.3)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       posterior
+     Pattern:    rear_fly
+
+ 12. rear_delt_fly_cable
+     Display:    Rear Delt Fly (Cable)
+     Primary:    Rear Delts
+     Secondary:  Mid Delts (0.3), Traps (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       posterior
+     Pattern:    rear_fly
+
+ 13. rear_delt_machine
+     Display:    Rear Delt Machine Fly
+     Primary:    Rear Delts
+     Secondary:  Mid Delts (0.2), Traps (0.2)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       posterior
+     Pattern:    rear_fly
+
+ 14. face_pull_cable
+     Display:    Face Pull
+     Primary:    Rear Delts, Traps
+     Secondary:  Mid Delts (0.3), External Rotators (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       posterior
+     Pattern:    rear_fly
+
+ 15. upright_row
+     Display:    Upright Row
+     Primary:    Upper Traps, Mid Delts
+     Secondary:  Front Delts (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       medial
+     Pattern:    lateral_raise
+
+ 16. shrug_barbell
+     Display:    Barbell Shrug
+     Primary:    Upper Traps
+     Secondary:  (none)
+     Equipment:  barbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       (none)
+     Pattern:    shrug
+
+ 17. shrug_dumbbell
+     Display:    Dumbbell Shrug
+     Primary:    Upper Traps
+     Secondary:  (none)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       (none)
+     Pattern:    shrug
+
+ 18. shrug_cable
+     Display:    Cable Shrug
+     Primary:    Upper Traps
+     Secondary:  (none)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       (none)
+     Pattern:    shrug
+
+ 19. ohp_smith (referenced in swapKeys but NOT defined in dictionary)
+
+ 20. Note: Traps normalize to "Back" not "Delts" — see normalization notes.
+     Shrugs, upright rows, and face pulls will count as Back volume via
+     normalizeMuscle(). Upper Traps secondary on OHP also normalizes to Back.
+
+================================================================================
+TRICEPS (12 exercises)
+================================================================================
+
+  1. close_grip_bench
+     Display:    Close-Grip Bench Press
+     Primary:    Triceps
+     Secondary:  Chest (0.5), Front Delts (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       lateral
+     Pattern:    press
+
+  2. tricep_pushdown_cable
+     Display:    Triceps Pushdown (Bar)
+     Primary:    Triceps
+     Secondary:  (none)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       lateral
+     Pattern:    pushdown
+
+  3. tricep_pushdown_rope
+     Display:    Triceps Pushdown (Rope)
+     Primary:    Triceps
+     Secondary:  (none)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       lateral
+     Pattern:    pushdown
+
+  4. tricep_overhead_cable
+     Display:    Overhead Triceps Extension (Cable)
+     Primary:    Triceps
+     Secondary:  (none)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       long
+     Pattern:    extension
+
+  5. tricep_overhead_dumbbell
+     Display:    Overhead Triceps Extension (Dumbbell)
+     Primary:    Triceps
+     Secondary:  (none)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       long
+     Pattern:    extension
+
+  6. skullcrusher_barbell
+     Display:    Skull Crusher (Barbell)
+     Primary:    Triceps
+     Secondary:  (none)
+     Equipment:  barbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       long
+     Pattern:    extension
+
+  7. skullcrusher_dumbbell
+     Display:    Skull Crusher (Dumbbell)
+     Primary:    Triceps
+     Secondary:  (none)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       long
+     Pattern:    extension
+
+  8. dips_tricep
+     Display:    Dips (Triceps-Focused)
+     Primary:    Triceps
+     Secondary:  Chest (0.4), Front Delts (0.3)
+     Equipment:  bodyweight
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       lateral
+     Pattern:    press
+
+  9. diamond_pushup
+     Display:    Diamond Push-Up
+     Primary:    Triceps
+     Secondary:  Chest (0.4)
+     Equipment:  bodyweight
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       lateral
+     Pattern:    press
+
+ 10. kickback_dumbbell
+     Display:    Dumbbell Kickback
+     Primary:    Triceps
+     Secondary:  (none)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       lateral
+     Pattern:    kickback
+
+ 11. jm_press
+     Display:    JM Press
+     Primary:    Triceps
+     Secondary:  Chest (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       lateral
+     Pattern:    press
+
+ 12. (MISSING from swapKeys: tricep_pushdown_machine, machine_dip — not defined)
+
+================================================================================
+BICEPS (12 exercises)
+================================================================================
+
+  1. curl_barbell
+     Display:    Barbell Curl
+     Primary:    Biceps
+     Secondary:  Brachialis (0.5), Brachioradialis (0.3)
+     Equipment:  barbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       both
+     Pattern:    curl
+
+  2. curl_dumbbell
+     Display:    Dumbbell Curl
+     Primary:    Biceps
+     Secondary:  Brachialis (0.5)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       both
+     Pattern:    curl
+
+  3. curl_incline_dumbbell
+     Display:    Incline Dumbbell Curl
+     Primary:    Biceps
+     Secondary:  Brachialis (0.4)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       long
+     Pattern:    curl
+
+  4. curl_preacher_barbell
+     Display:    Preacher Curl (Barbell)
+     Primary:    Biceps
+     Secondary:  Brachialis (0.5)
+     Equipment:  barbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       short
+     Pattern:    curl
+
+  5. curl_preacher_dumbbell
+     Display:    Preacher Curl (Dumbbell)
+     Primary:    Biceps
+     Secondary:  Brachialis (0.5)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       short
+     Pattern:    curl
+
+  6. curl_cable
+     Display:    Cable Curl
+     Primary:    Biceps
+     Secondary:  Brachialis (0.4)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       short
+     Pattern:    curl
+
+  7. curl_high_cable
+     Display:    High Cable Curl
+     Primary:    Biceps
+     Secondary:  Brachialis (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       long
+     Pattern:    curl
+
+  8. curl_hammer
+     Display:    Hammer Curl
+     Primary:    Brachialis, Brachioradialis
+     Secondary:  Biceps (0.5)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       brachio
+     Pattern:    curl
+
+  9. curl_reverse
+     Display:    Reverse Curl
+     Primary:    Brachioradialis, Brachialis
+     Secondary:  Biceps (0.3)
+     Equipment:  barbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       brachio
+     Pattern:    curl
+
+ 10. curl_concentration
+     Display:    Concentration Curl
+     Primary:    Biceps
+     Secondary:  Brachialis (0.3)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       short
+     Pattern:    curl
+
+ 11. curl_spider
+     Display:    Spider Curl
+     Primary:    Biceps
+     Secondary:  Brachialis (0.4)
+     Equipment:  dumbbell
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       short
+     Pattern:    curl
+
+ 12. curl_machine
+     Display:    Machine Curl
+     Primary:    Biceps
+     Secondary:  Brachialis (0.3)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       both
+     Pattern:    curl
+
+================================================================================
+QUADS (14 exercises)
+================================================================================
+
+  1. squat_barbell
+     Display:    Barbell Back Squat
+     Primary:    Quads
+     Secondary:  Glutes (0.7), Hamstrings (0.3), Adductors (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       compound
+     Pattern:    squat
+
+  2. squat_front
+     Display:    Barbell Front Squat
+     Primary:    Quads
+     Secondary:  Glutes (0.5), Hamstrings (0.2)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       compound
+     Pattern:    squat
+
+  3. squat_goblet
+     Display:    Goblet Squat
+     Primary:    Quads
+     Secondary:  Glutes (0.5)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       compound
+     Pattern:    squat
+
+  4. hack_squat
+     Display:    Hack Squat (Machine)
+     Primary:    Quads
+     Secondary:  Glutes (0.4)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       compound
+     Pattern:    squat
+
+  5. leg_press
+     Display:    Leg Press
+     Primary:    Quads
+     Secondary:  Glutes (0.5), Hamstrings (0.3)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       compound
+     Pattern:    press
+
+  6. belt_squat
+     Display:    Belt Squat
+     Primary:    Quads
+     Secondary:  Glutes (0.5), Adductors (0.3)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       compound
+     Pattern:    squat
+
+  7. leg_extension
+     Display:    Leg Extension
+     Primary:    Quads
+     Secondary:  (none)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       isolation
+     Pattern:    extension
+
+  8. bulgarian_split_squat
+     Display:    Bulgarian Split Squat
+     Primary:    Quads
+     Secondary:  Glutes (0.7), Hamstrings (0.3)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       compound
+     Pattern:    lunge
+
+  9. lunge_barbell
+     Display:    Barbell Lunge
+     Primary:    Quads
+     Secondary:  Glutes (0.6), Hamstrings (0.3)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       compound
+     Pattern:    lunge
+
+ 10. lunge_dumbbell
+     Display:    Dumbbell Lunge
+     Primary:    Quads
+     Secondary:  Glutes (0.6), Hamstrings (0.3)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       compound
+     Pattern:    lunge
+
+ 11. step_up
+     Display:    Step-Up
+     Primary:    Quads
+     Secondary:  Glutes (0.6)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       compound
+     Pattern:    lunge
+
+ 12. sissy_squat
+     Display:    Sissy Squat
+     Primary:    Quads
+     Secondary:  (none)
+     Equipment:  bodyweight
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       isolation
+     Pattern:    extension
+
+ 13. spanish_squat
+     Display:    Spanish Squat
+     Primary:    Quads
+     Secondary:  Glutes (0.3)
+     Equipment:  band
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       isolation
+     Pattern:    extension
+
+ 14. pendulum_squat
+     Display:    Pendulum Squat
+     Primary:    Quads
+     Secondary:  Glutes (0.4)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       compound
+     Pattern:    squat
+
+ 15. squat_smith
+     Display:    Smith Machine Squat
+     Primary:    Quads
+     Secondary:  Glutes (0.5), Hamstrings (0.3)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       compound
+     Pattern:    squat
+
+    (MISSING from swapKeys: single_leg_leg_press — not defined)
+
+================================================================================
+HAMSTRINGS (11 exercises)
+================================================================================
+
+  1. rdl_barbell
+     Display:    Romanian Deadlift (Barbell)
+     Primary:    Hamstrings
+     Secondary:  Glutes (0.7), Lower Back (0.4)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       hip_hinge
+     Pattern:    hinge
+
+  2. rdl_dumbbell
+     Display:    Romanian Deadlift (Dumbbell)
+     Primary:    Hamstrings
+     Secondary:  Glutes (0.7), Lower Back (0.3)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       hip_hinge
+     Pattern:    hinge
+
+  3. rdl_single_leg
+     Display:    Single-Leg RDL
+     Primary:    Hamstrings
+     Secondary:  Glutes (0.7)
+     Equipment:  dumbbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       hip_hinge
+     Pattern:    hinge
+
+  4. leg_curl_lying
+     Display:    Lying Leg Curl
+     Primary:    Hamstrings
+     Secondary:  (none)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       knee_flexion
+     Pattern:    curl
+
+  5. leg_curl_seated
+     Display:    Seated Leg Curl
+     Primary:    Hamstrings
+     Secondary:  (none)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       knee_flexion
+     Pattern:    curl
+
+  6. nordic_hamstring_curl
+     Display:    Nordic Hamstring Curl
+     Primary:    Hamstrings
+     Secondary:  Glutes (0.3)
+     Equipment:  bodyweight
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       knee_flexion
+     Pattern:    curl
+
+  7. stiff_leg_deadlift
+     Display:    Stiff-Leg Deadlift
+     Primary:    Hamstrings
+     Secondary:  Glutes (0.6), Lower Back (0.5)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       hip_hinge
+     Pattern:    hinge
+
+  8. glute_ham_raise
+     Display:    Glute-Ham Raise
+     Primary:    Hamstrings, Glutes
+     Secondary:  Lower Back (0.3)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       knee_flexion
+     Pattern:    curl
+
+  9. cable_pull_through
+     Display:    Cable Pull-Through
+     Primary:    Hamstrings, Glutes
+     Secondary:  Lower Back (0.3)
+     Equipment:  cable
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       hip_hinge
+     Pattern:    hinge
+
+ 10. good_morning_hamstring
+     Display:    Good Morning (Hamstring Focus)
+     Primary:    Hamstrings
+     Secondary:  Lower Back (0.5), Glutes (0.5)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       hip_hinge
+     Pattern:    hinge
+
+ 11. (Also receives indirect volume from Back group via
+      good_morning, deadlift_barbell, deadlift_trap_bar, rack_pull)
+
+================================================================================
+GLUTES (12 exercises)
+================================================================================
+
+  1. hip_thrust_barbell
+     Display:    Hip Thrust (Barbell)
+     Primary:    Glutes
+     Secondary:  Hamstrings (0.4)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  YES
+     Head:       extension
+     Pattern:    hip_thrust
+
+  2. hip_thrust_machine
+     Display:    Hip Thrust (Machine)
+     Primary:    Glutes
+     Secondary:  Hamstrings (0.3)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       extension
+     Pattern:    hip_thrust
+
+  3. glute_bridge
+     Display:    Glute Bridge
+     Primary:    Glutes
+     Secondary:  Hamstrings (0.3)
+     Equipment:  bodyweight
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       extension
+     Pattern:    hip_thrust
+
+  4. cable_kickback
+     Display:    Cable Kickback
+     Primary:    Glutes
+     Secondary:  Hamstrings (0.3)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       extension
+     Pattern:    kickback
+
+  5. machine_kickback
+     Display:    Machine Kickback
+     Primary:    Glutes
+     Secondary:  Hamstrings (0.3)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       extension
+     Pattern:    kickback
+
+  6. abduction_machine
+     Display:    Hip Abduction Machine
+     Primary:    Glutes
+     Secondary:  (none)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       abduction
+     Pattern:    abduction
+
+  7. cable_hip_abduction
+     Display:    Cable Hip Abduction
+     Primary:    Glutes
+     Secondary:  (none)
+     Equipment:  cable
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       abduction
+     Pattern:    abduction
+
+  8. deadlift_sumo
+     Display:    Sumo Deadlift
+     Primary:    Glutes, Adductors
+     Secondary:  Hamstrings (0.5), Quads (0.4)
+     Equipment:  barbell
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       extension
+     Pattern:    hinge
+
+  9. leg_press_wide
+     Display:    Wide-Stance Leg Press
+     Primary:    Glutes, Adductors
+     Secondary:  Quads (0.5), Hamstrings (0.3)
+     Equipment:  machine
+     Compound:   YES
+     T1 Anchor:  NO
+     Head:       extension
+     Pattern:    press
+
+ 10. frog_pump
+     Display:    Frog Pump
+     Primary:    Glutes
+     Secondary:  (none)
+     Equipment:  bodyweight
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       extension
+     Pattern:    hip_thrust
+
+ 11. reverse_hyperextension
+     Display:    Reverse Hyperextension
+     Primary:    Lower Back, Glutes
+     Secondary:  Hamstrings (0.4)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    hinge
+
+ 12. (Also receives massive indirect volume from squats, deadlifts, lunges, RDLs)
+
+================================================================================
+CALVES (7 exercises)
+================================================================================
+
+  1. calf_raise_standing
+     Display:    Standing Calf Raise
+     Primary:    Gastrocnemius
+     Secondary:  Soleus (0.3)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       gastro
+     Pattern:    calf_raise
+
+  2. calf_raise_seated
+     Display:    Seated Calf Raise
+     Primary:    Soleus
+     Secondary:  Gastrocnemius (0.3)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       soleus
+     Pattern:    calf_raise
+
+  3. calf_raise_leg_press
+     Display:    Leg Press Calf Raise
+     Primary:    Gastrocnemius
+     Secondary:  Soleus (0.3)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       gastro
+     Pattern:    calf_raise
+
+  4. calf_raise_single_leg
+     Display:    Single-Leg Calf Raise
+     Primary:    Gastrocnemius
+     Secondary:  Soleus (0.3)
+     Equipment:  bodyweight
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       gastro
+     Pattern:    calf_raise
+
+  5. calf_raise_donkey
+     Display:    Donkey Calf Raise
+     Primary:    Gastrocnemius
+     Secondary:  Soleus (0.3)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       gastro
+     Pattern:    calf_raise
+
+  6. calf_raise_smith
+     Display:    Smith Machine Calf Raise
+     Primary:    Gastrocnemius
+     Secondary:  Soleus (0.3)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       gastro
+     Pattern:    calf_raise
+
+  7. calf_raise_bodyweight
+     Display:    Bodyweight Calf Raise
+     Primary:    Gastrocnemius
+     Secondary:  Soleus (0.3)
+     Equipment:  bodyweight
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       gastro
+     Pattern:    calf_raise
+
+================================================================================
+CORE (9 exercises)  [Not a tracking muscle -- used for filters only]
+================================================================================
+
+  1. cable_crunch
+     Display:    Cable Crunch
+     Primary:    Rectus Abdominis
+     Secondary:  Obliques (0.3)
+     Equipment:  cable
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+  2. hanging_leg_raise
+     Display:    Hanging Leg Raise
+     Primary:    Rectus Abdominis, Hip Flexors
+     Secondary:  Obliques (0.3)
+     Equipment:  bodyweight
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+  3. ab_wheel
+     Display:    Ab Wheel Rollout
+     Primary:    Rectus Abdominis
+     Secondary:  Lats (0.3), Obliques (0.3)
+     Equipment:  other
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+  4. plank
+     Display:    Plank
+     Primary:    Rectus Abdominis, Obliques
+     Secondary:  Lower Back (0.3)
+     Equipment:  bodyweight
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+  5. side_plank
+     Display:    Side Plank
+     Primary:    Obliques
+     Secondary:  (none)
+     Equipment:  bodyweight
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+  6. russian_twist
+     Display:    Russian Twist
+     Primary:    Obliques
+     Secondary:  Rectus Abdominis (0.3)
+     Equipment:  bodyweight
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+  7. pallof_press
+     Display:    Pallof Press
+     Primary:    Obliques, Transverse Abdominis
+     Secondary:  (none)
+     Equipment:  cable
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+  8. dead_bug
+     Display:    Dead Bug
+     Primary:    Rectus Abdominis, Transverse Abdominis
+     Secondary:  (none)
+     Equipment:  bodyweight
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+  9. landmine_twist
+     Display:    Landmine Twist
+     Primary:    Obliques
+     Secondary:  Shoulders (0.3)
+     Equipment:  barbell
+     Compound:   NO
+     Head:       (none)
+     Pattern:    core
+
+================================================================================
+LOWER BACK / HINGE (cross-listed exercises)
+================================================================================
+
+  hyperextension
+     Display:    Hyperextension
+     Primary:    Lower Back
+     Secondary:  Glutes (0.5), Hamstrings (0.4)
+     Equipment:  bodyweight
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    hinge
+
+  reverse_hyperextension
+     Display:    Reverse Hyperextension
+     Primary:    Lower Back, Glutes
+     Secondary:  Hamstrings (0.4)
+     Equipment:  machine
+     Compound:   NO
+     T1 Anchor:  NO
+     Head:       thickness
+     Pattern:    hinge
+
+
+################################################################################
+SECTION 2: AUDIT — SECONDARY MUSCLE ACCURACY
+################################################################################
+
+================================================================================
+AUDIT A: Are the secondary muscles and weights accurate?
+================================================================================
+
+BENCH PRESS VARIANTS (expected: Triceps ~0.5, Front Delts ~0.5)
+  bench_press_barbell:         Triceps 0.5, Front Delts 0.5         PASS
+  bench_press_incline_barbell: Triceps 0.5, Front Delts 0.5         PASS
+  bench_press_decline_barbell: Triceps 0.5, Front Delts 0.3         PASS
+  bench_press_dumbbell:        Triceps 0.5, Front Delts 0.5         PASS
+  bench_press_incline_dumbbell:Triceps 0.5, Front Delts 0.5         PASS
+  bench_press_decline_dumbbell:Triceps 0.5, Front Delts 0.3         PASS
+  bench_press_smith:           Triceps 0.5, Front Delts 0.5         PASS
+  Note: Decline variants at 0.3 for Front Delts is appropriate (less
+        anterior delt recruitment in decline).
+
+ROW VARIANTS (expected: Biceps ~0.5, Rear Delts ~0.3-0.5)
+  row_barbell:          Biceps 0.5, Rear Delts 0.5, Traps 0.3      PASS
+  row_barbell_underhand:Biceps 0.7, Rear Delts 0.3                  PASS
+    (underhand = supinated = more bicep)
+  row_dumbbell:         Biceps 0.5, Rear Delts 0.3                  PASS
+  row_cable_narrow:     Biceps 0.5, Rear Delts 0.3                  PASS
+  row_cable_wide:       Biceps 0.3, Lats 0.5                        PASS
+    (wide grip = less bicep, more lat/rear delt width emphasis)
+  row_tbar:             Biceps 0.5, Rear Delts 0.4                  PASS
+  row_meadows:          Biceps 0.4, Rear Delts 0.3                  PASS
+  row_machine:          Biceps 0.4                                   ? MINOR
+    Missing Rear Delts secondary. Most machine rows do involve
+    rear delts to some degree. Consider adding Rear Delts 0.2-0.3.
+  row_chest_supported:  Biceps 0.4, Rear Delts 0.4                  PASS
+  row_cable_neutral:    Biceps 0.5, Rear Delts 0.3                  PASS
+
+SQUAT VARIANTS (expected: Glutes ~0.7, Hamstrings ~0.3)
+  squat_barbell:        Glutes 0.7, Hamstrings 0.3, Adductors 0.3   PASS
+  squat_front:          Glutes 0.5, Hamstrings 0.2                   PASS
+    (front squat = more upright = less glute/hamstring)
+  squat_goblet:         Glutes 0.5                                   PASS
+  hack_squat:           Glutes 0.4                                   PASS
+    (machine-guided = less glute)
+  leg_press:            Glutes 0.5, Hamstrings 0.3                   PASS
+  squat_smith:          Glutes 0.5, Hamstrings 0.3                   PASS
+  belt_squat:           Glutes 0.5, Adductors 0.3                    PASS
+  pendulum_squat:       Glutes 0.4                                   PASS
+  bulgarian_split_squat:Glutes 0.7, Hamstrings 0.3                   PASS
+
+OHP VARIANTS (expected: Triceps ~0.5)
+  ohp_barbell:          Triceps 0.5, Upper Traps 0.3                 PASS
+  ohp_dumbbell:         Triceps 0.5, Upper Traps 0.3                 PASS
+  arnold_press:         Triceps 0.4, Upper Traps 0.3                 PASS
+  shoulder_press_seated:Triceps 0.5                                  PASS
+  shoulder_press_machine:Triceps 0.4                                 PASS
+
+PULL-UPS / CHIN-UPS (expected: Biceps ~0.5-0.7)
+  pullup:               Biceps 0.5, Rear Delts 0.3                  PASS
+  chinup:               Biceps 0.7                                   PASS
+  pullup_neutral:       Biceps 0.6                                   PASS
+  pulldown_wide:        Biceps 0.5, Rear Delts 0.3                  PASS
+  pulldown_close:       Biceps 0.6, Mid Back 0.3                    PASS
+
+RDL VARIANTS (expected: Glutes ~0.7)
+  rdl_barbell:          Glutes 0.7, Lower Back 0.4                   PASS
+  rdl_dumbbell:         Glutes 0.7, Lower Back 0.3                   PASS
+  rdl_single_leg:       Glutes 0.7                                   PASS
+  stiff_leg_deadlift:   Glutes 0.6, Lower Back 0.5                  PASS
+
+HIP THRUST (expected: Hamstrings ~0.3-0.4)
+  hip_thrust_barbell:   Hamstrings 0.4                               PASS
+  hip_thrust_machine:   Hamstrings 0.3                               PASS
+  glute_bridge:         Hamstrings 0.3                               PASS
+
+DIPS (expected: Chest ~0.5 or Triceps ~0.5 depending on variant)
+  dips_chest:           Triceps 0.5, Front Delts 0.3                 PASS
+    (primary = Lower Chest, so Triceps as secondary is correct)
+  dips_tricep:          Chest 0.4, Front Delts 0.3                   PASS
+    (primary = Triceps, so Chest as secondary is correct)
+    ? MINOR: Chest 0.4 could arguably be 0.5 for tricep dips,
+    as it is still a significant pushing movement.
+
+================================================================================
+AUDIT B: Compound movements with MISSING secondary muscles
+================================================================================
+
+  !! pullover_cable — isCompound: NO, but zero secondaryMuscles
+     This is an isolation movement so no secondary is acceptable.
+     However, cable pullovers do involve chest/triceps/core to some degree.
+     Consider: Chest (0.2) or Triceps (0.2)
+
+  !! row_machine — isCompound: YES, only Biceps (0.4)
+     Missing: Rear Delts. Every horizontal row involves rear delts.
+     RECOMMEND: Add Rear Delts (0.2) or (0.3)
+
+  The following COMPOUNDS have appropriate secondaries (no issues):
+  - All bench press variants                                         PASS
+  - All row variants (except row_machine above)                      PASS
+  - All squat/lunge variants                                         PASS
+  - All OHP variants                                                 PASS
+  - All pull-up/pulldown variants                                    PASS
+  - All RDL/hinge variants                                           PASS
+  - All hip thrust variants                                          PASS
+
+  The following ISOLATION exercises correctly have no secondaries:
+  - leg_extension, leg_curl_lying, leg_curl_seated, sissy_squat       PASS
+  - All tricep pushdowns/overheads/skullcrushers                      PASS
+  - kickback_dumbbell                                                 PASS
+  - abduction_machine, cable_hip_abduction, frog_pump                 PASS
+
+  ? upright_row — isCompound: YES, only Front Delts (0.3)
+     This is compound but has limited secondary muscles listed.
+     Biceps are somewhat involved in upright rows.
+     Consider: Biceps (0.2)
+
+================================================================================
+AUDIT C: Weight reasonableness check
+================================================================================
+
+Weight Scale:
+  0.2 = barely involved
+  0.3 = minor contributor
+  0.5 = significant secondary
+  0.7 = nearly co-primary
+
+FLAGGED WEIGHTS:
+
+  row_barbell_underhand: Biceps 0.7
+     ? BORDERLINE HIGH — underhand barbell rows do heavily recruit biceps.
+     EMG studies show ~70% bicep activation vs overhand. 0.7 is defensible
+     but makes the biceps nearly co-primary. Could consider 0.6.
+     VERDICT: ACCEPTABLE
+
+  chinup: Biceps 0.7
+     PASS — chin-ups are well-documented as near-equal bicep/lat exercises.
+     0.7 is accurate per EMG research.
+
+  squat_barbell: Glutes 0.7
+     PASS — back squats heavily load glutes, especially at depth.
+
+  squat_barbell: Adductors 0.3
+     PASS — adductors are minor contributors in squats.
+
+  bulgarian_split_squat: Glutes 0.7
+     PASS — BSS has very high glute activation, 0.7 is accurate.
+
+  deadlift_barbell: Glutes 0.7, Hamstrings 0.7
+     PASS — conventional deadlift is essentially a full-body lift.
+     Both glutes and hamstrings are nearly co-primary. 0.7 each is correct.
+
+  deadlift_barbell: Quads 0.4
+     PASS — quads are involved in the initial drive off the floor.
+
+  deadlift_trap_bar: Glutes 0.7, Quads 0.7
+     ? NOTABLE — having two secondaries at 0.7 is very high. Trap bar
+     deadlifts are more quad-dominant than conventional, so 0.7 for quads
+     makes sense. But this means 1 primary set = 0.7 Glutes + 0.7 Quads
+     + 0.5 Hamstrings = 1.9 indirect sets. This is a LOT of indirect
+     volume from one exercise.
+     VERDICT: Anatomically accurate but consider downstream volume impact.
+
+  good_morning: Hamstrings 0.7
+     PASS — good mornings are often classified as hamstring exercises.
+     Listed under Back as primary, which is debatable (see Audit E).
+
+  stiff_leg_deadlift: Lower Back 0.5
+     PASS — SLDL loads the lower back significantly.
+
+  hyperextension: Glutes 0.5
+     PASS — glutes are a significant mover in hyperextensions.
+
+  pulldown_straight_arm: Triceps 0.2
+     PASS — long head of triceps assists minimally in straight arm work.
+
+  good_morning_hamstring: Lower Back 0.5, Glutes 0.5
+     PASS — appropriate for a hamstring-focused good morning variant.
+
+  ALL WEIGHTS REVIEWED — no values appear unreasonably high or low.
+
+================================================================================
+AUDIT D: Volume Impact Analysis — 4-Day Upper/Lower Split
+================================================================================
+
+Assumptions for a typical 4-day Upper/Lower program:
+  Day 1: Heavy Upper    Day 2: Heavy Lower
+  Day 3: Hyp. Upper     Day 4: Hyp. Lower
+
+  Standard exercise selection:
+  UPPER A (Heavy):
+    - Bench Press BB        (Chest)      4 sets
+    - Barbell Row           (Back)       4 sets
+    - OHP Barbell           (Delts)      3 sets
+    - Pulldown Wide         (Back)       3 sets
+    - Lat Raise Cable       (Delts)      3 sets
+    - Curl Barbell          (Biceps)     3 sets
+    - Tricep Pushdown       (Triceps)    3 sets
+
+  UPPER B (Hypertrophy):
+    - Incline DB Press      (Chest)      3 sets
+    - Cable Row Narrow      (Back)       3 sets
+    - DB Shoulder Press     (Delts)      3 sets
+    - Chinup                (Back)       3 sets
+    - Rear Delt Fly         (Delts)      3 sets
+    - Incline Curl          (Biceps)     3 sets
+    - Overhead Tri Ext      (Triceps)    3 sets
+    - Pec Deck              (Chest)      3 sets
+
+  LOWER A (Heavy):
+    - Squat Barbell         (Quads)      4 sets
+    - RDL Barbell           (Hams)       4 sets
+    - Leg Press             (Quads)      3 sets
+    - Leg Curl Seated       (Hams)       3 sets
+    - Hip Thrust BB         (Glutes)     3 sets
+    - Calf Raise Standing   (Calves)     4 sets
+
+  LOWER B (Hypertrophy):
+    - Hack Squat            (Quads)      3 sets
+    - Leg Extension         (Quads)      3 sets
+    - RDL Dumbbell          (Hams)       3 sets
+    - Leg Curl Lying        (Hams)       3 sets
+    - Hip Thrust Machine    (Glutes)     3 sets
+    - Calf Raise Seated     (Calves)     4 sets
+    - Bulgarian Split Squat (Quads)      3 sets
+
+--------------------------------------------------------------------------------
+
+MUSCLE: CHEST
+  Direct sets:  10 (Bench BB 4 + Incline DB 3 + Pec Deck 3)
+  Indirect from:
+    OHP Barbell       -> Front Delts only, no Chest secondary    = 0.0
+    DB Shoulder Press  -> Front Delts only, no Chest secondary   = 0.0
+    Close Grip Bench   -> (not in this program)                  = 0.0
+    Dips Tricep        -> (not in this program)                  = 0.0
+  Total indirect:  0.0 sets
+  Effective total: 10.0 sets
+  NOTE: Chest gets almost zero indirect volume in this program.
+        All chest volume is direct. This is typical and correct.
+
+MUSCLE: BACK (normalized: Lats, Mid Back, Traps, Lower Back)
+  Direct sets:  10 (Row BB 4 + Pulldown Wide 3 + Cable Row Narrow 3 + Chinup 3)
+                 = 13 direct sets
+  Indirect from:
+    Curl Barbell      -> Brachialis 0.5 (normalizes to Biceps not Back) = 0.0
+    RDL Barbell       -> Lower Back 0.4 x 4 sets                       = 1.6
+    RDL Dumbbell      -> Lower Back 0.3 x 3 sets                       = 0.9
+    Stiff Leg DL      -> (not in program)                               = 0.0
+    Ab Wheel          -> Lats 0.3 (not in program)                      = 0.0
+  Total indirect:  2.5 sets (from lower back on RDLs)
+  Effective total: 15.5 sets
+  NOTE: Back gets significant direct volume. RDL lower back contribution
+        adds modestly. Upper Traps secondary on OHP normalizes to Back:
+        OHP 3 sets x 0.3 + DB Shoulder 3 x 0.3 = 1.8 more indirect.
+  Revised total indirect: 4.3 sets
+  Revised effective total: 17.3 sets
+
+MUSCLE: QUADS
+  Direct sets:  16 (Squat 4 + Leg Press 3 + Hack Squat 3 + Leg Ext 3
+                     + Bulgarian SS 3)
+  Indirect from:
+    Deadlift Barbell  -> Quads 0.4 (not in this program)         = 0.0
+    Trap Bar DL       -> Quads 0.7 (not in this program)         = 0.0
+    Deadlift Sumo     -> Quads 0.4 (not in this program)         = 0.0
+    Leg Press Wide    -> Quads 0.5 (not in this program)          = 0.0
+  Total indirect:  0.0 sets
+  Effective total: 16.0 sets
+
+MUSCLE: HAMSTRINGS
+  Direct sets:  13 (RDL BB 4 + Leg Curl Seated 3 + RDL DB 3
+                     + Leg Curl Lying 3)
+  Indirect from:
+    Squat Barbell     -> Hamstrings 0.3 x 4 sets                 = 1.2
+    Leg Press         -> Hamstrings 0.3 x 3 sets                 = 0.9
+    Squat Smith       -> (not in program)                         = 0.0
+    Bulgarian SS      -> Hamstrings 0.3 x 3 sets                 = 0.9
+    Hip Thrust BB     -> Hamstrings 0.4 x 3 sets                 = 1.2
+    Hip Thrust Mach   -> Hamstrings 0.3 x 3 sets                 = 0.9
+    Hack Squat        -> (no hamstring secondary)                 = 0.0
+  Total indirect:  5.1 sets
+  Effective total: 18.1 sets
+  ? NOTE: Hamstrings get a LOT of indirect volume from squats and hip
+    thrusts. At 18.1 effective sets, this is approaching high volume.
+    MRV for hamstrings is typically 12-16 sets. Worth monitoring.
+
+MUSCLE: GLUTES
+  Direct sets:  6 (Hip Thrust BB 3 + Hip Thrust Mach 3)
+  Indirect from:
+    Squat Barbell     -> Glutes 0.7 x 4 sets                     = 2.8
+    Leg Press         -> Glutes 0.5 x 3 sets                     = 1.5
+    RDL Barbell       -> Glutes 0.7 x 4 sets                     = 2.8
+    RDL Dumbbell      -> Glutes 0.7 x 3 sets                     = 2.1
+    Hack Squat        -> Glutes 0.4 x 3 sets                     = 1.2
+    Bulgarian SS      -> Glutes 0.7 x 3 sets                     = 2.1
+    Leg Curl Seated   -> (no glute secondary)                     = 0.0
+    Leg Curl Lying    -> (no glute secondary)                     = 0.0
+  Total indirect:  12.5 sets
+  Effective total: 18.5 sets
+  !! FLAG: Glutes get 12.5 indirect sets — more indirect than direct!
+     At 18.5 effective sets, this likely exceeds MRV for most lifters.
+     This is a known characteristic of lower body training: glutes are
+     secondary on virtually every lower body compound. The app's volume
+     tracking must account for this or risk chronic overreaching on
+     glutes for lower body dominant programs.
+
+MUSCLE: CALVES
+  Direct sets:  8 (Standing Calf 4 + Seated Calf 4)
+  Indirect from:
+    (No exercises in the dictionary list calves as secondary)     = 0.0
+  Total indirect:  0.0 sets
+  Effective total: 8.0 sets
+  NOTE: Calves receive zero indirect volume. All calf volume is direct.
+        This is anatomically correct for isolation calf work.
+
+MUSCLE: BICEPS (normalized: Biceps, Brachialis, Brachioradialis)
+  Direct sets:  6 (Curl Barbell 3 + Incline Curl 3)
+  Indirect from:
+    Row Barbell       -> Biceps 0.5 x 4 sets                     = 2.0
+    Pulldown Wide     -> Biceps 0.5 x 3 sets                     = 1.5
+    Cable Row Narrow  -> Biceps 0.5 x 3 sets                     = 1.5
+    Chinup            -> Biceps 0.7 x 3 sets                     = 2.1
+  Total indirect:  7.1 sets
+  Effective total: 13.1 sets
+  NOTE: Biceps get more indirect volume than direct. This is expected
+        and appropriate — every pulling movement trains biceps. The 7.1
+        indirect sets mean that even with 6 direct sets, biceps are
+        receiving heavy effective stimulus. Programs that add more direct
+        bicep work risk overtraining this muscle.
+
+MUSCLE: TRICEPS
+  Direct sets:  6 (Tricep Pushdown 3 + Overhead Tri Ext 3)
+  Indirect from:
+    Bench Press BB    -> Triceps 0.5 x 4 sets                    = 2.0
+    Incline DB Press  -> Triceps 0.5 x 3 sets                    = 1.5
+    OHP Barbell       -> Triceps 0.5 x 3 sets                    = 1.5
+    DB Shoulder Press -> Triceps 0.5 x 3 sets                    = 1.5
+  Total indirect:  6.5 sets
+  Effective total: 12.5 sets
+  NOTE: Triceps also get substantial indirect volume from all pressing.
+        6.5 indirect sets is significant. Similar to biceps, the muscle
+        is well-stimulated even with moderate direct work.
+
+MUSCLE: DELTS (normalized: Front Delts, Mid Delts, Rear Delts)
+  Direct sets:  12 (OHP BB 3 + DB Shoulder 3 + Lat Raise Cable 3
+                     + Rear Delt Fly 3)
+  Indirect from:
+    Bench Press BB    -> Front Delts 0.5 x 4 sets                = 2.0
+    Incline DB Press  -> Front Delts 0.5 x 3 sets                = 1.5
+    Pec Deck          -> Front Delts 0.2 x 3 sets                = 0.6
+    Row Barbell       -> Rear Delts 0.5 x 4 sets                 = 2.0
+    Pulldown Wide     -> Rear Delts 0.3 x 3 sets                 = 0.9
+    Cable Row Narrow  -> Rear Delts 0.3 x 3 sets                 = 0.9
+    Chinup            -> (no rear delt secondary listed)          = 0.0
+  Total indirect:  7.9 sets
+  Effective total: 19.9 sets
+  !! FLAG: Delts get very high effective volume. 19.9 sets is at or above
+     MRV for most lifters. Front delts get hammered from all pressing
+     (bench + OHP), rear delts from all rows/pulls, and mid delts from
+     direct lateral work. Consider whether the volume engine adequately
+     flags this.
+
+--------------------------------------------------------------------------------
+VOLUME IMPACT SUMMARY TABLE
+--------------------------------------------------------------------------------
+
+  Muscle      | Direct | Indirect | Effective | Assessment
+  ------------|--------|----------|-----------|---------------------------
+  Chest       |  10.0  |    0.0   |   10.0    | PASS - all direct
+  Back        |  13.0  |    4.3   |   17.3    | PASS - high but normal
+  Quads       |  16.0  |    0.0   |   16.0    | PASS - all direct
+  Hamstrings  |  13.0  |    5.1   |   18.1    | ? WATCH - approaching MRV
+  Glutes      |   6.0  |   12.5   |   18.5    | !! HIGH - indirect > direct
+  Calves      |   8.0  |    0.0   |    8.0    | PASS - all direct
+  Biceps      |   6.0  |    7.1   |   13.1    | PASS - indirect > direct (normal)
+  Triceps     |   6.0  |    6.5   |   12.5    | PASS - indirect > direct (normal)
+  Delts       |  12.0  |    7.9   |   19.9    | !! HIGH - approaching/exceeding MRV
+  ------------|--------|----------|-----------|---------------------------
+  TOTALS      |  90.0  |   43.4   |  133.4    |
+
+
+================================================================================
+AUDIT E: PRIMARY MUSCLE CLASSIFICATION REVIEW
+================================================================================
+
+FLAGGED EXERCISES:
+
+  ? good_morning — primary: Mid Back, Lats
+     The good morning is primarily a hip hinge that targets the posterior
+     chain. Listing it under Back is defensible (spinal erectors/back
+     involvement), but many coaches classify it as a hamstring/glute
+     exercise. The dictionary has a separate "good_morning_hamstring"
+     variant to address this. The dual listing approach is acceptable.
+     VERDICT: ACCEPTABLE (with the hamstring variant covering the gap)
+
+  ? deadlift_barbell — primary: Lats, Mid Back, Traps
+     The conventional deadlift is classified as a back exercise, which
+     is a common powerlifting perspective. However, it involves every
+     posterior chain muscle nearly equally. The secondary weights of
+     Glutes 0.7 and Hamstrings 0.7 acknowledge this.
+     VERDICT: ACCEPTABLE — placing under Back is a reasonable convention.
+
+  ? deadlift_trap_bar — primary: Lats, Mid Back
+     Trap bar deadlifts are MORE quad-dominant than conventional deadlifts,
+     yet they are classified under Back. The Quads 0.7 secondary weight
+     reflects this, but some would argue Quads should be co-primary.
+     VERDICT: BORDERLINE — consider adding Quads to primaryMuscles, or
+     accept the 0.7 secondary as adequate compensation.
+
+  ? rack_pull — primary: Traps, Mid Back, Lats
+     Rack pulls are primarily a back/traps exercise. CORRECT.
+
+  ? hyperextension — primary: Lower Back
+     Some coaches classify hyperextensions as glute/hamstring exercises,
+     especially with a hip-hinge execution. The dictionary lists
+     Glutes 0.5 and Hamstrings 0.4 as secondaries, which is reasonable.
+     VERDICT: ACCEPTABLE
+
+  ? reverse_hyperextension — primary: Lower Back, Glutes
+     Correct — reverse hypers target both lower back and glutes.
+     VERDICT: CORRECT
+
+  ? glute_ham_raise — primary: Hamstrings, Glutes
+     Correct — GHR targets both hamstring knee flexion and glute extension.
+     VERDICT: CORRECT
+
+  ? cable_pull_through — primary: Hamstrings, Glutes
+     Correct — cable pull-throughs are a hip hinge targeting posterior chain.
+     VERDICT: CORRECT
+
+  ? row_cable_wide — primary: Mid Back, Rear Delts
+     Including Rear Delts as primary is correct for wide-grip rows.
+     VERDICT: CORRECT
+
+  ? face_pull_cable — primary: Rear Delts, Traps
+     Correct — face pulls target both.
+     VERDICT: CORRECT
+
+  ? upright_row — primary: Upper Traps, Mid Delts
+     Correct — upright rows target both.
+     VERDICT: CORRECT
+
+  ? curl_hammer — primary: Brachialis, Brachioradialis
+     Correct — hammer curls primarily target brachialis/brachioradialis,
+     not the biceps brachii directly.
+     VERDICT: CORRECT
+
+  ? curl_reverse — primary: Brachioradialis, Brachialis
+     Correct — reverse curls emphasize the forearm and brachialis.
+     VERDICT: CORRECT
+
+  All remaining exercises have correct primary muscle classifications.
+  NO errors found.
+
+
+################################################################################
+SECTION 3: ADDITIONAL FINDINGS
+################################################################################
+
+================================================================================
+MISSING EXERCISES REFERENCED IN SWAP KEYS
+================================================================================
+
+  The following exercise keys appear in swapKeys lists but are NOT defined
+  in the dictionary:
+
+  !! bench_press_incline_smith (referenced by bench_press_incline_barbell)
+  !! bench_press_decline_smith (referenced by bench_press_decline_barbell)
+  !! incline_machine_press (referenced by bench_press_incline_barbell)
+  !! machine_chest_press (referenced by bench_press_barbell, bench_press_smith)
+  !! ohp_smith (referenced by ohp_barbell)
+  !! tricep_pushdown_machine (referenced by tricep_pushdown_cable, pushdown_rope)
+  !! machine_dip (referenced by close_grip_bench, dips_tricep)
+  !! single_leg_leg_press (referenced by bulgarian_split_squat)
+
+  Impact: These missing exercises will cause swapKeys lookups to return nil.
+  The swap system will skip them silently (no crash), but users lose swap
+  options. All 8 should be added to the dictionary.
+
+================================================================================
+NORMALIZATION EDGE CASES
+================================================================================
+
+  ? "Upper Traps" — normalizes to Back (via "trap" substring match).
+     This means OHP secondary volume for Upper Traps counts toward Back,
+     not Delts. This is anatomically defensible but may surprise users
+     who associate traps with shoulder day.
+
+  ? "Adductors" — normalizes to Glutes.
+     Adductors are a distinct muscle group but are grouped with Glutes
+     for tracking purposes. This is a common simplification.
+
+  ? "External Rotators" — normalizes to Delts (via the rotator/external
+     rotator catch-all). Face pull secondary volume for external rotators
+     counts toward Delts. This is a stretch but acceptable for simplicity.
+
+  ? "Shoulders" (raw value on landmine_twist secondary) — normalizes to
+     Delts. This is correct.
+
+  ? "Lower Back" — normalizes to Back. This means hyperextension and
+     reverse hyperextension primary volume counts toward Back. Correct
+     for volume tracking purposes.
+
+  ? "Brachialis" and "Brachioradialis" — both normalize to Biceps.
+     This means hammer curl and reverse curl secondary volume for
+     biceps is being double-counted: once for the "Biceps" secondary
+     and again implicitly from primary "Brachialis" normalizing to Biceps.
+     For hammer curls: primary Brachialis (-> Biceps 1.0) + secondary
+     Biceps 0.5 = the exercise counts as both 1.0 + 0.5 = 1.5 bicep
+     sets? This depends on implementation — if primaryMuscles and
+     secondaryMuscles are processed independently, this is correct
+     behavior (the primary IS the brachialis which normalizes to Biceps,
+     and there is additional bicep head involvement at 0.5).
+     VERDICT: Technically correct but worth noting for volume tracking.
+
+================================================================================
+COMPOUND FLAG ACCURACY
+================================================================================
+
+  ? pullover_cable — isCompound: NO
+     Cable pullovers involve shoulder extension and are typically
+     considered a single-joint exercise. Correct.
+
+  ? glute_ham_raise — isCompound: NO
+     GHR involves both hip extension and knee flexion. Could arguably be
+     isCompound: YES. However, it is commonly classified as isolation
+     since the primary motion is knee flexion against gravity.
+     VERDICT: BORDERLINE — either classification is defensible.
+
+  ? spanish_squat — isCompound: NO
+     Spanish squats are a quad-dominant exercise with a band. The banded
+     setup reduces the compound nature. Correct.
+
+  All other compound/isolation flags reviewed and correct.
+
+================================================================================
+T1 ANCHOR STATUS REVIEW
+================================================================================
+
+  Muscles with T1 anchors (isAnchorableAsTier1 = true):
+    Chest:  bench_press_barbell                                    PASS
+    Back:   row_barbell, row_cable_narrow, row_cable_wide,
+            pulldown_wide, pulldown_close, deadlift_barbell,
+            pulldown_cable                                         PASS
+    Quads:  squat_barbell, hack_squat, leg_press, belt_squat       PASS
+    Delts:  ohp_barbell                                            PASS
+    Hams:   rdl_barbell                                            PASS
+    Glutes: hip_thrust_barbell                                     PASS
+    Triceps: close_grip_bench                                      PASS
+
+  Muscles with NO T1 anchors (by design per CLAUDE.md):
+    Biceps, Calves                                                 PASS
+
+  NOTE: Back has 7 T1 anchors (most of any muscle). This gives Back
+        the most T1 flexibility in program generation.
+
+
+################################################################################
+FINAL SUMMARY
+################################################################################
+
+ERRORS (!! — should fix):
+  1. 8 exercises referenced in swapKeys are not defined in the dictionary
+  2. row_machine missing Rear Delts secondary
+  3. Glute indirect volume may exceed MRV in standard programs (design issue)
+  4. Delt effective volume very high at ~20 sets in standard 4-day split
+
+QUESTIONABLE (? — consider reviewing):
+  1. deadlift_trap_bar: Quads 0.7 secondary is very high (borderline co-primary)
+  2. row_barbell_underhand: Biceps 0.7 borderline high (but defensible)
+  3. good_morning under Back (mitigated by hamstring variant)
+  4. Upper Traps normalizing to Back may surprise users
+  5. upright_row compound with only Front Delts 0.3 secondary (missing Biceps)
+  6. dips_tricep Chest 0.4 could arguably be 0.5
+  7. pullover_cable: zero secondaries (could add Chest or Triceps at 0.2)
+  8. glute_ham_raise: isCompound: NO is debatable
+
+CORRECT:
+  - All bench press secondary weights                              PASS
+  - All row secondary weights (except row_machine)                 PASS
+  - All squat secondary weights                                    PASS
+  - All OHP secondary weights                                      PASS
+  - All pull-up/chin-up secondary weights                          PASS
+  - All RDL secondary weights                                      PASS
+  - All hip thrust secondary weights                               PASS
+  - All dip secondary weights                                      PASS
+  - All calf exercise structure                                    PASS
+  - All bicep exercise structure                                   PASS
+  - All tricep exercise structure                                  PASS
+  - Normalization function coverage                                PASS
+  - T1 anchor assignments                                          PASS
+  - Movement pattern assignments                                   PASS
+
+TOTAL: 131 exercises audited | 4 errors | 8 questionable | 119+ correct
+================================================================================

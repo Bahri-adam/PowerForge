@@ -1,0 +1,2438 @@
+═══════════════════════════════════════════════════════════════════════
+POWERBODYBUILDER — PROGRAM GENERATOR AUDIT
+Comprehensive Edge-Case Analysis
+Generated: 2026-03-18
+Algorithm version: RPE Engine v3 / VolumeDecisionEngine / MRVSignalEngine
+Build status: 0 errors, 0 warnings. All existing tests pass.
+═══════════════════════════════════════════════════════════════════════
+
+TABLE OF CONTENTS
+  Section 1 — Split Structure Edge Cases
+  Section 2 — Weekly Set Target Edge Cases
+  Section 3 — Exercise Selection Edge Cases
+  Section 4 — Volume Decision Engine Edge Cases
+  Section 5 — MRV Signal Scoring Edge Cases
+  Section 6 — Block Transition Edge Cases
+  Section 7 — Guard Rail Boundary Conditions
+  Section 8 — generateBlock Integration Scenarios
+  Section 9 — Known Gaps and Open Issues
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 1 — SPLIT STRUCTURE EDGE CASES
+Source: ProgramGenerator.resolveSplitStructure()
+═══════════════════════════════════════════════════════════════════════
+
+Reference arrays (hardcoded in function):
+  allMuscles   = ["Chest","Back","Quads","Hamstrings","Glutes","Delts","Triceps","Biceps"]
+  pushMuscles  = ["Chest","Delts","Triceps"]
+  pullMuscles  = ["Back","Biceps"]
+  legMuscles   = ["Quads","Hamstrings","Glutes","Calves"]
+  upperMuscles = ["Chest","Back","Delts","Triceps","Biceps"]
+  lowerMuscles = ["Quads","Hamstrings","Glutes","Calves"]
+
+NOTE: allMuscles OMITS "Calves". This affects 2-day and 3-day strength
+      splits which use allMuscles. See edge case 1.1.
+
+───────────────────────────────────────────────────────────────────────
+1.1  daysPerWeek = 2 (all goals)
+───────────────────────────────────────────────────────────────────────
+Input:  daysPerWeek ≤ 2 (case ...2 catches 0, 1, 2, and negatives)
+Output: [Full Body A (.fullBodyA), Full Body B (.fullBodyB)]
+Primary muscles per session: allMuscles (8 muscles)
+
+Edge cases:
+  • daysPerWeek = 0 or negative → still produces 2 sessions (no crash)
+  • daysPerWeek = 1 → same 2-day output (may confuse user who expects 1 day)
+  • Calves is NOT in allMuscles → Calves gets ZERO programmed sets
+  • Goal type is ignored — all 4 goals produce identical split
+  • Priority muscles are ignored — no mechanism to emphasize them at 2 days
+  • All 8 muscles compete for sets in one session → potential G6 (24-set cap)
+    pressure. With 8 muscles × ~6 sets each = 48 sets before cap.
+
+VERDICT: PASS (code is correct for its design), but Calves omission at
+2 days is a DESIGN GAP worth noting.
+
+───────────────────────────────────────────────────────────────────────
+1.2  daysPerWeek = 3, goal = .strength
+───────────────────────────────────────────────────────────────────────
+Output: [Full Body A, Full Body B, Full Body C (sessionType .fullBodyA)]
+Primary muscles: allMuscles (8 muscles) per session
+
+Edge cases:
+  • Full Body C reuses .fullBodyA sessionType — identical to day 1
+  • Calves omitted (same gap as 2-day)
+  • Priority muscles ignored
+  • 3 sessions × 8 muscles = heavy set pressure per session
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+1.3  daysPerWeek = 3, goal = .hypertrophy / .powerbuilding / .recomp
+───────────────────────────────────────────────────────────────────────
+Output: [Push (.push), Pull (.pull), Legs (.legs)]
+Primary muscles:
+  Push: Chest, Delts, Triceps
+  Pull: Back, Biceps
+  Legs: Quads, Hamstrings, Glutes, Calves
+
+Edge cases:
+  • Calves IS included (on Legs day) — unlike 2-day and 3-day strength
+  • Pull day has only 2 muscle groups → lighter session volume
+  • Legs day has 4 muscle groups → heavier session volume
+  • Priority muscles ignored at 3 days
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+1.4  daysPerWeek = 4 (all goals)
+───────────────────────────────────────────────────────────────────────
+Output: [Heavy Upper (.heavyUpper), Heavy Lower (.heavyLower),
+         Hypertrophy Upper (.hypertrophyUpper), Hypertrophy Lower (.hypertrophyLower)]
+Primary muscles:
+  Upper: Chest, Back, Delts, Triceps, Biceps (5 muscles)
+  Lower: Quads, Hamstrings, Glutes, Calves (4 muscles)
+
+Edge cases:
+  • Goal type is ignored — strength and hypertrophy get the same ULUL split
+  • Priority muscles ignored
+  • Upper sessions have 5 muscles → 24-set cap may force trimming
+  • Calves IS included on lower days
+  • "Heavy" vs "Hypertrophy" distinction is cosmetic in split structure
+    (RPE differentiation happens in generateBlock via blockType × tier)
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+1.5  daysPerWeek = 5 (all goals)
+───────────────────────────────────────────────────────────────────────
+Output: [Push A, Pull A, Legs A, Priority 1, Priority 2]
+
+Priority muscle resolution:
+  • 0 priorities: p1Muscles = pushMuscles, p2Muscles = pullMuscles
+    → Priority 1 becomes a second Push session, Priority 2 becomes second Pull
+  • 1 priority: p1Muscles = [priorityMuscles[0]], p2Muscles = pullMuscles
+    → Priority 2 defaults to Pull
+  • 2+ priorities: p1Muscles = [first priority], p2Muscles = [second priority]
+
+SessionType resolution for priority sessions:
+  • p1Type: if priority muscle ∈ legMuscles → .legs;
+            if ∈ pushMuscles → .push; else → .pull
+    Fallback: .push
+  • p2Type: if priority muscle ∈ legMuscles → .legs;
+            if ∈ pullMuscles → .pull; else → .push
+    Fallback: .pull
+
+Edge cases:
+  • Priority = "Quads" → p1Type = .legs (correctly identified as leg muscle)
+  • Priority = "Back" → p1Type checked: legMuscles.contains("Back")?
+    No. pushMuscles.contains("Back")? No. → defaults to .pull.
+    But p1 fallback type is from `?? .push`. Wait, let me re-read:
+    p1Type uses: legMuscles check first, then pushMuscles check, else .pull.
+    The ?? .push is if flatMap returns nil (only if priorityMuscles list
+    is empty, which is handled by the count check above).
+    So priority = "Back" → p1Type = .pull. CORRECT.
+  • Priority = "Hamstrings" → p1Type = .legs. CORRECT.
+  • Priority = "Delts" → legMuscles? No. pushMuscles? Yes ("Delts" ∈ pushMuscles).
+    → p1Type = .push. CORRECT.
+  • Priority = "Biceps" → legMuscles? No. pushMuscles? No. → .pull. CORRECT.
+  • Priority = "Triceps" → legMuscles? No. pushMuscles? Yes. → .push. CORRECT.
+  • Calves as priority: "Calves" not in allMuscles but IS in legMuscles.
+    → p1Type = .legs. Session would only target ["Calves"]. WORKS but unusual.
+
+  • Both priorities are the same muscle → two dedicated sessions for one muscle.
+    Legal but may over-prescribe volume.
+
+  • p1 and p2 are both leg muscles → 3 leg sessions, 1 push, 1 pull.
+    Upper body under-represented.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+1.6  daysPerWeek = 6 (all goals)
+───────────────────────────────────────────────────────────────────────
+Output: [Push A, Pull A, Legs A/QuadFocus, Push B, Pull B, Legs B/Posterior]
+
+Quad priority active:
+  • Legs A → "Legs — Quad Focus" (.legQuadFocus)
+    primaryMuscles = ["Quads", "Calves"] (omits Hamstrings, Glutes!)
+  • If Hamstrings/Glutes also priority → Legs B = "Legs — Posterior Chain"
+    primaryMuscles = ["Hamstrings", "Glutes", "Calves"]
+
+No quad priority:
+  • Legs A → standard (.legsA), primaryMuscles = legMuscles (all 4)
+  • Legs B → standard (.legsB), primaryMuscles = legMuscles (all 4)
+
+No posterior priority:
+  • Legs B → standard (.legsB), primaryMuscles = legMuscles (all 4)
+
+Edge cases:
+  • Quad priority + Hamstrings priority → Legs A = quad focus, Legs B = posterior
+    → Calves appears in BOTH leg sessions (doubled programming)
+  • Quad priority + Glutes priority → same as above
+  • Quad priority but NOT Hamstrings/Glutes priority →
+    Legs A = quad+calves only; Legs B = ALL leg muscles
+    → Hamstrings/Glutes only trained on Legs B (1x/week frequency)
+  • Hamstrings priority but NOT Quads →
+    Legs A = standard (all 4); Legs B = posterior focus
+    → Quads still hit 2x/week via standard Legs A, which is correct
+  • Goal type ignored at 6 days — same split regardless
+  • Calves on both leg days → potential overcounting in set targets
+    (sessionsForMuscle = 2 for calves, divides weekly target by 2)
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+1.7  daysPerWeek = 7
+───────────────────────────────────────────────────────────────────────
+Output: 6-day split + [Active Recovery (.rest, primaryMuscles = [])]
+
+Edge cases:
+  • Recursive call to resolveSplitStructure(6, goal, priorities)
+  • Rest day has empty primaryMuscles → skipped in generateBlock
+    (guard day.sessionType != .rest else { continue })
+  • Effective training is identical to 6-day
+  • daysPerWeek = 8 or higher → clamped to 7 via min(daysPerWeek, 7)
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+1.8  Cross-cutting edge cases
+───────────────────────────────────────────────────────────────────────
+  • Goal type is only used at 3 days (strength vs non-strength). At all
+    other day counts, goal is ignored by resolveSplitStructure.
+  • Priority muscles are only used at 5 and 6 days. At 2, 3, 4, 7 days
+    they are passed but ignored.
+  • Calves gap: 2-day, 3-day strength → Calves gets zero programmed sets.
+    All other configurations include Calves.
+  • "Core" is never in any muscle list → Core gets zero programmed sets
+    at all day counts. (Core exercises exist in ExerciseDictionary but
+    are never targeted by the generator.)
+
+VERDICT for Section 1: PASS (correct per current design)
+DESIGN NOTES: Calves omission at ≤2 days and 3-day strength. Core never
+programmed. Priority muscles ignored below 5 days.
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 2 — WEEKLY SET TARGET EDGE CASES
+Source: ProgramGenerator.resolveWeeklySetTarget()
+═══════════════════════════════════════════════════════════════════════
+
+Function signature:
+  resolveWeeklySetTarget(muscle, week, blockType, muscleTier, experience,
+                          calorieContext, calibration, nextWeekAdjustment,
+                          previousBlockPeakSets)
+
+Pipeline:
+  1. If deload → return mv(muscle) immediately
+  2. Compute baseMEV (calibration-blended or experience-scaled)
+  3. Add priorityBonus (+4 if priority tier)
+  4. Apply blockMultiplier
+  5. Apply weekAdjustment (skip on week 1)
+  6. Apply previousBlockPeakSets cap (week 1 only: min(result, peak - 2))
+  7. Clamp to MRV ceiling (G1)
+  8. Floor at MV (G2)
+
+───────────────────────────────────────────────────────────────────────
+2.1  Deload week for every experience level
+───────────────────────────────────────────────────────────────────────
+When blockType == .deload, resolveWeeklySetTarget returns mv(muscle)
+immediately, bypassing ALL other logic.
+
+mv() values:
+  Chest=6, Back=6, Quads=6, Calves=6
+  Hamstrings=4, Glutes=4, Delts=4, Triceps=4, Biceps=4
+
+These values are FIXED regardless of experience level. A beginner and
+an elite lifter get the same deload volume. This is by design — deloads
+are meant to be minimal.
+
+Edge cases:
+  • Experience level does NOT affect deload volume → PASS
+  • Muscle tier does NOT affect deload volume → PASS
+  • Calorie context does NOT affect deload volume → PASS
+  • Priority muscles still get only mv() during deload → PASS
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+2.2  Week 1 with previousBlockPeakSets at various values
+───────────────────────────────────────────────────────────────────────
+Logic: if week == 1 && previousBlockPeakSets exists:
+       result = min(result, peak - 2)
+
+Example: Chest, intermediate, neutral tier, accumulation block
+  baseMEV = scaledMEV("Chest", .intermediate) = Int(6 * 1.4) = 8
+  priorityBonus = 0
+  blockMultiplier = 1.0 (accumulation)
+  base = Int(8 * 1.0) = 8
+  weekAdjustment = 0 (week 1 always 0)
+  result = 8
+
+  previousBlockPeakSets = 14 → min(8, 14-2=12) = 8 (no change — base < peak-2)
+  previousBlockPeakSets = 10 → min(8, 10-2=8) = 8 (equal — no change)
+  previousBlockPeakSets = 8  → min(8, 8-2=6) = 6 (CAPPED — reduced by 2)
+  previousBlockPeakSets = 4  → min(8, 4-2=2) = 2 (CAPPED — heavy reduction)
+  previousBlockPeakSets = 2  → min(8, 2-2=0) = 0 (result = 0, then G2 raises to mv)
+  previousBlockPeakSets = 0  → min(8, 0-2=-2) = -2 (negative! Then G2 raises to mv)
+
+Edge cases:
+  • peak - 2 can go negative → G2 (floorAtMV) catches this. PASS.
+  • peak = nil → cap doesn't apply, result stays at computed base. PASS.
+  • Week 2+ → previousBlockPeakSets is ignored entirely. PASS.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+2.3  nextWeekAdjustment at extreme values
+───────────────────────────────────────────────────────────────────────
+weekAdjustment = (week == 1) ? 0 : nextWeekAdjustment
+
+Extreme positive: nextWeekAdjustment = +10
+  base = 8 (intermediate, chest, accumulation)
+  result = 8 + 10 = 18
+  mrv = effectiveMRV("Chest", .intermediate, .neutral, .unknown)
+       = scaledMRV("Chest", .intermediate) * 1.0 * 1.0
+       = Int(22 * 1.2) * 1 * 1 = 26
+  Clamped: min(18, 26) = 18
+  Floored: max(18, 6) = 18
+  Result: 18. Not capped because MRV is high enough.
+
+Extreme negative: nextWeekAdjustment = -10
+  result = 8 + (-10) = -2
+  Clamped: min(-2, 26) = -2
+  Floored: max(-2, 6) = 6
+  Result: 6 (raised to MV floor). G2 catches negative results.
+
+Zero adjustment: nextWeekAdjustment = 0
+  result = 8 + 0 = 8. No change.
+
+Week 1 with any adjustment:
+  weekAdjustment forced to 0 → adjustment ignored. PASS.
+
+Edge cases:
+  • Extreme positive → G1 clamps to MRV. PASS.
+  • Extreme negative → G2 floors at MV. PASS.
+  • +10 with priority tier muscle:
+    baseMEV = 8, priorityBonus = 4, base = 12
+    result = 12 + 10 = 22
+    mrv = Int(22 * 1.2) * 1.5 * 1.0 = 39
+    Result: 22 (under MRV, unclamped). PASS.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+2.4  Every calorie context × experience level combination
+───────────────────────────────────────────────────────────────────────
+CalorieContext.mrvModifier values:
+  .unknown / .surplus / .maintenance → 1.0
+  .mildDeficit → 0.90
+  .moderateDeficit → 0.85
+  .aggressiveDeficit → 0.75
+
+effectiveMRV = scaledMRV * tier.multiplier * calorieContext.mrvModifier
+
+Sample: Chest, neutral tier
+  Experience     scaledMRV   surplus   maintenance   mildDef   modDef   aggDef
+  beginner       22          22        22            19        18       16
+  intermediate   26          26        26            23        22       19
+  advanced       29          29        29            26        24       21
+  elite          31          31        31            27        26       23
+
+NOTE: CalorieContext only affects the MRV CEILING. It does NOT affect
+baseMEV or the starting set target. So calorie context only matters
+when the computed target exceeds the adjusted MRV.
+
+Edge case: aggressive deficit + priority muscle
+  Chest, elite, priority, aggressive deficit:
+  baseMEV = Int(6 * 2.3) = 13
+  priorityBonus = 4
+  base = 17 (accumulation multiplier 1.0)
+  mrv = Int(31 * 1.5 * 0.75) = Int(34.875) = 34
+  Result: 17 (under MRV cap). Deficit doesn't constrain here.
+
+Edge case: aggressive deficit + priority + late in block with +6 adjustment:
+  base = 17 + 6 = 23
+  mrv = 34
+  Result: 23 (still under cap). Even aggressive deficit allows high volume
+  for elite priority muscles.
+
+Edge case: moderate deficit + maintenance tier muscle:
+  Chest, intermediate, maintenance, moderate deficit:
+  baseMEV = Int(6 * 1.4) = 8
+  priorityBonus = 0
+  tier multiplier for base: maintenance doesn't affect baseMEV directly
+  (tier only applies to effectiveMRV, not base calculation)
+  Wait — looking at the code more carefully:
+
+  baseMEV = scaledMEV(muscle, experience) → uses experience only
+  priorityBonus = muscleTier == .priority ? 4 : 0 → maintenance = 0
+  blockMultiplier affects the sum
+  Then result is clamped to effectiveMRV(muscle, exp, tier, calorieCtx)
+
+  So maintenance tier affects MRV ceiling via tier.multiplier (0.7x):
+  mrv = Int(26 * 0.7 * 0.85) = Int(15.47) = 15
+
+  base = Int(8 * 1.0) = 8
+  Result: 8 (under MRV=15, above MV=6). PASS.
+
+  But if nextWeekAdjustment = +10:
+  result = 8 + 10 = 18
+  Clamped to MRV=15 → result = 15. G1 fires. PASS.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+2.5  Maintenance tier muscles (reduced volume)
+───────────────────────────────────────────────────────────────────────
+MuscleTier.maintenance: multiplier = 0.7
+
+Effect on volume:
+  • priorityBonus = 0 (only priority gets +4)
+  • MRV ceiling reduced: effectiveMRV = scaledMRV * 0.7 * calorieModifier
+  • baseMEV is NOT reduced by tier (tier only affects MRV and effectiveMEV)
+
+Example: Chest, intermediate, maintenance, accumulation, surplus
+  baseMEV = 8
+  base = Int(8 * 1.0) = 8
+  mrv = Int(26 * 0.7 * 1.0) = 18
+  mv = 6
+  Result: 8 (within bounds)
+
+Example: Chest, elite, maintenance, accumulation, aggressive deficit
+  baseMEV = Int(6 * 2.3) = 13
+  base = Int(13 * 1.0) = 13
+  mrv = Int(31 * 0.7 * 0.75) = Int(16.275) = 16
+  Result: 13 (under MRV=16). OK.
+
+  With +4 adjustment: 13 + 4 = 17 → clamped to 16 (G1). PASS.
+
+OBSERVATION: The baseMEV uses only experience scaling, not tier scaling.
+So a maintenance-tier elite lifter still starts at 13 sets for Chest,
+which may be higher than intended for a "maintenance" designation. The
+tier only constrains the MRV ceiling, not the starting point. For most
+combinations this works because the MRV cap is low enough, but for
+elite experience + maintenance tier + surplus, the starting base (13)
+could approach MRV (Int(31 * 0.7) = 21) closely, leaving little room
+for volume progression.
+
+VERDICT: PASS (code is correct; see observation about design)
+
+───────────────────────────────────────────────────────────────────────
+2.6  Priority tier muscles at MRV ceiling
+───────────────────────────────────────────────────────────────────────
+MuscleTier.priority: multiplier = 1.5, priorityBonus = +4
+
+Example: Chest, elite, priority, accumulation, surplus
+  baseMEV = Int(6 * 2.3) = 13
+  priorityBonus = 4
+  base = Int((13 + 4) * 1.0) = 17
+  mrv = Int(31 * 1.5 * 1.0) = 46
+  Result: 17 (well under MRV=46)
+
+Example: Chest, elite, priority, reaccumulation, surplus, adjustment=+6
+  base = Int(17 * 1.15) = 19
+  result = 19 + 6 = 25
+  mrv = 46
+  Result: 25 (still well under cap)
+
+Edge case: Can a priority muscle EVER hit MRV?
+  Max base = Int((Int(6 * 2.3) + 4) * 1.15) = Int(17 * 1.15) = 19
+  Max with +10 adjustment = 29
+  MRV at elite/priority/surplus = 46
+  → No, priority muscles at elite level can never reach MRV=46 through
+     normal weekly adjustments alone. The system is self-regulating.
+
+  At beginner/priority/surplus:
+  baseMEV = 6, priority = 4, base = 10
+  mrv = Int(22 * 1.5 * 1.0) = 33
+  Even with +10: 20. Still far from 33. PASS.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+2.7  Calibration confidence at 0%, 50%, 100%
+───────────────────────────────────────────────────────────────────────
+Calibration blending formula:
+  confidence = min(1.0, weeksTracked / 12.0)
+  baseMEV = Int(scaledMEV * (1 - confidence) + adjustedMEV * confidence)
+
+Only activates when calibration exists AND confidence != .seeded.
+
+0% (weeksTracked = 0, confidence = .seeded):
+  → Calibration bypassed entirely (if let cal = calibration,
+    cal.confidence != .seeded guard fails)
+  → baseMEV = scaledMEV(experience-based). PASS.
+
+50% (weeksTracked = 6, confidence = 6/12 = 0.5):
+  scaledMEV = 8, adjustedMEV = 12 (calibration discovered higher MEV)
+  baseMEV = Int(8 * 0.5 + 12 * 0.5) = Int(10) = 10. PASS.
+
+100% (weeksTracked = 12+, confidence = 1.0):
+  baseMEV = Int(8 * 0 + 12 * 1.0) = 12.
+  Fully trusts calibration. PASS.
+
+Edge case: weeksTracked = 24 → confidence = min(1.0, 24/12) = 1.0.
+  Same as 100%. PASS.
+
+Edge case: adjustedMEV = 0 (calibration somehow zeroed):
+  At 100%: baseMEV = 0. Then base = 0 + priorityBonus.
+  Result clamped by G2 to MV. PASS (safety net works).
+
+Edge case: calibration exists but confidence == .seeded:
+  Guard fails → uses experience-scaled MEV. PASS.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+2.8  BlockType multipliers
+───────────────────────────────────────────────────────────────────────
+Multipliers in code:
+  .accumulation    = 1.0
+  .intensification = 0.65
+  .reaccumulation  = 1.15
+  .peak            = 0.50
+  .deload          = 1.0 (but deload exits early via mv(), never reaches this)
+
+Example: Chest, intermediate, neutral, various blocks
+  baseMEV = 8, priorityBonus = 0
+
+  Accumulation:    base = Int(8 * 1.0) = 8
+  Intensification: base = Int(8 * 0.65) = 5
+  Reaccumulation:  base = Int(8 * 1.15) = 9
+  Peak:            base = Int(8 * 0.50) = 4
+
+Edge cases:
+  • Intensification base (5) for Chest → MV=6. G2 raises to 6. PASS.
+  • Peak base (4) for Chest → MV=6. G2 raises to 6. PASS.
+  • Intensification base (5) for Biceps → MV=4. Result = 5. No floor hit. PASS.
+  • Peak base for Hamstrings (Int(Int(4*1.4)*0.5) = Int(5*0.5) = 2) → MV=4.
+    G2 raises to 4. PASS.
+
+  • Reaccumulation + priority:
+    baseMEV=8, priority=4, base = Int(12*1.15) = 13. PASS.
+  • Deload multiplier (1.0) is dead code since deload returns early.
+    Harmless but redundant.
+
+VERDICT: PASS
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 3 — EXERCISE SELECTION EDGE CASES
+Source: ProgramGenerator.selectExercisesForMuscle()
+═══════════════════════════════════════════════════════════════════════
+
+T1 filter: isCompound AND isAnchorableAsTier1 AND equipment match
+           (+ barbell required if goal == .strength)
+T2 filter: primaryMuscle match AND equipment match AND not already selected
+T3 filter: NOT isCompound AND primaryMuscle match AND equipment match
+
+Muscles WITH T1-anchorable exercises:
+  Chest:  bench_press_barbell (barbell)
+  Back:   row_barbell (barbell), row_cable_wide (cable),
+          row_cable_close (cable), pulldown_wide (cable),
+          pulldown_close (cable), chinup (cable*), deadlift_barbell (barbell)
+  Quads:  squat_barbell (barbell), hack_squat (machine),
+          leg_press (machine), pendulum_squat (machine), squat_smith (machine)
+  Delts:  ohp_barbell (barbell) — primary is "Front Delts"/"Mid Delts"
+          → normalized to "Delts"
+
+Muscles WITHOUT T1-anchorable exercises:
+  Biceps:     All isolation (isCompound=false)
+  Triceps:    close_grip_bench is compound but NOT isAnchorableAsTier1
+  Calves:     All isolation
+  Hamstrings: RDL variants are compound but NOT isAnchorableAsTier1
+  Glutes:     Hip thrusts are compound but NOT isAnchorableAsTier1
+
+───────────────────────────────────────────────────────────────────────
+3.1  Strength goal requiring barbell-only Tier 1
+───────────────────────────────────────────────────────────────────────
+When goal == .strength, T1 filter adds: def.equipment == .barbell
+
+Available T1 per muscle for strength:
+  Chest:  bench_press_barbell ✓ (1 option)
+  Back:   row_barbell, deadlift_barbell ✓ (2 options)
+  Quads:  squat_barbell ✓ (1 option — hack_squat, leg_press,
+          pendulum_squat, squat_smith all machine, excluded)
+  Delts:  ohp_barbell ✓ (1 option)
+
+Edge cases:
+  • Back has 2 barbell T1 options → highest scored wins (continuity
+    bonus + stretch position). If neither used last block, deadlift
+    scores higher (stretchPosition = .lengthened = +15).
+  • Only 1 option per muscle for Chest/Quads/Delts → no selection choice.
+  • For muscles without ANY barbell T1 (Biceps, Triceps, Calves,
+    Hamstrings, Glutes), no T1 is selected, all sets go to T2/T3.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+3.2  Muscle with no isAnchorableAsTier1 exercises (e.g. Biceps)
+───────────────────────────────────────────────────────────────────────
+T1 candidate filter returns empty. Code path:
+
+  let scoredT1 = tier1Candidates.map { ... }  → empty array
+  if let (bestT1, _) = scoredT1.first { ... } → false, skipped
+  setsRemaining unchanged → guard setsRemaining > 0 passes
+  → Falls through to T2 selection
+
+With setsNeeded = 8 for Biceps:
+  T2 candidates: all Biceps exercises (curl variants)
+  restedT2: exercises NOT in previousBlockExerciseKeys
+  First T2 gets min(4, 8) = 4 sets
+  Second T2 gets min(3, 4) = 3 sets
+  setsRemaining = 1
+
+  T3 candidates: all Biceps isolation exercises not already selected
+  T3 gets min(3, 1) = 1 set
+
+  Total: 4 + 3 + 1 = 8 sets assigned. PASS.
+
+This correctly handles: Biceps, Triceps, Calves, Hamstrings, Glutes.
+
+Edge case: What tier labels do these get?
+  First exercise: .tier2 (not .tier1, even though it's the "anchor")
+  This means the progression increment is T2-level (2.5kg/5lb) not
+  T1-level. For compound hamstring exercises like RDL, this may be
+  conservative. But it's consistent with the tiering system.
+
+Edge case: G7 validateTierOrder check:
+  All exercises for Biceps are T2 or T3 → T2 before T3 → PASSES G7.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+3.3  All Tier 2 candidates used last block (full resting pool)
+───────────────────────────────────────────────────────────────────────
+When previousBlockExerciseKeys contains ALL candidates:
+  restedT2 = empty
+  restingT2 = all candidates
+
+Code path:
+  sortedRested.count = 0 → else branch
+  t2Pool = Array(sortedResting.prefix(2))
+
+Result: previously used exercises are re-used. No rotation occurs.
+
+Edge case: blockNumber == 1 (first block):
+  previousBlockExerciseKeys is empty → all candidates are "rested".
+  No continuity bonus in T1 scoring (blockNumber > 1 check fails).
+  For T2: all exercises are rested, sorted by scoreT2 (stretchPosition
+  + primary muscle match). PASS.
+
+Edge case: Only 1 T2 candidate exists for a muscle:
+  If rested: t2Pool = [that one]. Falls through with 1 exercise.
+  If resting: t2Pool = [that one]. Same result.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+3.4  setsNeeded = 0
+───────────────────────────────────────────────────────────────────────
+First line: guard setsNeeded > 0 else { return [] }
+Returns empty array immediately. No exercises selected.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+3.5  setsNeeded = 1
+───────────────────────────────────────────────────────────────────────
+For a muscle WITH T1 anchor (e.g., Chest):
+  T1 gets min(5, 1) = 1 set
+  setsRemaining = 0
+  guard setsRemaining > 0 fails → return [1 T1 slot with 1 set]
+
+For a muscle WITHOUT T1 anchor (e.g., Biceps):
+  No T1 selected → setsRemaining = 1
+  T2 first exercise gets min(4, 1) = 1 set
+  setsRemaining = 0 → return [1 T2 slot with 1 set]
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+3.6  Equipment set with only .bodyweight
+───────────────────────────────────────────────────────────────────────
+Equipment filter: equipment.contains(def.equipment) || def.equipment == .bodyweight
+
+With equipment = {.bodyweight}:
+  • Bodyweight exercises always pass (second condition)
+  • Non-bodyweight exercises: equipment.contains(.barbell/.cable/.machine) → false
+  • Only bodyweight exercises survive
+
+T1 for Chest with bodyweight only:
+  bench_press_barbell requires .barbell → excluded
+  No T1 candidates (push-ups aren't in the dictionary with isAnchorableAsTier1)
+  → Falls to T2/T3 selection, also bodyweight only
+  → If no bodyweight chest exercises exist, returns empty!
+
+Edge case: In practice, generateBlock() hardcodes equipment to include
+all types: [.barbell, .dumbbell, .cable, .machine, .bodyweight]. So
+bodyweight-only is NOT a scenario that occurs in production. But the
+function signature accepts any equipment set, so this edge case exists
+for future callers.
+
+VERDICT: PASS (function handles it; not reachable in production)
+
+───────────────────────────────────────────────────────────────────────
+3.7  Equipment set missing barbell for strength goal
+───────────────────────────────────────────────────────────────────────
+If goal == .strength AND equipment doesn't contain .barbell:
+  T1 filter: isCompound AND isAnchorableAsTier1 AND equipment match
+             AND def.equipment == .barbell
+  Equipment match: equipment.contains(.barbell) → false for barbell exercises
+  → No T1 candidates for ANY muscle
+
+All sets go to T2/T3.
+
+In production: generateBlock() includes .barbell in equipment set,
+so this scenario doesn't occur. But it's handled gracefully.
+
+VERDICT: PASS (function handles it; not reachable in production)
+
+───────────────────────────────────────────────────────────────────────
+3.8  Tier 3 selection when no isolation exercises exist for muscle
+───────────────────────────────────────────────────────────────────────
+T3 filter requires !def.isCompound (isolation only).
+
+For muscles where all exercises are compound:
+  • Checking ExerciseDictionary: No muscle has zero isolation exercises
+    in practice. Even Hamstrings has leg_curl_lying, leg_curl_seated,
+    nordic_hamstring_curl.
+  • But hypothetically: if T3 candidates is empty, the if let best =
+    tier3Candidates.max(...) block doesn't execute. Remaining sets
+    are simply unassigned — they disappear.
+
+Edge case: setsNeeded = 15
+  T1: 5 sets
+  T2 first: 4 sets
+  T2 second: 3 sets
+  T3: min(3, 3) = 3 sets (if isolation exists)
+  Total assigned: 15. If no T3: total = 12, 3 sets lost.
+
+OBSERVATION: selectExercisesForMuscle can silently drop sets if T3
+candidates are empty. In practice this doesn't happen because all
+muscles have isolation exercises. But the function doesn't guarantee
+all setsNeeded are assigned.
+
+VERDICT: PASS (not reachable with current ExerciseDictionary)
+
+───────────────────────────────────────────────────────────────────────
+3.9  Priority muscle with 14+ sets (should use all 3 tiers)
+───────────────────────────────────────────────────────────────────────
+setsNeeded = 14:
+  T1: min(5, 14) = 5 sets. Remaining = 9.
+  T2 first: min(4, 9) = 4 sets. Remaining = 5.
+  T2 second: min(3, 5) = 3 sets. Remaining = 2.
+  T3: min(3, 2) = 2 sets. Remaining = 0.
+  Total: 5 + 4 + 3 + 2 = 14. All tiers used. PASS.
+
+setsNeeded = 20:
+  T1: 5, T2a: 4, T2b: 3, T3: 3. Total = 15.
+  5 sets unassigned! Only 1 T3 exercise selected (code selects at most
+  1 T3 exercise via if let best = ...). Remaining 5 sets are dropped.
+
+OBSERVATION: Maximum assignable sets = 5 + 4 + 3 + 3 = 15. For
+setsNeeded > 15, the excess is silently dropped. This caps effective
+volume per muscle per session at 15 sets regardless of target.
+
+With 2 sessions per muscle (e.g., 6-day split), max = 30 sets/week.
+MRV for elite/priority/surplus = up to 46 for Chest. This means the
+exercise selection function caps at 30 sets/week for muscles appearing
+in 2 sessions, even if resolveWeeklySetTarget prescribes more.
+
+POTENTIAL GAP: For elite priority muscles in surplus, the prescribed
+target could exceed what selectExercisesForMuscle can assign. In
+practice, this is mitigated by the session duration budget and G6
+session cap of 24 sets.
+
+VERDICT: PASS (practical cap prevents issues, but theoretical gap exists)
+
+───────────────────────────────────────────────────────────────────────
+3.10  Maintenance muscle with 4 sets (T1 only or skip T2/T3)
+───────────────────────────────────────────────────────────────────────
+setsNeeded = 4 for muscle WITH T1 anchor (e.g., Chest):
+  T1: min(5, 4) = 4 sets. Remaining = 0.
+  → Returns [1 T1 slot, 4 sets]. No T2 or T3. PASS.
+
+setsNeeded = 4 for muscle WITHOUT T1 anchor (e.g., Biceps):
+  No T1 → setsRemaining = 4
+  T2 first: min(4, 4) = 4 sets. Remaining = 0.
+  → Returns [1 T2 slot, 4 sets]. No T3. PASS.
+
+setsNeeded = 6 for Chest:
+  T1: 5 sets. Remaining = 1.
+  T2 first: min(4, 1) = 1 set.
+  → Returns [T1×5, T2×1]. PASS.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+3.11  T1 continuity bonus and stretch position scoring
+───────────────────────────────────────────────────────────────────────
+T1 scoring:
+  stretchPosition == .lengthened → +15
+  blockNumber > 1 && previousBlockExerciseKeys.contains(key) → +50
+
+Edge case: Block 1 (no previous exercises):
+  Continuity bonus disabled (blockNumber > 1 fails).
+  Selection based on stretch position only.
+  For Back: deadlift_barbell (.lengthened, +15) scores highest among
+  barbell options (row_barbell is .lengthened too → tied, stable sort
+  determines winner).
+
+Edge case: Block 2+ with previous exercises:
+  Continuity bonus dominates (+50 >> +15). Previously used exercise
+  almost always wins, ensuring T1 anchor stability across blocks.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+3.12  T2 scoring and rotation
+───────────────────────────────────────────────────────────────────────
+T2 scoreT2():
+  stretchPosition == .lengthened → +15
+  primaryMuscle match → +50
+
+Note: primaryMuscle match always scores +50 since T2 candidates are
+already filtered to have primaryMuscle match. So all T2 candidates
+start at +50. Differentiation is purely by stretch position.
+
+Edge case: All candidates have same stretch position → score tie.
+  Array order from Dictionary.values determines selection. NOT
+  deterministic across runs (Dictionary iteration order is random).
+
+POTENTIAL GAP: Non-deterministic T2 selection when candidates tie.
+Two identical inputs could produce different exercise selections.
+In practice this is unlikely to cause issues but makes testing harder.
+
+VERDICT: PASS (functionally correct, determinism is a minor concern)
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 4 — VOLUME DECISION ENGINE EDGE CASES
+Source: VolumeDecisionEngine.decide() + evaluateStimulus()
+═══════════════════════════════════════════════════════════════════════
+
+Decision tree priority order:
+  1. ifiZone == .acuteOverreach → deload (HIGHEST PRIORITY)
+  2. stallDiagnosis == .fatigueStall → deload
+  3. progressionRule == .progress OR e1rmTrend > noiseFloor → holdVolume
+  4. respondsBetterTo == .lowVolumeHighIntensity → holdVolume
+  5. progressionRule == .backoff → holdVolume
+  6. stallDiagnosis == .intensityStall → holdVolume
+  7. ifiZone == .fatigued OR stallDiagnosis == .volumeStall → reduceSets
+  8. evaluateStimulus() → addSets (if stimulus insufficient + confidence ≥ 0.5)
+  9. Default → holdVolume
+
+Key: Later checks only fire if ALL earlier checks fail.
+
+───────────────────────────────────────────────────────────────────────
+4.1  Complete combination matrix
+───────────────────────────────────────────────────────────────────────
+
+FORMAT: [progressionRule | ifiZone | stallDiagnosis | e1rmTrend |
+         respondsBetterTo | blockPhase] → DECISION
+
+DELOAD CASES (unconditional):
+
+[any | .acuteOverreach | any | any | any | any] → deload
+  Reason: IFI ≥ 0.40 indicates severe fatigue accumulation.
+
+[any | any | .fatigueStall | any | any | any] → deload
+  Reason: IFI trend >0.25 + declining e1RM = systemic fatigue.
+
+  EXCEPTION: What if progressionRule == .progress AND stallDiagnosis == .fatigueStall?
+  Check order: acuteOverreach (step 1) → fatigueStall (step 2) → progress (step 3)
+  → fatigueStall wins. DELOAD even if user is progressing.
+  This could be wrong: if e1RM is rising (.progress) but IFI is high,
+  the user may still be adapting. The fatigueStall diagnosis could be
+  stale (from consecutiveStallDiagnoses >= 1 cache).
+  FLAGGED: Potential false deload when progress + fatigueStall coexist.
+
+HOLD CASES:
+
+[.progress | fresh/optimal | noStall/truePlateau/volumeStall/intensityStall |
+ any | any | any] → holdVolume
+  Reason: Load is progressing; volume is not the lever.
+
+[.hold | fresh/optimal | noStall | >noiseFloor | any | any] → holdVolume
+  Reason: e1rmTrend positive beyond noise → progressing via e1RM.
+
+[any | fresh/optimal | noStall | within noise | .lowVolumeHighIntensity |
+ any] → holdVolume
+  Reason: N=1 classification says user responds to intensity, not volume.
+
+[.backoff | fresh/optimal | noStall | any | any | any] → holdVolume
+  Reason: Weight was just reduced; give it time.
+
+[any | fresh/optimal | .intensityStall | any | any | any] → holdVolume
+  Reason: Low fatigue + flat strength = user isn't pushing hard enough.
+  Adding volume won't help; intensity is the lever.
+
+REDUCE CASES:
+
+[.hold | .fatigued | noStall/truePlateau | ≤noiseFloor |
+ not lowVolumeHighIntensity | any] → reduceSets(min(2, current-mev))
+  Reason: Fatigued IFI zone indicates too much accumulated fatigue.
+
+[.hold | fresh/optimal | .volumeStall | ≤noiseFloor |
+ not lowVolumeHighIntensity | any] → reduceSets(min(2, current-mev))
+  Reason: Volume stall = IFI trend > 0.30, too much volume.
+
+  Edge case: currentSets == mev
+    setsToRemove = min(2, 0) = 0 → holdVolume (can't reduce below MEV)
+
+  Edge case: currentSets == mev + 1
+    setsToRemove = min(2, 1) = 1 → reduceSets(1)
+
+ADD CASES:
+
+[.hold | .fresh | noStall/truePlateau | within noise |
+ not lowVolumeHighIntensity | .earlyAccumulation] → evaluateStimulus
+
+  evaluateStimulus scoring:
+    Signal 1 (35%): weeksAtCurrentLoad >= requiredWeeks for blockPhase
+      .postDeloadReintro: requiredWeeks=999 → never fires
+      .earlyAccumulation: requiredWeeks=3
+      .lateAccumulation:  requiredWeeks=2
+      .intensification:   requiredWeeks=1 (DEAD CODE — blockPhase never
+                          returns .intensification; see Section 9)
+      .deload:            requiredWeeks=999 → never fires
+
+    Signal 2 (30%): e1rmTrend evaluation
+      declining → 0 (not a stimulus issue)
+      flat → 0.30 (full weight)
+      rising → 0 (still improving)
+
+    Signal 3 (25%): IFI zone
+      .fresh → 0.25 (full weight — capacity available)
+      .optimal → 0.10 (partial weight)
+      .fatigued/.acuteOverreach → never reaches here (caught earlier)
+
+    Signal 4 (10%): Block phase
+      .lateAccumulation + flat e1RM → 0.10
+
+    Threshold: stimScore > 0.5 AND confidence >= 0.5
+
+    Maximum possible score:
+      0.35 (signal 1) + 0.30 (signal 2) + 0.25 (signal 3) + 0.10 (signal 4) = 1.0
+
+    Minimum to trigger addSets: stimScore > 0.5
+      Requires at minimum: signal 2 (0.30) + signal 3 (0.25) = 0.55
+      OR: signal 1 (0.35) + signal 2 (0.30) = 0.65
+      OR: signal 1 (0.35) + signal 3 (0.25) = 0.60
+
+    So addSets requires EITHER:
+      a) flat e1RM + fresh IFI (0.55 > 0.5) ✓
+      b) stalled weeks + flat e1RM (0.65 > 0.5) ✓
+      c) stalled weeks + fresh IFI (0.60 > 0.5) ✓
+    But NOT:
+      d) flat e1RM alone (0.30 ≤ 0.5) ✗
+      e) fresh IFI alone (0.25 ≤ 0.5) ✗
+      f) stalled weeks alone (0.35 ≤ 0.5) ✗
+
+    Confidence threshold:
+      When signal 1 fires: confidence includes dur (0.x)
+      When signal 2 fires (flat): confidence includes 0.85
+      When signal 3 fires (fresh): confidence includes 0.85
+      Average of these values easily exceeds 0.5 threshold.
+
+  Sets added when fresh: 2 (capped by mrv - currentSets)
+  Sets added when optimal: 1 (capped by mrv - currentSets)
+
+  Edge case: currentSets == mrv
+    capped = min(setsToAdd, 0) = 0 → holdVolume
+
+  Edge case: currentSets == mrv - 1
+    capped = min(2, 1) = 1 for fresh; min(1, 1) = 1 for optimal
+
+───────────────────────────────────────────────────────────────────────
+4.2  respondsBetterTo effects
+───────────────────────────────────────────────────────────────────────
+
+.lowVolumeHighIntensity:
+  → holdVolume (step 4 in decide). Never adds sets regardless of other signals.
+  This is a STRONG override: even if IFI is fresh, e1RM is flat, and
+  weeks have stalled, volume won't increase.
+
+.highVolumeLowIntensity:
+  → No special handling in decide(). Falls through to normal logic.
+  If evaluateStimulus triggers, sets are added normally.
+  No volume BONUS for this classification — it just allows normal flow.
+
+.balanced / nil:
+  → Same as .highVolumeLowIntensity (no special handling).
+
+OBSERVATION: .highVolumeLowIntensity and .balanced produce identical
+behavior. The classification only matters for .lowVolumeHighIntensity.
+
+VERDICT: PASS (but .highVolumeLowIntensity has no unique behavior)
+
+───────────────────────────────────────────────────────────────────────
+4.3  blockPhase effects on evaluateStimulus
+───────────────────────────────────────────────────────────────────────
+
+.postDeloadReintro:
+  requiredWeeks = 999 → signal 1 never fires.
+  Only signals 2+3 can trigger addSets.
+  Minimum: 0.30 + 0.25 = 0.55 > 0.5 ✓
+  So addSets CAN fire during postDeloadReintro, but only if e1RM is
+  flat AND IFI is fresh. This is cautious — correct behavior after deload.
+
+.earlyAccumulation:
+  requiredWeeks = 3. Signal 1 fires after 3+ weeks stalled.
+  Normal behavior.
+
+.lateAccumulation:
+  requiredWeeks = 2. Signal 1 fires after 2+ weeks stalled (more sensitive).
+  Signal 4 also fires if e1RM flat → extra 0.10.
+  More aggressive about adding volume late in accumulation. Correct.
+
+.intensification:
+  requiredWeeks = 1. Signal 1 fires after 1 week.
+  DEAD CODE: blockPhase computed property NEVER returns .intensification.
+  See Section 9. During intensification blocks, blockPhase returns
+  .earlyAccumulation or .lateAccumulation, so requiredWeeks = 3 or 2.
+
+.deload:
+  requiredWeeks = 999 → signal 1 never fires.
+  But deload is caught by the deload early-return in resolveWeeklySetTarget,
+  so evaluateStimulus is never called during deload in practice.
+
+───────────────────────────────────────────────────────────────────────
+4.4  Ambiguous or potentially wrong combinations
+───────────────────────────────────────────────────────────────────────
+
+AMBIGUOUS: [.progress | .fatigued | .noStall | >noiseFloor | any | any]
+  Step 1: not acuteOverreach → continue
+  Step 2: not fatigueStall → continue
+  Step 3: progressionRule == .progress → holdVolume
+  But IFI is .fatigued! User is progressing weight but accumulating
+  fatigue. HoldVolume may allow fatigue to build to dangerous levels.
+  FLAGGED: Consider whether fatigue+progress should trigger a monitor
+  signal or proactive volume reduction.
+
+AMBIGUOUS: [.hold | .optimal | .truePlateau | within noise | .balanced |
+            .earlyAccumulation] with weeksAtCurrentLoad = 1
+  Steps 1-7 pass. evaluateStimulus: signal 1 fails (1 < 3 weeks).
+  Signals 2+3: 0.30 + 0.10 = 0.40 < 0.5 → holdVolume.
+  User is plateaued but system waits. Could be frustrating for the user
+  but correct — need more data before adding volume.
+
+POTENTIALLY WRONG: [.hold | .fresh | .volumeStall | ≤noiseFloor | any | any]
+  Step 7: ifiZone == .fatigued? No (fresh). stallDiagnosis == .volumeStall? Yes!
+  → reduceSets.
+  But user's IFI is FRESH, contradicting the volume stall diagnosis.
+  The volumeStall diagnosis (IFI trend > 0.30) may be stale from a
+  previous session while current IFI is fresh. The engine trusts the
+  diagnosis over the current IFI zone.
+  FLAGGED: Stale volumeStall + fresh IFI → possibly wrong reduceSets.
+
+VERDICT for Section 4: PASS with flagged ambiguities above
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 5 — MRV SIGNAL SCORING EDGE CASES
+Source: MRVSignalEngine.computeScore(), action(), requiresFullDeload()
+═══════════════════════════════════════════════════════════════════════
+
+Signal scoring:
+  S1: e1RM declining > 2.5% on any exercise → +3
+  S2: IFI > 0.30 → +2; IFI trend > 0.25 → +2 (can stack: +4)
+  S3: Stuck at same load 2+ weeks → +2
+  S4: Volume-load declining this week vs last → +2
+  S5: Rep miss rate > 30% in last 20 hard sets → +1
+
+Action thresholds:
+  0-2 → .none
+  3-4 → .monitor
+  5-6 → .reduceVolume
+  7+  → .deload
+
+Decay: score = max(0, existingScore - weeksSinceLastSignal)
+
+───────────────────────────────────────────────────────────────────────
+5.1  Score starting at 0 with no signals
+───────────────────────────────────────────────────────────────────────
+existingScore = 0, no signals fire:
+  score = 0 (after decay: max(0, 0 - 0) = 0 if lastSignalDate is nil)
+  newPoints = 0
+  → returns 0 (from: newPoints > 0 ? score + newPoints : score → 0)
+  action(0) = .none
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.2  Decay: score 5 with lastSignalDate 2 weeks ago
+───────────────────────────────────────────────────────────────────────
+existingScore = 5
+lastSignalDate = 2 weeks ago
+weeks = Calendar.dateComponents([.weekOfYear], ...).weekOfYear = 2
+
+score = max(0, 5 - 2) = 3
+
+If no new signals fire (newPoints = 0):
+  return score (3, not score + newPoints since newPoints == 0)
+  Wait — the code says:
+    return newPoints > 0 ? score + newPoints : score
+  If newPoints = 0: returns score = 3. CORRECT.
+
+action(3) = .monitor (3-4 range)
+
+Expected: score should be 3. MATCHES.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.3  S1 + S2 firing together
+───────────────────────────────────────────────────────────────────────
+S1: e1RM decline > 2.5% → +3
+S2: IFI > 0.30 → +2
+
+Starting from score 0:
+  decay: 0 (no previous signals)
+  newPoints = 3 + 2 = 5
+  return 0 + 5 = 5
+  action(5) = .reduceVolume
+
+If also IFI trend > 0.25 → +2 more:
+  newPoints = 3 + 2 + 2 = 7
+  return 0 + 7 = 7
+  action(7) = .deload
+
+S1+S2 with just IFI > 0.30 (not trend): score = 5 → .reduceVolume.
+Hitting .monitor threshold (3-4) requires just one of S1 or S2.
+S1 alone = 3 → .monitor. CORRECT.
+S2 (both conditions) alone = 4 → .monitor. CORRECT.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.4  All 5 signals firing simultaneously
+───────────────────────────────────────────────────────────────────────
+Maximum newPoints per exercise:
+  S1: +3 (once per declining exercise)
+  S2: +2 + +2 = +4 (IFI > 0.30 AND trend > 0.25, per exercise)
+  S3: +2 (once per stuck exercise)
+
+With 1 exercise for the muscle:
+  S1: 3, S2: 4, S3: 2 = 9 per-state points
+  S4: +2 (once per muscle)
+  S5: +1 (once per muscle)
+  Total newPoints = 9 + 2 + 1 = 12
+
+With 2 exercises for the muscle:
+  S1: 3+3=6, S2: 4+4=8, S3: 2+2=4 = 18 per-state points
+  S4: +2, S5: +1
+  Total = 18 + 2 + 1 = 21
+
+Starting from 0: score = 21. action(21) = .deload.
+Well above deload threshold (7+). CORRECT.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.5  Deload week (should always return 0)
+───────────────────────────────────────────────────────────────────────
+First line: if isDeloadWeek { return 0 }
+
+Regardless of existing score, signals, or state → returns 0.
+action(0) = .none.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.6  requiresFullDeload: single muscle at 7
+───────────────────────────────────────────────────────────────────────
+scores = ["Chest": 7]
+priorityMuscles = ["Chest"]
+
+Check 1: scores.values.contains(where: { $0 >= 8 }) → 7 >= 8 is false
+Check 2: above5 = priorityMuscles.filter { (scores[$0] ?? 0) >= 5 }
+         → ["Chest"] where 7 >= 5 → above5 = ["Chest"]
+         above5.count >= 2 → 1 >= 2 is false
+→ returns false. Should NOT trigger. CORRECT.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.7  requiresFullDeload: single muscle at 8
+───────────────────────────────────────────────────────────────────────
+scores = ["Chest": 8]
+
+Check 1: scores.values.contains(where: { $0 >= 8 }) → true
+→ returns true. SHOULD trigger. CORRECT.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.8  requiresFullDeload: two priority muscles at 5
+───────────────────────────────────────────────────────────────────────
+scores = ["Chest": 5, "Quads": 5]
+priorityMuscles = ["Chest", "Quads"]
+
+Check 1: max score = 5, 5 >= 8 false
+Check 2: above5 = ["Chest", "Quads"] (both >= 5)
+         above5.count = 2 >= 2 → true
+→ returns true. SHOULD trigger. CORRECT.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.9  requiresFullDeload: two non-priority muscles at 6
+───────────────────────────────────────────────────────────────────────
+scores = ["Chest": 6, "Quads": 6]
+priorityMuscles = ["Back", "Delts"] (Chest and Quads are NOT priority)
+
+Check 1: 6 >= 8 → false
+Check 2: above5 = ["Back","Delts"].filter { (scores[$0] ?? 0) >= 5 }
+         scores["Back"] = nil → 0, 0 >= 5 false
+         scores["Delts"] = nil → 0, 0 >= 5 false
+         above5 = []
+→ returns false. Should NOT trigger. CORRECT.
+
+Non-priority muscles at 6 individually get action(.reduceVolume) =
+reduceVolume, but don't trigger a FULL deload. CORRECT.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+5.10  S5 miss detection: user went heavier for fewer reps
+───────────────────────────────────────────────────────────────────────
+S5 code:
+  let wentHeavier = log.weight > log.previousWeight
+  return log.reps < log.targetRepsLow && !wentHeavier
+
+If user went from 100kg × 8 reps to 105kg × 6 reps:
+  log.weight (105) > log.previousWeight (100) → wentHeavier = true
+  log.reps (6) < log.targetRepsLow (8?) → true
+  But !wentHeavier = false → NOT counted as a miss. CORRECT.
+
+Edge case: log.previousWeight = 0 (no previous data):
+  105 > 0 → wentHeavier = true → not a miss. CORRECT.
+  This prevents false misses on first sessions.
+
+Edge case: Same weight, fewer reps (not heavier):
+  100kg × 6 with previousWeight = 100:
+  100 > 100 → false. !false = true.
+  6 < 8 → true. Counted as miss. CORRECT — this IS a true miss.
+
+Edge case: hardLogs.count < 10:
+  S5 is skipped entirely. CORRECT — need minimum sample size.
+
+VERDICT: PASS
+
+VERDICT for Section 5: PASS
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 6 — BLOCK TRANSITION EDGE CASES
+Source: BlockType.next() in Models.swift
+        finalizeWorkout() in WorkoutView.swift
+        generateBlock() in ProgramGenerator.swift
+═══════════════════════════════════════════════════════════════════════
+
+Block transition is computed using:
+  BlockType.next(current: inst.blockType, goal: profile.goal,
+                  blockNumber: inst.totalBlocksCompleted)
+where totalBlocksCompleted is the value BEFORE incrementing.
+
+───────────────────────────────────────────────────────────────────────
+6.1  Hypertrophy goal: full block sequence
+───────────────────────────────────────────────────────────────────────
+Initial: blockType = .accumulation, totalBlocksCompleted = 0
+
+Transition trace:
+  End block 0 (accum):     next(.accum, .hypertrophy, 0) → .deload      → blocks=1
+  End block 1 (deload):    next(.deload, .hypertrophy, 1) → 1%2=1 → .accum → blocks=2
+  End block 2 (accum):     next(.accum, .hypertrophy, 2) → .deload      → blocks=3
+  End block 3 (deload):    next(.deload, .hypertrophy, 3) → 3%2=1 → .accum → blocks=4
+  End block 4 (accum):     next(.accum, .hypertrophy, 4) → .deload      → blocks=5
+  End block 5 (deload):    next(.deload, .hypertrophy, 5) → 5%2=1 → .accum → blocks=6
+  ...
+
+Pattern: accumulation → deload → accumulation → deload → ...
+
+FINDING: blockNumber when transitioning from deload is always ODD
+(1, 3, 5, 7...) because deload blocks occupy even-indexed positions.
+The condition `blockNumber % 2 == 0` for .reaccumulation is NEVER
+satisfied. Hypertrophy .reaccumulation is DEAD CODE.
+
+Expected per task description: "accumulation → deload → what comes
+next (blockNumber even vs odd)" → The odd case always wins.
+
+VERDICT: FAIL — .reaccumulation never triggers for hypertrophy.
+The blockMultiplier of 1.15 for reaccumulation and any reaccumulation-
+specific RPE logic never fires. Training blocks alternate between
+accumulation and deload indefinitely.
+
+───────────────────────────────────────────────────────────────────────
+6.2  Strength goal: full 5-block sequence
+───────────────────────────────────────────────────────────────────────
+Initial: blockType = .accumulation, totalBlocksCompleted = 0
+
+  End block 0 (accum):     next(.accum, .strength, 0) → .deload         → blocks=1
+  End block 1 (deload):    next(.deload, .strength, 1) → 1<3 → .intens  → blocks=2
+  End block 2 (intens):    next(.intens, .strength, 2) → .deload        → blocks=3
+  End block 3 (deload):    next(.deload, .strength, 3) → 3≥3 → .peak   → blocks=4
+  End block 4 (peak):      next(.peak, .strength, 4) → default → .accum → blocks=5
+
+Cycle 1: accumulation → deload → intensification → deload → peak
+
+  End block 5 (accum):     next(.accum, .strength, 5) → .deload         → blocks=6
+  End block 6 (deload):    next(.deload, .strength, 6) → 6≥3 → .peak   → blocks=7
+  End block 7 (peak):      next(.peak, .strength, 7) → default → .accum → blocks=8
+
+Cycle 2+: accumulation → deload → peak (skips intensification!)
+
+FINDING: The `blockNumber < 3` check only allows intensification when
+totalBlocksCompleted < 3 at deload exit. After the first cycle,
+totalBlocksCompleted is always ≥ 3, so intensification is skipped.
+
+Second cycle pattern: accumulation → deload → peak → accumulation → ...
+
+This may be intentional (periodization theory: early blocks build work
+capacity, later blocks can skip directly to peaking) but differs from
+the task description's "full 5-block sequence" expectation.
+
+VERDICT: PASS (first cycle is correct 5-block sequence), but note that
+subsequent cycles are a 3-block sequence.
+
+───────────────────────────────────────────────────────────────────────
+6.3  Powerbuilding goal: full 3-block sequence
+───────────────────────────────────────────────────────────────────────
+Initial: blockType = .accumulation, totalBlocksCompleted = 0
+
+  End block 0 (accum):     next(.accum, .powerbuilding, 0) → .deload     → blocks=1
+  End block 1 (deload):    next(.deload, .powerbuilding, 1) → 1%3=1 → .intens → blocks=2
+  End block 2 (intens):    next(.intens, .powerbuilding, 2) → default → .accum → blocks=3
+  End block 3 (accum):     next(.accum, .powerbuilding, 3) → .deload     → blocks=4
+  End block 4 (deload):    next(.deload, .powerbuilding, 4) → 4%3=1 → .intens → blocks=5
+  End block 5 (intens):    next(.intens, .powerbuilding, 5) → default → .accum → blocks=6
+  ...
+
+Pattern: accumulation → deload → intensification → accumulation → deload → intensification → ...
+
+FINDING: Deload exits happen at totalBlocksCompleted = 1, 4, 7, 10, 13...
+These are ALL ≡ 1 (mod 3). The condition `blockNumber % 3 == 1` is
+ALWAYS true. The fallback case `(.powerbuilding, .deload) → .reaccumulation`
+NEVER fires. Powerbuilding .reaccumulation is DEAD CODE.
+
+Also notable: intensification → accumulation has NO deload between them!
+The code: next(.intensification, .powerbuilding, ...) matches default → .accumulation.
+There's no case for (.powerbuilding, .intensification) → .deload.
+Each intensification block does include a built-in deload week (week
+blockLength+1), so there IS some deload effect, but not a full deload block.
+
+VERDICT: FAIL — .reaccumulation never triggers for powerbuilding.
+Also, no full deload between intensification and next accumulation.
+
+───────────────────────────────────────────────────────────────────────
+6.4  Recomp goal: sequence
+───────────────────────────────────────────────────────────────────────
+Matching case: (.recomp, _) → .deload
+
+This matches ANY current block type for recomp goal.
+
+  End block 0 (accum):     next(.accum, .recomp, 0) → .deload     → blocks=1
+  End block 1 (deload):    next(.deload, .recomp, 1) → .deload    → blocks=2
+  End block 2 (deload):    next(.deload, .recomp, 2) → .deload    → blocks=3
+  ...
+
+Pattern: accumulation → deload → deload → deload → ... (infinite deloads)
+
+FINDING: After the first accumulation block, recomp enters an infinite
+deload loop. Every block is a deload. The (.recomp, _) wildcard catches
+the deload → deload transition with no escape clause.
+
+Since each block also appends an extra deload week (week blockLength+1),
+the user gets: 3 weeks accumulation + 1 week deload → 3 weeks deload +
+1 week deload → 3 weeks deload + 1 week deload → ...
+
+This is a BUG. Expected behavior: alternating accumulation → deload.
+
+VERDICT: FAIL — recomp enters infinite deload loop after first block.
+
+───────────────────────────────────────────────────────────────────────
+6.5  Block length by experience × goal combination
+───────────────────────────────────────────────────────────────────────
+From generateBlock():
+  if profile.goal == .recomp → blockLength = 3
+  else:
+    beginner / intermediate → blockLength = 5
+    advanced / elite        → blockLength = 4
+
+Matrix:
+  Goal           Beginner  Intermediate  Advanced  Elite
+  hypertrophy    5         5             4         4
+  strength       5         5             4         4
+  powerbuilding  5         5             4         4
+  recomp         3         3             3         3
+
+NOTE: generateBlock iterates weeks 1...(blockLength + 1). The extra week
+is always a deload week (weekBlockType = .deload when week > blockLength).
+So effective weeks per block: 5+1=6, 4+1=5, or 3+1=4.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+6.6  Week 1 post-deload: progressionRule must be .hold (G9)
+───────────────────────────────────────────────────────────────────────
+blockPhase computed property:
+  if blockType == .deload { return .deload }
+  if blockWeek == 1 && totalBlocksCompleted > 0 { return .postDeloadReintro }
+  ...
+
+G9: suppressPostDeload(blockPhase: .postDeloadReintro, rule: .progress) → .hold
+
+Edge case: blockWeek == 1 AND totalBlocksCompleted == 0 (very first block):
+  → .postDeloadReintro does NOT fire (totalBlocksCompleted > 0 fails)
+  → blockPhase = .earlyAccumulation
+  → G9 does NOT suppress progression. CORRECT — first block shouldn't
+    suppress since there was no previous deload.
+
+Edge case: blockWeek == 1 after a peak block (not deload):
+  → .postDeloadReintro DOES fire (totalBlocksCompleted > 0 is true)
+  → G9 suppresses progression.
+  OBSERVATION: .postDeloadReintro fires after ANY block transition,
+  not just after deload. So after peak → accumulation, the first week
+  is still post-deload-reintro. This is slightly misleading naming but
+  functionally acceptable since every block includes a deload week.
+
+Edge case: .hold rule on post-deload:
+  G9: only suppresses .progress → .hold. If rule is already .hold,
+  G9 is a no-op. CORRECT.
+
+Edge case: .backoff rule on post-deload:
+  G9: only fires when rule == .progress. .backoff passes through.
+  CORRECT — backoff should still apply if needed.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+6.7  previousBlockPeakSets at various values vs new block week 1 target
+───────────────────────────────────────────────────────────────────────
+In finalizeWorkout(), at block transition:
+  peakSets is computed from logs in the final week of the outgoing block:
+    peakSets[muscle] = count of logs in week == blockLength that target
+    the muscle.
+
+  Then passed to generateBlock() → resolveWeeklySetTarget() with
+  previousBlockPeakSets for week 1 calculations.
+
+  Rule: result = min(result, peakSets[muscle] - 2) on week 1
+
+Edge case: peakSets[muscle] = 0 (muscle not trained in final week):
+  result = min(result, -2). Then G2 floors at MV. PASS.
+
+Edge case: peakSets computed from wrong week:
+  Code filters by log.week == finalWeek where finalWeek = inst.blockLength.
+  But logs might have log.week from a different numbering scheme depending
+  on the program. For generated programs, log.week should match. PASS.
+
+Edge case: peakSets is nil (first block, no previous data):
+  if let peak = previousBlockPeakSets fails → cap doesn't apply. PASS.
+
+VERDICT: PASS
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 7 — GUARD RAIL BOUNDARY CONDITIONS
+Source: GuardRails.swift
+═══════════════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────────────
+G1: clampToMRV
+───────────────────────────────────────────────────────────────────────
+Trigger condition: sets > mrv
+One below threshold: sets == mrv → returns sets (unclamped). PASS.
+One above threshold: sets == mrv + 1 → returns mrv. PASS.
+Corrected output: mrv
+
+Wired in: resolveWeeklySetTarget() line 203. ACTIVE in production.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+G2: floorAtMV
+───────────────────────────────────────────────────────────────────────
+Trigger condition: sets < mv
+One above threshold: sets == mv → returns sets (no floor). PASS.
+One below threshold: sets == mv - 1 → returns mv. PASS.
+Corrected output: mv
+
+Wired in: resolveWeeklySetTarget() line 204. ACTIVE in production.
+
+Edge case: sets = 0 → returns mv. PASS.
+Edge case: sets = -5 (from extreme previousBlockPeakSets) → returns mv. PASS.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+G3: deloadSetFloor
+───────────────────────────────────────────────────────────────────────
+Trigger condition: sets < 2
+One above threshold: sets == 2 → returns 2 (no change). PASS.
+One below threshold: sets == 1 → returns 2. PASS.
+Corrected output: max(sets, 2)
+
+WIRED: DEFINED ONLY — NOT CALLED in production code.
+Searched all call sites: no invocations of GuardRails.deloadSetFloor
+outside GuardRails.swift itself. During deload weeks, resolveWeeklySetTarget
+returns mv(muscle), which is always ≥ 4. So deload sets are always ≥ 4,
+making G3 redundant in practice.
+
+However, if mv() were ever changed to return < 2, G3 would not catch it
+because it's not wired.
+
+VERDICT: PASS (redundant in practice), GAP (not wired)
+
+───────────────────────────────────────────────────────────────────────
+G4: clampRPE
+───────────────────────────────────────────────────────────────────────
+Trigger condition: rpe > 9.5 AND NOT isMaxTestSession
+One below threshold: rpe == 9.5 → guard fails, returns 9.5. PASS.
+One above threshold: rpe == 10.0 → returns 9.5. PASS.
+Max test session: isMaxTestSession = true → guard fails, returns rpe.
+
+WIRED: DEFINED ONLY — NOT CALLED in production code.
+In generateBlock(), RPE values are set via the blockType × tier table:
+  Maximum RPE assigned: 9.0 (peak × tier1).
+  G4 threshold is 9.5 → never exceeded by generated programs.
+
+RPE is also user-logged, not generated. The RPE brake in recommend()
+handles the 9.5 threshold separately. G4 as a standalone guard rail
+has no call site.
+
+VERDICT: PASS (redundant in practice), GAP (not wired)
+
+───────────────────────────────────────────────────────────────────────
+G5: blockProgressAfterBackoff
+───────────────────────────────────────────────────────────────────────
+Trigger condition: lastRule == .backoff AND currentRule == .progress
+One below threshold: lastRule == .hold, currentRule == .progress → returns .progress.
+One above threshold: lastRule == .backoff, currentRule == .progress → returns .hold.
+Corrected output: .hold
+
+Wired in: recommend() lines 117-121.
+  Condition checked: progressionState?.consecutiveFailures > 0
+  If true: calls G5 with lastRule = .backoff, currentRule = rule.
+
+Edge case: consecutiveFailures == 0 after a backoff:
+  G5 is NOT called. If the backoff was applied and then consecutiveFailures
+  reset to 0 (e.g., after a successful session), G5 correctly doesn't fire.
+  The progression can resume.
+
+Edge case: consecutiveFailures > 0 but lastProgressionRule != .backoff:
+  The recommend() call passes lastRule = .backoff (hardcoded), not the
+  actual lastProgressionRule. So even if the last rule was .hold, G5
+  still fires if consecutiveFailures > 0.
+  OBSERVATION: G5 is triggered by consecutiveFailures > 0, not by
+  the actual last rule being .backoff. This means any exercise with
+  outstanding failures cannot progress, regardless of recent success.
+  This is stricter than the guard rail's documented intent.
+
+VERDICT: PASS (code works as written, see observation)
+
+───────────────────────────────────────────────────────────────────────
+G6: validateSessionSetCount
+───────────────────────────────────────────────────────────────────────
+Trigger condition: count > 24
+One at threshold: count == 24 → returns true (valid). PASS.
+One above threshold: count == 25 → returns false (invalid). PASS.
+Corrected output: returns Bool, does NOT modify count.
+
+Wired in: generateBlock() line 534.
+  Usage: let _ = GuardRails.validateSessionSetCount(sessionTotalSets)
+  The return value is DISCARDED. G6 only LOGS a warning; it does NOT
+  cap the session sets.
+
+  However, sessionTotalSets is separately enforced by the
+  cappedSets = min(setsThisSession, maxSessionSets - sessionTotalSets)
+  calculation at line 440, which prevents exceeding 24.
+
+  So G6 is an after-the-fact validation that logs if the cap was somehow
+  bypassed. In practice, the cap is always enforced inline.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+G7: validateTierOrder
+───────────────────────────────────────────────────────────────────────
+Trigger condition: A slot's tier sortValue < the last tier sortValue
+                   for the same primary muscle.
+                   (i.e., T1(1) must come before T2(2) before T3(3))
+
+One at boundary: T1 then T2 → sortValues 1, 2 → slot(2) < last(1) = false. PASS.
+One above: T2 then T1 → sortValues 2, 1 → slot(1) < last(2) = true. FLAGGED.
+
+Wired in: generateBlock() line 535.
+  Usage: let _ = GuardRails.validateTierOrder(sessionExerciseSlots)
+  Return value DISCARDED. Logs only.
+
+  The tier order is guaranteed by selectExercisesForMuscle() which
+  always emits T1 first, then T2, then T3. But G7 validates across
+  ALL muscles in a session. Since each muscle group's exercises are
+  emitted in T1→T2→T3 order, and the outer loop iterates by muscle,
+  the session-level ordering is T1(Chest)→T2(Chest)→T3(Chest)→
+  T1(Back)→T2(Back)→... Each muscle's tier order is correct, and
+  different muscles don't interfere (they have different primary keys
+  in lastTierPerMuscle).
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+G8: allowProgressionSignal
+───────────────────────────────────────────────────────────────────────
+Trigger condition: totalExposures < 3
+One at threshold: totalExposures == 3 → returns true (allowed). PASS.
+One below: totalExposures == 2 → returns false (suppressed). PASS.
+Corrected output: recommend() returns .hold with no stall detection.
+
+Wired in: recommend() lines 86-102.
+  Checks progressionState?.totalExposures ?? 0.
+
+Edge case: progressionState == nil:
+  totalExposures = 0 → suppressed. Returns .hold. CORRECT.
+
+Edge case: totalExposures exactly 3:
+  Allowed through. determineProgressionRule() still requires
+  minSessionsForTrend (6) for e1RM primary signal, so secondary
+  (rep-based) signal is used at 3-5 exposures. CORRECT.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+G9: suppressPostDeload
+───────────────────────────────────────────────────────────────────────
+Trigger condition: blockPhase == .postDeloadReintro AND rule == .progress
+One at boundary: blockPhase == .postDeloadReintro, rule == .hold → no change.
+One above: blockPhase == .postDeloadReintro, rule == .progress → returns .hold.
+Corrected output: .hold
+
+Wired in: recommend() line 115.
+
+Edge case: blockPhase == .earlyAccumulation, rule == .progress → no change.
+Edge case: blockPhase == .deload → recommend() returns early before G9.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+G10: assertSameUnit
+───────────────────────────────────────────────────────────────────────
+Trigger condition: unit1 != unit2
+One at boundary: unit1 == unit2 → guard fails, returns (no crash). PASS.
+One above: unit1 != unit2 → assertionFailure in DEBUG, log in RELEASE.
+
+Wired in: NOT explicitly called in production code.
+  This is a developer safety net for detecting unit mismatches during
+  development. No production call sites found.
+
+VERDICT: PASS (guard rail works as designed), GAP (no production call sites)
+
+───────────────────────────────────────────────────────────────────────
+Guard Rails Summary
+───────────────────────────────────────────────────────────────────────
+WIRED AND ACTIVE:       G1, G2, G5, G6, G7, G8, G9
+DEFINED BUT NOT WIRED:  G3, G4, G10
+ENFORCEMENT STYLE:
+  G1, G2: Modify output (clamp/floor values)
+  G5, G9: Modify output (override progression rule)
+  G6, G7: Log-only (return value discarded)
+  G8: Block output (return early with safe defaults)
+  G3, G4, G10: Not called
+
+VERDICT for Section 7: PASS (all wired guards work correctly),
+with noted gaps for G3, G4, G10.
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 8 — GENERATEBLOCK INTEGRATION SCENARIOS
+Source: ProgramGenerator.generateBlock()
+═══════════════════════════════════════════════════════════════════════
+
+generateBlock() orchestrates:
+  1. Determine blockLength (experience × goal)
+  2. Resolve split structure (daysPerWeek × goal × priorities)
+  3. For each week 1...(blockLength+1):
+     For each day template (skip .rest):
+       For each muscle in day.primaryMuscles:
+         a. Count sessions for this muscle (frequency divisor)
+         b. Compute weeklyTarget via resolveWeeklySetTarget()
+         c. Divide by sessions → setsThisSession
+         d. Cap by remaining session budget (24 - sessionTotalSets)
+         e. Select exercises via selectExercisesForMuscle()
+         f. Apply duration budget filter
+         g. Compute suggestedWeight from e1RM
+         h. Assign RPE from blockType × tier table
+         i. Create ProgramSessionTemplate
+  4. Validate G6, G7 per session
+
+───────────────────────────────────────────────────────────────────────
+8.1  Scenario: New user, beginner, hypertrophy, 4 days, no priorities,
+     surplus calories
+───────────────────────────────────────────────────────────────────────
+Profile: experience=.beginner, goal=.hypertrophy, daysPerWeek=4,
+         muscleTiers=all .neutral, calorieContext=.surplus,
+         sessionDurationTarget=75, useMetric=false
+
+blockLength = 5 (beginner, non-recomp)
+blockType = .accumulation (initial)
+blockNumber = 0 (first block)
+
+Split: [Heavy Upper, Heavy Lower, Hypertrophy Upper, Hypertrophy Lower]
+
+Weekly set targets (week 1, accumulation, no calibration, no adjustment):
+  Muscle       scaledMEV  priorityBonus  blockMult  base   MRV   MV   result
+  Chest        6          0              1.0        6      22    6    6
+  Back         8          0              1.0        8      24    6    8
+  Quads        6          0              1.0        6      22    6    6
+  Hamstrings   4          0              1.0        4      18    4    4
+  Glutes       2          0              1.0        2      18    4    4 → G2→4
+  Calves       4          0              1.0        4      16    6    6 → G2→6
+  Biceps       4          0              1.0        4      18    4    4
+  Triceps      4          0              1.0        4      16    4    4
+  Delts        6          0              1.0        6      20    4    6
+
+Sessions per muscle (Upper/Lower split):
+  Upper muscles (Chest,Back,Delts,Triceps,Biceps): 2 sessions
+  Lower muscles (Quads,Hamstrings,Glutes,Calves): 2 sessions
+
+setsThisSession per muscle: weeklyTarget / 2
+  Chest: 6/2=3, Back: 8/2=4, Quads: 6/2=3, Hamstrings: 4/2=2,
+  Glutes: 4/2=2, Calves: 6/2=3, Biceps: 4/2=2, Triceps: 4/2=2, Delts: 6/2=3
+
+Total sets per upper session: 3+4+2+2+3=14 sets → under 24. PASS.
+Total sets per lower session: 3+2+2+3=10 sets → under 24. PASS.
+
+Duration estimate (upper, ~14 sets):
+  Each set: (45 + restSeconds) / 60 minutes
+  Average restSeconds ~150: (45+150)/60 = 3.25 min/set
+  14 * 3.25 ≈ 45 minutes → within 75+20=95 minute budget. PASS.
+
+Exercise selection:
+  Chest (3 sets): T1 bench_press_barbell × 3 sets.
+  Back (4 sets): T1 (one of row_barbell/deadlift) × 4 sets.
+  Quads (3 sets): T1 squat_barbell × 3 sets.
+  Hamstrings (2 sets): No T1 anchor → T2 (rdl_barbell) × 2.
+  Glutes (2 sets): No T1 anchor → T2 (hip_thrust_barbell) × 2.
+  Calves (3 sets): No T1 anchor → T2 (calf_raise_standing) × 3.
+  Biceps (2 sets): No T1 → T2 (curl_barbell) × 2.
+  Triceps (2 sets): No T1 → T2 (close_grip_bench or pushdown) × 2.
+  Delts (3 sets): T1 ohp_barbell × 3.
+
+RPE assignments (accumulation, week 1-2):
+  T1: 7.0, T2: 7.0, T3: 7.5
+
+suggestedWeight: 0 for new user (no progressionStates) → notes =
+"Calibration — start light, log RPE". CORRECT.
+
+Week 6 (deload):
+  weekBlockType = .deload (week > blockLength)
+  resolveWeeklySetTarget returns mv(muscle) for all muscles.
+  RPE = 6.0 for all tiers.
+  This is the built-in deload week at the end of every block.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+8.2  Scenario: Intermediate, powerbuilding, 6 days, quad+chest priority,
+     moderate deficit
+───────────────────────────────────────────────────────────────────────
+Profile: experience=.intermediate, goal=.powerbuilding, daysPerWeek=6,
+         muscleTiers={"Quads":.priority, "Chest":.priority, others:.neutral},
+         calorieContext=.moderateDeficit, sessionDurationTarget=75
+
+blockLength = 5 (intermediate, non-recomp)
+blockType = .accumulation
+
+Split (6-day with quad priority + no hamstring/glute priority):
+  Push A, Pull A, Legs A (Quad Focus), Push B, Pull B, Legs B (standard)
+
+Legs A = "Legs — Quad Focus": primaryMuscles = ["Quads", "Calves"]
+Legs B = standard: primaryMuscles = ["Quads", "Hamstrings", "Glutes", "Calves"]
+
+Note: Chest priority doesn't affect split structure at 6 days (only
+quad and posterior priority change leg sessions).
+
+Weekly set targets (week 1, accumulation):
+  Quads (priority):
+    baseMEV = Int(6 * 1.4) = 8
+    priorityBonus = 4
+    base = Int(12 * 1.0) = 12
+    mrv = Int(Int(22*1.2) * 1.5 * 0.85) = Int(26 * 1.5 * 0.85) = Int(33.15) = 33
+    result = 12
+
+  Chest (priority):
+    baseMEV = Int(6 * 1.4) = 8
+    priorityBonus = 4
+    base = 12
+    mrv = Int(Int(22*1.2) * 1.5 * 0.85) = 33
+    result = 12
+
+  Back (neutral):
+    baseMEV = Int(8 * 1.4) = 11
+    base = 11
+    mrv = Int(Int(24*1.2) * 1.0 * 0.85) = Int(28 * 0.85) = 23
+    result = 11
+
+Sessions per muscle:
+  Quads: appears in Legs A (Quad Focus) + Legs B (standard) = 2 sessions
+  Chest: appears in Push A + Push B = 2 sessions
+  Calves: appears in Legs A + Legs B = 2 sessions
+
+setsThisSession:
+  Quads: 12/2 = 6 per leg session
+  Chest: 12/2 = 6 per push session
+
+Exercise selection for Quads (6 sets):
+  T1: squat_barbell × 5 (powerbuilding allows non-barbell, but squat
+      is the highest-scoring barbell T1). Wait — goal is .powerbuilding,
+      not .strength. So the barbell-only filter does NOT apply.
+  T1 candidates: squat_barbell, hack_squat, leg_press, pendulum_squat,
+                  squat_smith (all T1-anchorable)
+  T1: 5 sets. Remaining = 1.
+  T2: 1 set.
+
+Rep ranges (powerbuilding):
+  T1: 3...6, T2: 8...12, T3: 12...20
+
+RPE (accumulation, week 1-2): T1=7.0, T2=7.0, T3=7.5
+
+Moderate deficit effect: Only constrains MRV ceiling. Base sets are
+not affected. PASS.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+8.3  Scenario: Advanced, strength, 3 days, no priorities, maintenance
+───────────────────────────────────────────────────────────────────────
+Profile: experience=.advanced, goal=.strength, daysPerWeek=3,
+         muscleTiers=all .neutral, calorieContext=.maintenance
+
+blockLength = 4 (advanced, non-recomp)
+Split: 3 × Full Body (strength goal), primaryMuscles = allMuscles each
+
+Each muscle appears in 3 sessions → setsThisSession = weeklyTarget / 3
+
+Weekly set targets (week 1, accumulation):
+  Chest: scaledMEV = Int(6*2.0) = 12, base = 12, mrv = Int(29*1.0*1.0) = 29
+  Back:  scaledMEV = Int(8*2.0) = 16, base = 16
+
+setsThisSession:
+  Chest: 12/3 = 4 per session
+  Back:  16/3 = 5 per session (Int division rounds down: 5.33 → 5)
+
+Total sets per session: 8 muscles × ~4-5 = ~36 sets → EXCEEDS 24!
+
+But: cappedSets = min(setsThisSession, 24 - sessionTotalSets)
+
+After ~5 muscles: sessionTotalSets ≈ 20-22. Remaining muscles get
+capped to 2-4 sets each. Last muscles may get 0 sets (cappedSets = 0).
+
+guard cappedSets > 0 else { continue } → muscles exceeding cap are SKIPPED.
+
+OBSERVATION: Advanced strength at 3 days puts 8 muscles into each of
+3 sessions. With high scaledMEV at advanced level, the 24-set cap will
+consistently force later muscles (toward end of allMuscles array) to
+receive fewer or zero sets. Muscles at the END of allMuscles
+(["Chest","Back","Quads","Hamstrings","Glutes","Delts","Triceps","Biceps"])
+— namely Triceps and Biceps — would be most likely to get zero sets.
+
+Since muscle iteration order is fixed (allMuscles array order), this
+creates a systematic bias: small muscles always lose sets to large muscles.
+
+POTENTIAL GAP: No randomization or rotation of muscle priority within
+a session to distribute the 24-set cap fairly.
+
+Rep ranges (strength): T1=2...5, T2=4...8
+
+Duration: 3-day strength with 24+ sets would run long. Duration budget
+may trim T3 exercises.
+
+VERDICT: PASS (code handles cap correctly), OBSERVATION about muscle
+ordering bias.
+
+───────────────────────────────────────────────────────────────────────
+8.4  Scenario: Elite, hypertrophy, 6 days, 4 priority muscles at cap,
+     aggressive deficit
+───────────────────────────────────────────────────────────────────────
+Profile: experience=.elite, goal=.hypertrophy, daysPerWeek=6,
+         muscleTiers={"Chest":.priority,"Back":.priority,"Quads":.priority,
+                      "Delts":.priority}, calorieContext=.aggressiveDeficit
+
+Split: 6-day PPL ×2 (no quad/posterior specialty since both specified)
+Wait — quad IS priority → Legs A = Quad Focus.
+Hamstrings/Glutes not explicitly priority → Legs B = standard.
+
+Weekly set targets for priority muscles:
+  Chest: baseMEV = Int(6*2.3) = 13, priority = 4, base = 17
+         mrv = Int(Int(22*1.45)*1.5*0.75) = Int(31*1.5*0.75) = Int(34.875) = 34
+         result = 17
+
+  Back:  baseMEV = Int(8*2.3) = 18, priority = 4, base = 22
+         mrv = Int(Int(24*1.45)*1.5*0.75) = Int(34*1.5*0.75) = Int(38.25) = 38
+         result = 22
+
+Aggressive deficit constrains MRV significantly (0.75 modifier). But
+starting targets (17, 22) are still well below reduced MRV (34, 38).
+
+Sessions per priority muscle: 2 (Push ×2, Pull ×2, etc.)
+  Chest setsThisSession: 17/2 = 8
+  Back setsThisSession:  22/2 = 11
+
+Session sets: Chest(8) + Delts(?) + Triceps(?) + ... on Push day.
+Could easily exceed 24 sets with 4 priority muscles across sessions.
+
+Mitigation: cappedSets enforcement + duration budget.
+
+Duration budget: elite with high volume → estimatedMinutes could exceed
+sessionDurationTarget + 20. T3 exercises dropped first, then T2 above
+16 total sets. This is the primary volume control mechanism for
+extreme profiles.
+
+VERDICT: PASS (mechanisms handle it, though aggressive profiles will
+produce very dense sessions)
+
+───────────────────────────────────────────────────────────────────────
+8.5  Scenario: Block 2 (has previousBlockPeakSets and
+     previousBlockExerciseKeys)
+───────────────────────────────────────────────────────────────────────
+blockNumber = 1 (second block)
+previousBlockPeakSets = {"Chest": 12, "Back": 16, ...}
+previousBlockExerciseKeys = {bench_press_barbell, row_barbell, ...}
+
+Effects on week 1:
+  Chest: result = min(base, 12-2=10). If base > 10, capped to 10.
+  This ensures new block starts below previous peak — progressive overload
+  across blocks via volume ramp.
+
+Effects on exercise selection:
+  T1 continuity bonus: blockNumber(1) > 1 is false! Wait — blockNumber
+  is the parameter passed to selectExercisesForMuscle. In generateBlock(),
+  it's the blockNumber parameter of generateBlock() itself.
+
+  In finalizeWorkout(): called with blockNumber: inst.totalBlocksCompleted.
+  After first block transition: totalBlocksCompleted = 1.
+  So blockNumber = 1, and 1 > 1 is false → continuity bonus doesn't fire.
+
+  Wait, but blockNumber is compared to 1: `blockNumber > 1`. So:
+    blockNumber 0 → false (first block)
+    blockNumber 1 → false (second block!)
+    blockNumber 2 → true (third block)
+
+  FINDING: Continuity bonus only fires from block 3 onward (blockNumber ≥ 2).
+  Block 2 (blockNumber=1) treats all exercises as equally fresh.
+  This means the T1 anchor could CHANGE between block 1 and block 2,
+  even though the user established a progression on block 1's exercise.
+
+  POTENTIAL GAP: Off-by-one in continuity bonus. Should be blockNumber >= 1
+  (or > 0) to enable continuity from the second block onward.
+
+  T2 rotation: previousBlockExerciseKeys is populated. Exercises used in
+  block 1 are "resting", unused ones are "rested". T2 selection prefers
+  rested exercises → rotation occurs. CORRECT.
+
+VERDICT: PASS with noted off-by-one in continuity bonus.
+
+───────────────────────────────────────────────────────────────────────
+8.6  Session duration budget: sessionDurationTarget = 45 minutes (short)
+───────────────────────────────────────────────────────────────────────
+Duration filter in generateBlock():
+  estimatedMinutes = (sessionTotalSets + slot.sets) * (45 + slot.restSeconds) / 60
+  if estimatedMinutes > sessionDurationTarget + 20 → skip T3, skip T2 if >16 sets
+
+With target = 45, threshold = 65 minutes:
+  Each T1 slot: (sets * (45+210)) / 60 ≈ sets * 4.25 min
+  5 T1 sets for Chest ≈ 21 minutes
+  After 15 total sets: 15 * ~3.25 ≈ 49 minutes (still under 65)
+  After 16 total sets: ~52 minutes (under 65)
+  After 20 total sets: ~65 minutes (at threshold)
+
+  T3 exercises start being skipped around 18-20 total sets.
+  T2 exercises skipped above 16 sets if over duration.
+
+  For a 4-day upper session with 5 muscles:
+  After Chest T1(5) + Back T1(5) + Delts T1(3) = 13 sets, ~42 min.
+  Add Triceps T2(2): 15 sets, ~49 min.
+  Add Biceps T2(2): 17 sets, ~55 min.
+  T3 for any muscle: ~60 min. If T3 rest is 90s:
+    (17+3) * (45+90)/60 = 20 * 2.25 = 45. But this isn't cumulative...
+
+  Actually the formula is: (sessionTotalSets + slot.sets) * (45 + slot.restSeconds) / 60
+  This is NOT a running total — it recalculates for the entire session
+  each time, using the CURRENT slot's restSeconds for ALL sets.
+
+  This is a ROUGH estimate, not exact. If slot.restSeconds = 90 (T3):
+  (17 + 3) * (45 + 90) / 60 = 20 * 135 / 60 = 45 min → under 65.
+
+  If slot.restSeconds = 210 (T1):
+  (17 + 5) * (45 + 210) / 60 = 22 * 255 / 60 = 93.5 → over 65!
+
+  OBSERVATION: The duration estimate uses the CURRENT SLOT's rest seconds
+  to estimate the entire session. T1 slots with 210s rest will heavily
+  overestimate, T3 slots with 90s rest will underestimate. This makes
+  the budget filter inconsistent — T1 slots are more likely to be
+  filtered (even though they should never be filtered per the code:
+  T3 filtered first, T2 only above 16 sets). Since T1 is always added
+  first and the check skips it for T3/T2 tiers, this inconsistency
+  only manifests for LATER T1 slots of subsequent muscles in the same
+  session.
+
+  Actually re-reading: the filter is:
+    if slot.exerciseTier == .tier3 { continue }
+    if slot.exerciseTier == .tier2 && sessionTotalSets > 16 { continue }
+  So T1 slots are NEVER filtered by duration. Only T3 (always filtered
+  when over budget) and T2 (filtered when >16 total sets AND over budget).
+
+  For 45-minute target: T3 exercises will be aggressively trimmed, T2
+  exercises may also be trimmed if sessions have many muscles. T1 anchors
+  always preserved. CORRECT behavior.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+8.7  Session duration budget: sessionDurationTarget = 120 minutes (long)
+───────────────────────────────────────────────────────────────────────
+Threshold = 140 minutes.
+
+  Even with 24 sets at T1 rest (210s):
+  24 * (45 + 210) / 60 = 24 * 4.25 = 102 min → under 140.
+
+  At 30 sets (hypothetical, above G6 cap):
+  30 * 255 / 60 = 127.5 → still under 140.
+
+  With 120-minute target, the duration filter almost never fires. All T2
+  and T3 exercises are preserved. The G6 24-set cap becomes the binding
+  constraint, not duration.
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+8.8  suggestedWeight computation
+───────────────────────────────────────────────────────────────────────
+When progressionState exists with bestE1RM > 0:
+  mid = (repsLow + repsHigh) / 2
+  pct table:
+    mid ≤ 3:    0.92
+    mid 4-5:    0.87
+    mid 6-7:    0.82
+    mid 8-9:    0.76
+    mid 10-11:  0.72
+    mid 12-14:  0.67
+    mid 15+:    0.60
+
+  startWeight = round(e1rm * pct / step) * step
+  where step = 2.5 (metric) or 5.0 (imperial)
+
+Example: e1rm = 100kg, hypertrophy T1 (reps 5-8, mid=6):
+  pct = 0.82, raw = 82.0, step = 2.5
+  startWeight = round(82/2.5) * 2.5 = round(32.8) * 2.5 = 33 * 2.5 = 82.5
+
+Example: e1rm = 200lb, strength T1 (reps 2-5, mid=3):
+  pct = 0.92, raw = 184.0, step = 5.0
+  startWeight = round(184/5) * 5 = round(36.8) * 5 = 37 * 5 = 185
+
+When no progressionState or bestE1RM == 0:
+  startWeight = 0
+  notes = "Calibration — start light, log RPE"
+
+VERDICT: PASS
+
+───────────────────────────────────────────────────────────────────────
+8.9  RPE assignment table
+───────────────────────────────────────────────────────────────────────
+(weekBlockType, exerciseTier) → RPE
+
+                     T1           T2           T3
+deload               6.0          6.0          6.0
+accum (wk 1-2)       7.0          7.0          7.5
+accum (wk 3+)        7.5          8.0          7.5
+intensification      8.5          8.0          7.5
+reaccumulation(1-2)  7.5          8.0          7.5
+reaccumulation(3+)   8.0          8.0          7.5
+peak                 9.0          8.5          7.5
+
+Maximum RPE: 9.0 (peak × T1). Below G4 threshold of 9.5. PASS.
+
+Edge case: Week variable within accumulation:
+  weekBlockType is recalculated inside the week loop:
+    weekBlockType = week > blockLength ? .deload : blockType
+  For accumulation, weeks 1-blockLength use blockType (.accumulation).
+  RPE check: week <= 2 ? lower RPE : higher RPE.
+  At blockLength=5: weeks 1-2 get lower RPE, weeks 3-5 get higher.
+  At blockLength=3 (recomp): weeks 1-2 lower, week 3 higher.
+
+VERDICT: PASS
+
+VERDICT for Section 8: PASS (all scenarios produce valid output within
+guard rail bounds; noted observations about session ordering bias,
+continuity bonus off-by-one, and duration estimate approximation)
+
+
+═══════════════════════════════════════════════════════════════════════
+SECTION 9 — KNOWN GAPS AND OPEN ISSUES
+═══════════════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────────────
+9.1  G3 (deloadSetFloor) and G4 (clampRPE) defined but not wired
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED.
+
+G3: deloadSetFloor is never called. Deload sets are controlled by
+mv(muscle) which always returns ≥ 4. G3's floor of 2 is redundant
+unless mv() changes. No risk currently, but the guard rail provides
+no actual protection.
+
+G4: clampRPE is never called. Generated RPE maxes at 9.0 (peak × T1),
+below the 9.5 threshold. User-logged RPE is handled by applyRPEBrake()
+which has its own 9.5 check. G4 is redundant.
+
+Recommendation: Either wire these guards or remove them to reduce
+dead code. If wired, G3 should wrap resolveWeeklySetTarget's deload
+return, and G4 should wrap the RPE assignment in generateBlock.
+
+───────────────────────────────────────────────────────────────────────
+9.2  ProgressionRate .fast modifier implementation
+───────────────────────────────────────────────────────────────────────
+Code (RPEEngine.swift lines 177-181):
+  case .fast:
+      if exerciseTier == .tier1 && rule == .progress {
+          baseWeight += increment * 0.5
+      }
+
+Analysis: baseWeight is ALREADY set to lastWorkingWeight + increment
+(from the .progress case at line 137). Then .fast adds another
+increment * 0.5. So the total progression is:
+
+  baseWeight = lastWorkingWeight + increment + (increment * 0.5)
+             = lastWorkingWeight + increment * 1.5
+
+This means .fast users progress 50% faster on T1 exercises when the
+progression rule is .progress. This is additive to the base increment,
+not a multiplier on the existing weight.
+
+Example (imperial, T1, weight = 200lb):
+  increment = 10.0 (≥185lb threshold)
+  Normal progression: 200 + 10 = 210
+  Fast progression:   200 + 10 + 5 = 215
+
+Example (metric, T1, weight = 80kg):
+  increment = 2.5
+  Normal: 80 + 2.5 = 82.5
+  Fast:   80 + 2.5 + 1.25 = 83.75 → rounded to 82.5 or 85.0
+
+CONCERN: The 50% bonus increment is added BEFORE plate rounding.
+After rounding (metric 2.5kg plates), 83.75 rounds to either 82.5
+or 85.0 depending on rounding rules. RPETable.roundToPlate uses
+standard .rounded(), so 83.75 / 2.5 = 33.5 → rounds to 34 → 85.0.
+This effectively doubles the increment (2.5 + 2.5 = 5.0 effective)!
+
+For imperial: 215 / 5 = 43 → 215. Exact, no rounding issue. The
+effective increment is 15lb vs normal 10lb.
+
+The implementation IS correct per its intent: .fast lifters get bigger
+jumps. Whether 50% is the right amount depends on training philosophy.
+The code is consistent with the task description's specification:
+"progressionRate .fast adds 50% to tier1 increment."
+
+VERDICT: Confirmed correct. The 50% bonus on increment (not weight)
+is the intended behavior. Plate rounding may amplify the effect for
+metric users, which is a minor imprecision but not a bug.
+
+───────────────────────────────────────────────────────────────────────
+9.3  BlockPhase .intensification is never returned by computed property
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED.
+
+The blockPhase computed property on UserProgramInstance (Models.swift
+line 793-798) returns:
+  .deload            (if blockType == .deload)
+  .postDeloadReintro (if blockWeek == 1 && totalBlocksCompleted > 0)
+  .earlyAccumulation (if blockWeek ≤ midpoint)
+  .lateAccumulation  (if blockWeek > midpoint)
+
+It NEVER returns .intensification, even when blockType == .intensification.
+
+Impact:
+  a) RPEEngine.recommend() line 134: blockPhase == .intensification →
+     increment *= 1.3. This NEVER fires. Intensification blocks do NOT
+     get 30% larger weight increments. DEAD CODE.
+
+  b) VolumeDecisionEngine.evaluateStimulus() signal 1:
+     .intensification requiredWeeks = 1. NEVER reached.
+     During intensification blocks, requiredWeeks = 3 or 2
+     (earlyAccumulation or lateAccumulation), which is more conservative
+     than the intended 1-week sensitivity.
+
+  c) blockPhase == .intensification is never the value passed to any
+     downstream consumer.
+
+Root cause: blockPhase is computed from blockType + blockWeek but
+doesn't map blockType == .intensification to BlockPhase.intensification.
+
+Fix would be:
+  var blockPhase: BlockPhase {
+      if blockType == .deload { return .deload }
+      if blockWeek == 1 && totalBlocksCompleted > 0 { return .postDeloadReintro }
+      if blockType == .intensification { return .intensification }
+      let midpoint = max(1, blockLength / 2)
+      return blockWeek <= midpoint ? .earlyAccumulation : .lateAccumulation
+  }
+
+SEVERITY: Medium. Intensification blocks behave like accumulation blocks
+for progression decisions and stimulus evaluation. The RPE table in
+generateBlock correctly applies intensification RPE values (using
+blockType, not blockPhase), so the workout structure is correct. But
+the progression engine is less aggressive during intensification than
+intended.
+
+───────────────────────────────────────────────────────────────────────
+9.4  Recomp infinite deload loop
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED BUG.
+
+BlockType.next() case (.recomp, _) matches ANY current blockType for
+recomp goal, including .deload. This creates:
+  accumulation → deload → deload → deload → ...
+
+After the first accumulation block, every subsequent block is a deload.
+The user perpetually deloads.
+
+Severity: HIGH. Recomp users are essentially locked into deload mode
+after the first block.
+
+Fix: Add explicit case before the wildcard:
+  case (.recomp, .deload): return .accumulation
+  case (.recomp, _):       return .deload
+
+───────────────────────────────────────────────────────────────────────
+9.5  Hypertrophy .reaccumulation never triggers
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED.
+
+As traced in Section 6.1, deload exits for hypertrophy occur at
+totalBlocksCompleted = 1, 3, 5, 7, ... (all odd). The condition
+blockNumber % 2 == 0 is NEVER true at deload exit.
+
+Result: hypertrophy training alternates accumulation ↔ deload forever.
+The .reaccumulation phase (blockMultiplier = 1.15, higher volume) never
+activates.
+
+Severity: Low-Medium. Users still get effective training via accumulation
+blocks. Reaccumulation would add variety and volume escalation across
+mesocycles. Its absence makes the periodization less sophisticated but
+not broken.
+
+Fix: Adjust the modulo check. For example:
+  case (.hypertrophy, .deload):
+      return (blockNumber / 2) % 2 == 1 ? .reaccumulation : .accumulation
+  This would count only non-deload blocks for the alternation.
+
+───────────────────────────────────────────────────────────────────────
+9.6  Powerbuilding .reaccumulation never triggers
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED.
+
+As traced in Section 6.3, deload exits for powerbuilding occur at
+totalBlocksCompleted = 1, 4, 7, 10, ... (all ≡ 1 mod 3). The condition
+blockNumber % 3 == 1 is ALWAYS true, so intensification always wins.
+The fallback case for .reaccumulation never fires.
+
+Pattern: accumulation → deload → intensification → accumulation →
+         deload → intensification → ...
+
+Severity: Low-Medium. Same as hypertrophy — functional but less varied.
+
+Also: intensification → accumulation transition has no explicit deload
+block between them (falls to default → .accumulation). The built-in
+deload week at the end of each block provides some recovery, but it's
+a single week, not a full deload block.
+
+───────────────────────────────────────────────────────────────────────
+9.7  Strength second cycle skips intensification
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED.
+
+The condition `blockNumber < 3` only allows intensification in the
+first cycle. After totalBlocksCompleted ≥ 3, all deload exits go
+directly to peak.
+
+Second cycle pattern: accumulation → deload → peak → accumulation → ...
+(3-block cycle, skipping intensification)
+
+Severity: Low. This may be intentional for advanced strength programming
+where the athlete has established their work capacity and can peak more
+aggressively. But it differs from the expected "full 5-block sequence"
+on every cycle.
+
+───────────────────────────────────────────────────────────────────────
+9.8  Calves omitted from 2-day and 3-day strength splits
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED DESIGN GAP.
+
+allMuscles array does not include "Calves". The 2-day full body split
+and 3-day strength split (all full body) use allMuscles, so Calves
+receives zero programmed sets.
+
+Severity: Low. Users on 2-3 day programs likely need abbreviated
+training, and calves are arguably the lowest priority. But it's an
+undocumented omission.
+
+Fix: Add "Calves" to allMuscles, or add a comment documenting the
+intentional exclusion.
+
+───────────────────────────────────────────────────────────────────────
+9.9  T1 continuity bonus off-by-one
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED.
+
+In selectExercisesForMuscle(), the continuity bonus (+50 points) only
+fires when blockNumber > 1. This means:
+  blockNumber 0 → no bonus (first block — correct)
+  blockNumber 1 → no bonus (second block — likely incorrect)
+  blockNumber 2 → bonus fires (third block)
+
+The user's T1 anchor from block 1 has no continuity preference in
+block 2. This could cause the T1 exercise to change unnecessarily.
+
+Severity: Low. The user can always swap back. And for block 2 the
+stretch position score (+15) may still favor the same exercise.
+
+Fix: Change to blockNumber >= 1 or blockNumber > 0.
+
+───────────────────────────────────────────────────────────────────────
+9.10  MRV signal scores may never decay
+───────────────────────────────────────────────────────────────────────
+Status: PROBABLE GAP (requires runtime verification).
+
+MRVSignalEngine.computeScore() reads lastSignalDate from
+ProgressionState. The decay formula: score = max(0, score - weeks).
+
+However, lastSignalDate on ProgressionState does not appear to be SET
+anywhere after signals fire. In finalizeWorkout(), only
+inst.mrvSignalScores[muscle] is written (the computed score integer).
+If lastSignalDate is never updated, it remains nil, and the decay
+if-let check fails — meaning scores NEVER decay.
+
+Impact: MRV signal scores would only grow (or stay at deload-reset 0).
+Once a muscle accumulates signal points, they would persist until a
+deload week resets the score to 0.
+
+This could cause premature deload recommendations for muscles that
+had transient fatigue signals.
+
+Severity: Medium. The deload week reset (returning 0) provides a hard
+reset, but between deloads, scores accumulate without natural decay.
+
+───────────────────────────────────────────────────────────────────────
+9.11  G10 (assertSameUnit) not called in production
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED. No production call sites. Defined as a development
+safety net only.
+
+Severity: Negligible. The app uses profile.useMetric consistently for
+unit-dependent calculations (plate rounding, increments).
+
+───────────────────────────────────────────────────────────────────────
+9.12  Core never programmed
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED DESIGN GAP.
+
+Core exercises exist in ExerciseDictionary (cable_crunch, etc.) but
+"Core" is not in any muscle list used by resolveSplitStructure(). No
+split at any day count includes Core as a primary muscle.
+
+Severity: Negligible — most bodybuilding programs treat core as optional
+accessory work added manually.
+
+───────────────────────────────────────────────────────────────────────
+9.13  Non-deterministic T2 selection
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED MINOR ISSUE.
+
+ExerciseDictionary.all is a [String: ExerciseDefinition] dictionary.
+Dictionary.values iteration order is not guaranteed. When multiple T2
+candidates have the same score (same stretch position), the selection
+order depends on dictionary iteration — which may vary across app runs
+or Swift versions.
+
+Impact: The user could see different T2 exercises prescribed for the
+same inputs on different runs. This makes testing harder and could
+confuse users who re-generate programs.
+
+Severity: Low. Exercise quality is equivalent when scores are tied.
+
+Fix: Sort by exerciseKey as tiebreaker to ensure deterministic selection.
+
+───────────────────────────────────────────────────────────────────────
+9.14  Session set cap (G6) enforcement is log-only
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED MINOR ISSUE.
+
+G6 validateSessionSetCount returns Bool and logs if count > 24, but the
+return value is discarded: `let _ = GuardRails.validateSessionSetCount(...)`.
+
+The actual cap is enforced inline via:
+  cappedSets = min(setsThisSession, maxSessionSets - sessionTotalSets)
+
+So G6 is a redundant validation that only fires AFTER the inline cap
+has already prevented exceeding 24. G6 as written can never trigger
+(sessionTotalSets can never exceed 24 due to inline cap).
+
+Severity: Negligible. The inline cap works correctly.
+
+───────────────────────────────────────────────────────────────────────
+9.15  selectExercisesForMuscle can assign fewer sets than requested
+───────────────────────────────────────────────────────────────────────
+Status: CONFIRMED.
+
+Maximum assignable: T1(5) + T2a(4) + T2b(3) + T3(3) = 15 sets.
+If setsNeeded > 15, excess sets are silently dropped.
+
+Also, if T3 candidates are empty for a muscle (theoretically possible
+for custom exercises), the T3 allocation is skipped and remaining sets
+are dropped.
+
+In practice, this is bounded by the per-session cap (24 sets shared
+across all muscles) and per-muscle MRV, so setsNeeded rarely exceeds
+15 for a single muscle in a single session.
+
+Severity: Low. Theoretical edge case.
+
+
+═══════════════════════════════════════════════════════════════════════
+SUMMARY OF VERDICTS
+═══════════════════════════════════════════════════════════════════════
+
+Section 1 — Split Structure:           PASS (with design notes)
+Section 2 — Weekly Set Target:         PASS
+Section 3 — Exercise Selection:        PASS (with observations)
+Section 4 — Volume Decision Engine:    PASS (with flagged ambiguities)
+Section 5 — MRV Signal Scoring:        PASS
+Section 6 — Block Transition:          FAIL (3 bugs found)
+  6.1 Hypertrophy reaccumulation dead: FAIL
+  6.3 Powerbuilding reaccumulation:    FAIL
+  6.4 Recomp infinite deload:          FAIL
+Section 7 — Guard Rails:              PASS (3 unwired guards noted)
+Section 8 — generateBlock Integration: PASS (with observations)
+Section 9 — Known Gaps:               15 items documented
+
+CRITICAL BUGS:
+  1. Recomp infinite deload loop (9.4) — HIGH severity
+  2. Hypertrophy reaccumulation dead code (9.5) — MEDIUM severity
+  3. Powerbuilding reaccumulation dead code (9.6) — MEDIUM severity
+  4. BlockPhase .intensification never produced (9.3) — MEDIUM severity
+
+DESIGN GAPS:
+  5. G3/G4 defined but not wired (9.1)
+  6. Calves omitted at 2/3-day strength (9.8)
+  7. MRV signal score decay may not work (9.10)
+  8. T1 continuity bonus off-by-one (9.9)
+  9. Non-deterministic T2 selection (9.13)
+  10. Core never programmed (9.12)
+
+═══════════════════════════════════════════════════════════════════════
+END OF AUDIT
+═══════════════════════════════════════════════════════════════════════

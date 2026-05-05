@@ -1,0 +1,561 @@
+═══════════════════════════════════════════════════════════════════
+ADVANCEDLIFTER ALGORITHM SIMULATION REPORT
+Generated: 2026-03-05 20:36:13 +0000
+═══════════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 1: Ideal Linear Responder
+Description: Intermediate lifter, consistent form, good recovery, hits target reps every session
+Start weight: 185 lbs | Lift type: Main
+Target rep range: 8-10 | Target RPE: 8.0
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     185       10,10,10          progress 195       246     0.08/0.0    7.0    none        fresh
+2     195       10,10,10          progress 205       260     0.09/0.0    7.2    none        fresh
+3     205       10,10,10          progress 215       273     0.09/0.0    7.3    none        fresh
+4     215       10,10,10          progress 225       286     0.1/0.0     7.5    none        fresh
+5     225       10,10,10          progress 235       300     0.1/0.0     7.6    none        optimal
+6     235       10,10,10          progress 245       313     0.11/0.0    7.8    none        optimal
+7     245       10,10,10          progress 255       326     0.11/0.0    7.9    none        optimal
+8     255       10,10,10          progress 265       340     0.12/0.0    8.1    none        optimal
+9     265       10,10,10          progress 275       353     0.12/0.0    8.2    none        optimal
+10    275       10,10,10          progress 285       366     0.13/0.0    8.4    none        optimal
+11    285       10,10,10          progress 295       380     0.13/0.0    8.5    none        optimal
+12    295       10,10,10          progress 305       393     0.14/0.0    8.7    none        optimal
+13    305       10,10,10          progress 315       406     0.14/0.0    8.8    none        optimal
+14    315       10,10,10          progress 325       420     0.15/0.0    9.0    none        optimal
+15    325       10,10,10          progress 335       433     0.15/0.0    9.0    none        optimal
+16    335       10,10,10          progress 345       446     0.16/0.0    9.0    none        optimal
+
+SUMMARY:
+  Starting weight: 185 → Final weight: 345
+  Starting e1RM: 246 → Final e1RM: 446 → Peak e1RM: 446
+  e1RM change: +81.1%
+  Decisions: 16 progress, 0 hold, 0 backoff
+  Stall weeks: 0 ()
+  Avg IFI: 0.117
+  Weight range: 185 - 335 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 2: Slow Gainer
+Description: Needs multiple sessions at same weight to hit top reps. Classic double-progression pattern.
+Start weight: 225 lbs | Lift type: Main
+Target rep range: 8-10 | Target RPE: 8.0
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     225       8,8,7             hold     225       285     0.12/0.13   8.0    none        optimal
+2     225       9,9,8             hold     225       292     0.16/0.11   8.0    none        optimal
+3     225       10,10,10          progress 235       300     0.2/0.0     8.0    none        optimal
+4     235       8,8,7             hold     235       297     0.12/0.13   8.0    none        optimal
+5     235       9,9,8             hold     235       305     0.16/0.11   8.0    none        optimal
+6     235       10,10,10          progress 245       313     0.2/0.0     8.0    none        optimal
+7     245       8,8,7             hold     245       310     0.12/0.13   8.0    none        optimal
+8     245       9,9,8             hold     245       318     0.16/0.11   8.0    none        optimal
+9     245       10,10,10          progress 255       326     0.2/0.0     8.0    none        optimal
+10    255       8,8,7             hold     255       323     0.12/0.13   8.0    none        optimal
+11    255       9,9,8             hold     255       331     0.16/0.11   8.0    none        optimal
+12    255       10,10,10          progress 265       340     0.2/0.0     8.0    none        optimal
+13    265       8,8,7             hold     265       335     0.12/0.13   8.0    none        optimal
+14    265       9,9,8             hold     265       344     0.16/0.11   8.0    none        optimal
+15    265       10,10,10          progress 275       353     0.2/0.0     8.0    none        optimal
+16    275       8,8,7             hold     275       348     0.12/0.13   8.0    none        optimal
+
+SUMMARY:
+  Starting weight: 225 → Final weight: 275
+  Starting e1RM: 285 → Final e1RM: 348 → Peak e1RM: 353
+  e1RM change: +22.2%
+  Decisions: 5 progress, 11 hold, 0 backoff
+  Stall weeks: 0 ()
+  Avg IFI: 0.158
+  Weight range: 225 - 275 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 3: Fatigue Accumulator
+Description: Progresses well initially but accumulates fatigue without adequate recovery. Needs deload.
+Start weight: 275 lbs | Lift type: Main
+Target rep range: 6-8 | Target RPE: 8.5
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     275       8,8,8             progress 285       348     0.12/0.0    8.0    none        optimal
+2     285       8,8,8             progress 295       361     0.12/0.0    8.0    none        optimal
+3     295       8,8,8             progress 305       373     0.12/0.0    8.0    none        optimal
+4     305       8,8,8             progress 315       386     0.12/0.0    8.0    none        optimal
+5     315       8,8,8             progress 325       399     0.12/0.0    8.0    none        optimal
+6     325       8,8,8             progress 335       411     0.12/0.0    8.0    none        optimal
+7     335       7,6,5             hold     335       413     0.2/0.29    9.0    none        optimal
+8     335       7,6,5             hold     335       413     0.25/0.29   9.2    e1rm_flat [Tfatigued
+9     335       7,6,5             hold     335       413     0.3/0.29    9.3    e1rm_flat [Vfatigued
+10    335       7,6,5             hold     335       413     0.35/0.29   9.5    e1rm_flat [Vfatigued
+11    335       8,8,8             progress 345       424     0.1/0.0     8.0    none        optimal
+12    345       8,7,6             hold     345       437     0.15/0.25   8.0    none        optimal
+13    345       8,7,6             hold     345       437     0.15/0.25   8.0    none        optimal
+14    345       8,7,6             hold     345       437     0.15/0.25   8.0    e1rm_flat [Toptimal
+15    345       8,7,6             hold     345       437     0.15/0.25   8.0    e1rm_flat [Toptimal
+16    345       8,7,6             hold     345       437     0.15/0.25   8.0    e1rm_flat [Toptimal
+
+SUMMARY:
+  Starting weight: 275 → Final weight: 345
+  Starting e1RM: 348 → Final e1RM: 437 → Peak e1RM: 437
+  e1RM change: +25.5%
+  Decisions: 7 progress, 9 hold, 0 backoff
+  Stall weeks: 6 (wk8:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk9:e1rm_flat [VOLUME_STALL→reduce_sets], wk10:e1rm_flat [VOLUME_STALL→reduce_sets], wk14:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk15:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk16:e1rm_flat [TRUE_PLATEAU→vary_exercise])
+  Avg IFI: 0.167
+  Weight range: 275 - 345 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 4: Novice Lifter
+Description: New to structured training. Progresses every session early on, starts slowing around week 10.
+Start weight: 95 lbs | Lift type: Main
+Target rep range: 8-10 | Target RPE: 7.0
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     95        10,10,10          progress 100       126     0.05/0.0    6.5    none        fresh
+2     100       10,10,10          progress 105       133     0.06/0.0    6.7    none        fresh
+3     105       10,10,10          progress 110       140     0.07/0.0    6.9    none        fresh
+4     110       10,10,10          progress 115       146     0.08/0.0    7.1    none        fresh
+5     115       10,10,10          progress 120       153     0.09/0.0    7.3    none        fresh
+6     120       10,10,10          progress 125       160     0.1/0.0     7.5    none        optimal
+7     125       10,10,10          progress 130       166     0.11/0.0    7.7    none        optimal
+8     130       10,10,10          progress 135       173     0.12/0.0    7.9    none        optimal
+9     135       10,10,10          progress 140       180     0.13/0.0    8.1    none        optimal
+10    140       10,10,10          progress 145       186     0.14/0.0    8.3    none        optimal
+11    145       9,8,8             hold     145       188     0.15/0.11   8.5    none        optimal
+12    145       9,8,8             hold     145       188     0.16/0.11   8.5    none        optimal
+13    145       9,8,8             hold     145       188     0.17/0.11   8.5    e1rm_flat [Toptimal
+14    145       8,8,8             hold     145       183     0.18/0.0    8.5    e1rm_declineoptimal
+15    145       8,8,8             hold     145       183     0.19/0.0    8.5    e1rm_declineoptimal
+16    145       8,8,8             hold     145       183     0.2/0.0     8.5    e1rm_flat [Toptimal
+
+SUMMARY:
+  Starting weight: 95 → Final weight: 145
+  Starting e1RM: 126 → Final e1RM: 183 → Peak e1RM: 188
+  e1RM change: +45.0%
+  Decisions: 10 progress, 6 hold, 0 backoff
+  Stall weeks: 4 (wk13:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk14:e1rm_decline, wk15:e1rm_decline, wk16:e1rm_flat [TRUE_PLATEAU→vary_exercise])
+  Avg IFI: 0.125
+  Weight range: 95 - 145 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 5: Advanced Powerlifter
+Description: 405+ bench, micro-progressions only. High fatigue management needed.
+Start weight: 405 lbs | Lift type: Main
+Target rep range: 3-5 | Target RPE: 9.0
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     405       4,3,3             hold     405       459     0.18/0.25   9.0    none        optimal
+2     405       4,4,3             hold     405       459     0.23/0.25   9.2    none        optimal
+3     405       5,4,4             hold     405       472     0.28/0.2    9.3    none        fatigued
+4     405       5,5,5             hold     405       472     0.33/0.0    9.5    none        fatigued
+5     405       4,3,3             hold     405       459     0.18/0.25   9.0    e1rm_declineoptimal
+6     405       4,4,3             hold     405       459     0.23/0.25   9.2    e1rm_declineoptimal
+7     405       5,4,4             hold     405       472     0.28/0.2    9.3    none        fatigued
+8     405       5,5,5             hold     405       472     0.33/0.0    9.5    none        fatigued
+9     405       4,3,3             hold     405       459     0.18/0.25   9.0    e1rm_declineoptimal
+10    405       4,4,3             hold     405       459     0.23/0.25   9.2    e1rm_declineoptimal
+11    405       5,4,4             hold     405       472     0.28/0.2    9.3    none        fatigued
+12    405       5,5,5             hold     405       472     0.33/0.0    9.5    none        fatigued
+13    405       4,3,3             hold     405       459     0.18/0.25   9.0    e1rm_declineoptimal
+14    405       4,4,3             hold     405       459     0.23/0.25   9.2    e1rm_declineoptimal
+15    405       5,4,4             hold     405       472     0.28/0.2    9.3    none        fatigued
+16    405       5,5,5             hold     405       472     0.33/0.0    9.5    none        fatigued
+
+SUMMARY:
+  Starting weight: 405 → Final weight: 405
+  Starting e1RM: 459 → Final e1RM: 472 → Peak e1RM: 472
+  e1RM change: +2.9%
+  Decisions: 0 progress, 16 hold, 0 backoff
+  Stall weeks: 6 (wk5:e1rm_decline, wk6:e1rm_decline, wk9:e1rm_decline, wk10:e1rm_decline, wk13:e1rm_decline, wk14:e1rm_decline)
+  Avg IFI: 0.255
+  Weight range: 405 - 405 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 6: Inconsistent Trainer
+Description: Life gets in the way. Variable attendance and effort. Tests algorithm robustness.
+Start weight: 185 lbs | Lift type: Main
+Target rep range: 8-10 | Target RPE: 8.0
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     185       7,6,5             hold     185       228     0.05/0.29   8.0    none        fresh
+2     185       10,10,10          progress 195       246     0.1/0.0     8.0    none        optimal
+3     195       7,6,5             hold     195       240     0.15/0.29   8.0    none        optimal
+4     195       7,6,5             backoff  185       240     0.2/0.29    8.0    e1rm_declineoptimal
+5     185       9,8,8             hold     185       240     0.25/0.11   8.0    e1rm_flat [Tfatigued
+6     185       9,8,8             hold     185       240     0.3/0.11    8.0    e1rm_flat   fatigued
+7     185       10,10,10          hold     185       246     0.35/0.0    8.0    none        fatigued
+8     185       9,8,8             hold     185       240     0.05/0.11   8.0    e1rm_declinefresh
+9     185       9,8,8             hold     185       240     0.1/0.11    8.0    e1rm_declineoptimal
+10    185       9,8,8             hold     185       240     0.15/0.11   8.0    e1rm_flat [Toptimal
+11    185       9,8,8             hold     185       240     0.2/0.11    8.0    e1rm_flat [Toptimal
+12    185       9,8,8             hold     185       240     0.25/0.11   8.0    e1rm_flat [Tfatigued
+13    185       9,8,8             hold     185       240     0.3/0.11    8.0    e1rm_flat   fatigued
+14    185       10,9,6            hold     185       246     0.35/0.4    8.0    none        fatigued
+15    185       10,10,10          progress 195       246     0.05/0.0    8.0    none        fresh
+16    195       7,6,5             hold     195       240     0.1/0.29    8.0    none        optimal
+
+SUMMARY:
+  Starting weight: 185 → Final weight: 195
+  Starting e1RM: 228 → Final e1RM: 240 → Peak e1RM: 246
+  e1RM change: +5.4%
+  Decisions: 2 progress, 13 hold, 1 backoff
+  Stall weeks: 9 (wk4:e1rm_decline, wk5:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk6:e1rm_flat, wk8:e1rm_decline [INTENSITY_STALL→push_harder], wk9:e1rm_decline, wk10:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk11:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk12:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk13:e1rm_flat)
+  Avg IFI: 0.184
+  Weight range: 185 - 195 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 7: Accessory Exercise (DB Curls)
+Description: Isolation exercise. 5 lb jumps, 4-session stall detection, higher rep ranges.
+Start weight: 30 lbs | Lift type: Accessory
+Target rep range: 10-15 | Target RPE: 7.5
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     30        12,11,10          hold     30        42      0.1/0.17    7.5    none        optimal
+2     30        13,12,11          hold     30        43      0.13/0.15   7.5    none        optimal
+3     30        14,13,12          hold     30        44      0.16/0.14   7.5    none        optimal
+4     30        15,15,15          progress 35        45      0.19/0.0    7.5    none        optimal
+5     35        12,11,10          hold     35        49      0.1/0.17    7.5    none        optimal
+6     35        13,12,11          hold     35        50      0.13/0.15   7.5    none        optimal
+7     35        14,13,12          hold     35        51      0.16/0.14   7.5    none        optimal
+8     35        15,15,15          progress 40        52      0.19/0.0    7.5    none        optimal
+9     40        12,11,10          hold     40        56      0.1/0.17    7.5    none        optimal
+10    40        13,12,11          hold     40        57      0.13/0.15   7.5    none        optimal
+11    40        14,13,12          hold     40        58      0.16/0.14   7.5    none        optimal
+12    40        15,15,15          progress 45        60      0.19/0.0    7.5    none        optimal
+13    45        12,11,10          hold     45        62      0.1/0.17    7.5    none        optimal
+14    45        13,12,11          hold     45        64      0.13/0.15   7.5    none        optimal
+15    45        14,13,12          hold     45        66      0.16/0.14   7.5    none        optimal
+16    45        15,15,15          progress 50        67      0.19/0.0    7.5    none        optimal
+
+SUMMARY:
+  Starting weight: 30 → Final weight: 50
+  Starting e1RM: 42 → Final e1RM: 67 → Peak e1RM: 67
+  e1RM change: +60.7%
+  Decisions: 4 progress, 12 hold, 0 backoff
+  Stall weeks: 0 ()
+  Avg IFI: 0.145
+  Weight range: 30 - 45 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 8: RPE Maxer
+Description: Always pushes to RPE 9.5-10. Tests whether RPE brake prevents over-progression.
+Start weight: 225 lbs | Lift type: Main
+Target rep range: 6-8 | Target RPE: 8.0
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     225       8,8,8             progress 225       285     0.15/0.0    9.5    none        optimal
+2     225       8,8,8             progress 225       285     0.16/0.0    9.5    none        optimal
+3     225       8,8,8             progress 225       285     0.18/0.0    9.6    e1rm_flat [Toptimal
+4     225       8,8,8             progress 225       285     0.2/0.0     9.6    e1rm_flat [Toptimal
+5     225       8,8,8             progress 225       285     0.21/0.0    9.6    e1rm_flat [Toptimal
+6     225       8,8,8             progress 225       285     0.22/0.0    9.7    e1rm_flat [Toptimal
+7     225       8,8,8             progress 225       285     0.24/0.0    9.7    e1rm_flat [Toptimal
+8     225       8,8,8             hold     225       285     0.26/0.0    9.7    e1rm_flat   fatigued
+9     225       8,8,8             hold     225       285     0.27/0.0    9.7    e1rm_flat   fatigued
+10    225       8,8,8             hold     225       285     0.29/0.0    9.8    e1rm_flat   fatigued
+11    225       8,8,8             hold     225       285     0.3/0.0     9.8    e1rm_flat   fatigued
+12    225       8,8,8             hold     225       285     0.31/0.0    9.8    e1rm_flat [Vfatigued
+13    225       8,8,8             hold     225       285     0.33/0.0    9.9    e1rm_flat [Vfatigued
+14    225       8,8,8             hold     225       285     0.35/0.0    9.9    e1rm_flat [Vfatigued
+15    225       8,8,8             hold     225       285     0.36/0.0    9.9    e1rm_flat [Vfatigued
+16    225       8,8,8             hold     225       285     0.38/0.0    10.0   e1rm_flat [Vfatigued
+
+SUMMARY:
+  Starting weight: 225 → Final weight: 225
+  Starting e1RM: 285 → Final e1RM: 285 → Peak e1RM: 285
+  e1RM change: +0.0%
+  Decisions: 7 progress, 9 hold, 0 backoff
+  Stall weeks: 14 (wk3:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk4:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk5:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk6:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk7:e1rm_flat [TRUE_PLATEAU→vary_exercise], wk8:e1rm_flat, wk9:e1rm_flat, wk10:e1rm_flat, wk11:e1rm_flat, wk12:e1rm_flat [VOLUME_STALL→reduce_sets], wk13:e1rm_flat [VOLUME_STALL→reduce_sets], wk14:e1rm_flat [VOLUME_STALL→reduce_sets], wk15:e1rm_flat [VOLUME_STALL→reduce_sets], wk16:e1rm_flat [VOLUME_STALL→reduce_sets])
+  Avg IFI: 0.262
+  Weight range: 225 - 225 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 9: Metric User (Bench Press kg)
+Description: European lifter using kg. Tests 2.5 kg increment and rounding logic.
+Start weight: 80 lbs | Lift type: Main
+Target rep range: 8-10 | Target RPE: 8.0
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     80        8,8,8             hold     80        101     0.12/0.0    8.0    none        optimal
+2     80        9,9,9             hold     80        104     0.12/0.0    8.0    none        optimal
+3     80        10,10,10          progress 85        106     0.12/0.0    8.0    none        optimal
+4     85        8,8,8             hold     85        107     0.12/0.0    8.0    none        optimal
+5     85        9,9,9             hold     85        110     0.12/0.0    8.0    none        optimal
+6     85        10,10,10          progress 90        113     0.12/0.0    8.0    none        optimal
+7     90        8,8,8             hold     90        114     0.12/0.0    8.0    none        optimal
+8     90        9,9,9             hold     90        117     0.12/0.0    8.0    none        optimal
+9     90        10,10,10          progress 95        120     0.12/0.0    8.0    none        optimal
+10    95        8,8,8             hold     95        120     0.12/0.0    8.0    none        optimal
+11    95        9,9,9             hold     95        123     0.12/0.0    8.0    none        optimal
+12    95        10,10,10          progress 100       126     0.12/0.0    8.0    none        optimal
+13    100       8,8,8             hold     100       126     0.12/0.0    8.0    none        optimal
+14    100       9,9,9             hold     100       130     0.12/0.0    8.0    none        optimal
+15    100       10,10,10          progress 105       133     0.12/0.0    8.0    none        optimal
+16    105       8,8,8             hold     105       133     0.12/0.0    8.0    none        optimal
+
+SUMMARY:
+  Starting weight: 80 → Final weight: 105
+  Starting e1RM: 101 → Final e1RM: 133 → Peak e1RM: 133
+  e1RM change: +31.3%
+  Decisions: 5 progress, 11 hold, 0 backoff
+  Stall weeks: 0 ()
+  Avg IFI: 0.12
+  Weight range: 80 - 105 lbs
+
+───────────────────────────────────────────────────────────────────
+ATHLETE 10: Volume Overreacher
+Description: 5-6 sets per exercise, high IFI from the start. Tests overtrained forced backoff pathway.
+Start weight: 225 lbs | Lift type: Main
+Target rep range: 8-10 | Target RPE: 8.0
+───────────────────────────────────────────────────────────────────
+
+Week  Weight     Reps              Rule     Rec.Wt     e1RM     IFI          RPE    Stall      IFI Zone
+─────────────────────────────────────────────────────────────────────────────────────────────────────────
+1     225       10,9,8,7,5        hold     225       300     0.25/0.5    8.0    none        fatigued
+2     225       10,9,8,7,5        backoff  215       300     0.25/0.5    8.0    none        fatigued
+3     215       10,9,8,7,5        backoff  205       286     0.25/0.5    8.0    e1rm_declinefatigued
+4     205       10,9,8,7,5        backoff  195       273     0.25/0.5    8.0    e1rm_declinefatigued
+5     195       9,8,7,5,4         backoff  185       253     0.35/0.56   8.5    e1rm_declinefatigued
+6     185       9,8,7,5,4         backoff  180       240     0.35/0.56   8.7    e1rm_declinefatigued
+7     180       9,8,7,5,4         backoff  175       234     0.35/0.56   8.9    e1rm_declinefatigued
+8     175       9,8,7,5,4         backoff  170       227     0.35/0.56   9.1    e1rm_declinefatigued
+9     170       8,6,5,4,3         backoff  165       215     0.45/0.63   9.3    e1rm_declineovertrained
+10    165       8,6,5,4,3         backoff  160       209     0.45/0.63   9.5    e1rm_declineovertrained
+11    160       8,6,5,4,3         backoff  155       202     0.45/0.63   9.7    e1rm_declineovertrained
+12    155       8,6,5,4,3         backoff  150       196     0.45/0.63   9.9    e1rm_declineovertrained
+13    150       10,9,8,7,6        backoff  145       200     0.15/0.4    8.0    e1rm_declineoptimal
+14    145       10,9,8,7,6        backoff  140       193     0.15/0.4    8.0    e1rm_declineoptimal
+15    140       10,9,8,7,6        backoff  135       186     0.15/0.4    8.0    e1rm_declineoptimal
+16    135       10,9,8,7,6        backoff  130       180     0.15/0.4    8.0    e1rm_declineoptimal
+
+SUMMARY:
+  Starting weight: 225 → Final weight: 130
+  Starting e1RM: 300 → Final e1RM: 180 → Peak e1RM: 300
+  e1RM change: -40.0%
+  Decisions: 0 progress, 1 hold, 15 backoff
+  Stall weeks: 14 (wk3:e1rm_decline, wk4:e1rm_decline, wk5:e1rm_decline [FATIGUE_STALL→deload], wk6:e1rm_decline [FATIGUE_STALL→deload], wk7:e1rm_decline [FATIGUE_STALL→deload], wk8:e1rm_decline [FATIGUE_STALL→deload], wk9:e1rm_decline [FATIGUE_STALL→deload], wk10:e1rm_decline [FATIGUE_STALL→deload], wk11:e1rm_decline [FATIGUE_STALL→deload], wk12:e1rm_decline [FATIGUE_STALL→deload], wk13:e1rm_decline, wk14:e1rm_decline, wk15:e1rm_decline, wk16:e1rm_decline)
+  Avg IFI: 0.3
+  Weight range: 135 - 225 lbs
+
+
+═══════════════════════════════════════════════════════════════════
+CROSS-ATHLETE COMPARISON
+═══════════════════════════════════════════════════════════════════
+
+Athlete                        Start      End        Peak       Prog     Hold     Back     e1RM Change
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Ideal Linear Responder        185       345       446       16      0       0       +81.1%
+Slow Gainer                   225       275       353       5       11      0       +22.2%
+Fatigue Accumulator           275       345       437       7       9       0       +25.5%
+Novice Lifter                 95        145       188       10      6       0       +45.0%
+Advanced Powerlifter          405       405       472       0       16      0       +2.9%
+Inconsistent Trainer          185       195       246       2       13      1       +5.4%
+Accessory Exercise (DB Curls) 30        50        67        4       12      0       +60.7%
+RPE Maxer                     225       225       285       7       9       0       +0.0%
+Metric User (Bench Press kg)  80        105       133       5       11      0       +31.3%
+Volume Overreacher            225       130       300       0       1       15      -40.0%
+
+
+═══════════════════════════════════════════════════════════════════
+ALGORITHM WEIGHTS & DECISION THRESHOLDS (for review)
+═══════════════════════════════════════════════════════════════════
+
+1. DOUBLE PROGRESSION (Primary Driver)
+   ─────────────────────────────────────
+   PROGRESS trigger: ALL working sets >= targetRepsHigh
+   HOLD trigger:     Any set in [targetRepsLow, targetRepsHigh) OR only 1 bad session
+   BACKOFF trigger:  2+ sets < targetRepsLow for 2 CONSECUTIVE sessions
+
+   Working set filter: weight >= 80% of session max weight
+   Backoff magnitude: current weight × 0.96 (4% reduction)
+
+   Weight increments:
+     Main lift (imperial, >=185 lbs): +10 lbs
+     Main lift (imperial, <185 lbs):  +5 lbs
+     Accessory (imperial):            +5 lbs
+     All lifts (metric):              +2.5 kg
+
+2. IFI (Intraset Fatigue Index) Modifier
+   ──────────────────────────────────────
+   Formula: IFI = (first_working_set_reps - last_working_set_reps) / first_working_set_reps
+   Clamped to [0, 1]
+
+   Zone thresholds:
+     FRESH:       IFI < 0.10
+     OPTIMAL:     0.10 <= IFI < 0.25
+     FATIGUED:    0.25 <= IFI < 0.40
+     OVERTRAINED: IFI >= 0.40
+
+   Modifier effects on recommendations:
+     FRESH + any rule           → No modification (good fatigue management, normal progression)
+     OPTIMAL + any rule         → No modification (normal progression)
+     FATIGUED + PROGRESS rule   → Override to HOLD (reps degrading 20-35%, don't add weight)
+     FATIGUED + other rules     → No modification
+     OVERTRAINED + any rule     → Force BACKOFF (weight × 0.96, effectiveRule set to .backoff)
+
+   IFI Trend tracking:
+     EMA formula: trend = (old_trend × 2 + current_ifi) / 3
+     Smooths over ~3 sessions to detect patterns vs. noise
+
+3. RPE BRAKE (Optional Safety Layer — only fires if user logged RPE)
+   ─────────────────────────────────────────────────────────────────
+   RPE >= 9.5 + PROGRESS rule → Cancel progression (revert to hold weight)
+   RPE <= 7.0 + HOLD rule    → Allow +5 lbs bump (too easy, nudge up)
+   All other RPE values       → No modification
+
+   Note: RPE brake fires AFTER IFI modifier and uses the effectiveRule (not original rule)
+   to prevent double-penalizing. If IFI overrides to backoff, RPE brake won't also block.
+
+4. STALL DETECTION
+   ────────────────
+   Main lifts (requires 3+ sessions):
+     e1RM DECLINE: latest e1RM < best_of_last_3 × 0.99 (more than 1% below recent best)
+     e1RM FLAT:    (e1RM[newest] - e1RM[oldest]) / e1RM[oldest] < 0.005 (less than 0.5% improvement)
+     RPE RISING:   e1RM flat + latest_avg_RPE > oldest_avg_RPE + 0.5
+
+   SUPPRESSION: Stall detection is skipped on first session after a weight increase.
+   e1RM naturally dips when load jumps — flagging that as a stall is a false positive.
+
+   Accessories (requires 4+ sessions):
+     REPS FLAT: max reps identical across all 4 sessions at same load
+
+5. STALL DIAGNOSIS WITH IFI
+   ─────────────────────────
+   Requires 3+ sessions. Computes e1RM change over last 3 sessions:
+     e1rmChange = (newest_e1rm - oldest_e1rm) / oldest_e1rm
+     e1rmDeclining = e1rmChange < -0.01 (more than 1% drop)
+     e1rmFlat = |e1rmChange| < 0.005
+
+   Diagnosis matrix:
+     ifiTrend > 0.25 + e1rmDeclining → FATIGUE STALL (need deload)
+     ifiTrend < 0.10 + e1rmFlat      → INTENSITY STALL (not pushing hard enough)
+     0.10 <= ifiTrend <= 0.25 + e1rmFlat → TRUE PLATEAU (need exercise variation)
+     ifiTrend > 0.30                  → VOLUME STALL (too much volume regardless of e1RM)
+
+   HYSTERESIS: Once a diagnosis fires, it sticks until IFI trend moves 0.05+ outside
+   that diagnosis's band. Prevents flickering between diagnoses at boundaries.
+   Bands: fatigueStall 0.20-1.0, intensityStall 0.0-0.15, truePlateau 0.05-0.30, volumeStall 0.25-1.0
+
+   ESCALATION: Tracks consecutive sessions with the same diagnosis.
+     1st occurrence → SUGGESTION ("Consider a deload")
+     2nd consecutive → WARNING (same text, orange badge)
+     3rd+ consecutive → ACTION REQUIRED (red badge, hard prompt: "swap exercise before next session")
+
+6. VOLUME LANDMARKS (4-Point Model)
+   ──────────────────────────────────
+   Each muscle group has 4 volume boundaries (direct sets per week):
+
+   Muscle       MEV  MAV-Low  MAV-High  MRV
+   ─────────    ───  ───────  ────────  ───
+   Chest          6       10        16   22
+   Back           8       12        18   24
+   Quads          6       10        16   22
+   Hamstrings     4        8        12   18
+   Glutes         2        6        12   18
+   Calves         4        6        10   16
+   Biceps         4        8        12   18
+   Triceps        4        6        10   16
+   Delts          6       10        14   20
+
+   Zone classification:
+     < MEV              → UNDER-TRAINING (red)
+     MEV to MAV-Low     → BUILDING (yellow)
+     MAV-Low to MRV     → OPTIMAL (green)
+     > MRV              → OVER-REACHING (orange)
+
+   Indirect volume tracking:
+     Secondary muscles from compound exercises count at 0.5× weight
+     Example: 1 set of bench press = 1.0 chest + 0.5 triceps + 0.5 delts
+
+7. MUSCLE PRIORITY TIERS
+   ──────────────────────
+   PRIORITY (1.5× multiplier): Up to 3 muscles. All landmarks scale up 50%.
+   NEUTRAL  (1.0× multiplier): Default for most muscles.
+   MAINTENANCE (0.7× multiplier): Up to 3 muscles. Landmarks scale down 30%.
+
+   Example: Chest as PRIORITY → MEV=9, MAV-Low=15, MAV-High=24, MRV=33
+
+8. LANDMARK CALIBRATION (Adaptive)
+   ────────────────────────────────
+   Per-muscle @Model that adjusts over time based on performance:
+
+   Confidence tiers:
+     SEEDED:  0 weeks of data (using defaults)
+     LOW:     1-3 weeks
+     MEDIUM:  4-8 weeks
+     HIGH:    9+ weeks
+
+   Recalibration frequency: Every 2 weeks minimum
+   Max shift per recalibration: ±2 sets
+
+   MEV adjustment:
+     Progressing near MEV (e1RM rising, sets <= MEV+2) → Lower MEV by 1 (min 2)
+     Declining in building zone (e1RM dropping, MEV < sets < MAV-Low) → Raise MEV by 1
+
+   MRV adjustment (when sets >= MAV-High):
+     High IFI (>0.30) + declining e1RM → Lower MRV by 2
+     Low IFI (<0.15) + rising e1RM → Raise MRV by 2
+
+   MAV-High adjustment (when in optimal zone):
+     Great progress (e1RM +1%, IFI <0.20) → Widen MAV-High by 1
+     Declining (e1RM -0.5%, IFI >0.25) → Narrow MAV-High by 1
+
+   Invariant enforced: MEV < MAV-Low < MAV-High < MRV (at least 1 gap between each)
+
+9. E1RM FORMULA
+   ─────────────
+   e1RM = weight × (1 + reps/30)
+
+   This is a simplified Epley-variant formula. Used for:
+   - Tracking progress over time
+   - Detecting stalls (e1RM flat or declining)
+   - Comparing performance at different weight/rep combinations
+
+10. PLATE ROUNDING
+    ───────────────
+    Imperial: round to nearest 5 lbs → weight = round(weight / 5) × 5
+    Metric:   round to nearest 2.5 kg → weight = round(weight / 2.5) × 2.5
+
+    Applied as final step before recommendation output.
+
+    Two different reductions exist (don't confuse them):
+    - Backoff RULE (progression failed): recommended_weight = last_weight × 0.96 (4% drop)
+    - Backoff SET weight (lighter working sets for main lifts): top_set × 0.92 (8% lighter volume sets)
+    These serve different purposes: the rule reduces your training max, the set weight creates volume work.
+
+11. DATA CONFIDENCE
+    ────────────────
+    Based on number of sessions (exposures) available:
+      0 sessions  → NONE (returns 0, prompts manual entry)
+      1 session   → LOW
+      2-3 sessions → MEDIUM
+      4+ sessions  → HIGH
+
+12. DECISION PIPELINE ORDER
+    ───────────────────────
+    1. Group logs by session date, identify last session
+    2. Determine double progression rule (progress/hold/backoff)
+    3. Calculate base weight from rule
+    4. Apply IFI modifier (may override rule)
+    5. Apply RPE brake (may further modify)
+    6. Round to nearest plate increment
+    7. Calculate backoff weight (main lifts: × 0.92)
+    8. Run stall detection
+    9. Return recommendation with confidence level
+

@@ -1,0 +1,1518 @@
+==========================================================================================
+POWERBODYBUILDER ALGORITHM SIMULATION — ACTUAL COMPUTED OUTPUT
+Every combination run through the algorithm functions
+==========================================================================================
+
+==========================================================================================
+TEST 1: SPLIT STRUCTURE — every days × goal × priority combination
+==========================================================================================
+  1d hypertrophy    prio=[]                             → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d hypertrophy    prio=['Quads']                      → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d hypertrophy    prio=['Chest', 'Back']              → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d hypertrophy    prio=['Quads', 'Hamstrings']        → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  1d strength       prio=[]                             → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d strength       prio=['Quads']                      → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d strength       prio=['Chest', 'Back']              → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d strength       prio=['Quads', 'Hamstrings']        → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  1d powerbuilding  prio=[]                             → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d powerbuilding  prio=['Quads']                      → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d powerbuilding  prio=['Chest', 'Back']              → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d powerbuilding  prio=['Quads', 'Hamstrings']        → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  1d recomp         prio=[]                             → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d recomp         prio=['Quads']                      → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d recomp         prio=['Chest', 'Back']              → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  1d recomp         prio=['Quads', 'Hamstrings']        → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  2d hypertrophy    prio=[]                             → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    prio=['Quads']                      → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    prio=['Chest', 'Back']              → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    prio=['Quads', 'Hamstrings']        → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  2d strength       prio=[]                             → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       prio=['Quads']                      → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       prio=['Chest', 'Back']              → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       prio=['Quads', 'Hamstrings']        → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  2d powerbuilding  prio=[]                             → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  prio=['Quads']                      → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  prio=['Chest', 'Back']              → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  prio=['Quads', 'Hamstrings']        → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  2d recomp         prio=[]                             → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         prio=['Quads']                      → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         prio=['Chest', 'Back']              → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         prio=['Quads', 'Hamstrings']        → 2 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  3d hypertrophy    prio=[]                             → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d hypertrophy    prio=['Quads']                      → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d hypertrophy    prio=['Chest', 'Back']              → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d hypertrophy    prio=['Quads', 'Hamstrings']        → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+
+  3d strength       prio=[]                             → 3 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body C          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  3d strength       prio=['Quads']                      → 3 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body C          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  3d strength       prio=['Chest', 'Back']              → 3 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body C          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  3d strength       prio=['Quads', 'Hamstrings']        → 3 sessions
+    Full Body A          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body B          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+    Full Body C          → ['Chest', 'Back', 'Quads', 'Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+
+  3d powerbuilding  prio=[]                             → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d powerbuilding  prio=['Quads']                      → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d powerbuilding  prio=['Chest', 'Back']              → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d powerbuilding  prio=['Quads', 'Hamstrings']        → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+
+  3d recomp         prio=[]                             → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d recomp         prio=['Quads']                      → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d recomp         prio=['Chest', 'Back']              → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  3d recomp         prio=['Quads', 'Hamstrings']        → 3 sessions
+    Push                 → ['Chest', 'Delts', 'Triceps']
+    Pull                 → ['Back', 'Biceps']
+    Legs                 → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+
+  4d hypertrophy    prio=[]                             → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d hypertrophy    prio=['Quads']                      → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d hypertrophy    prio=['Chest', 'Back']              → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d hypertrophy    prio=['Quads', 'Hamstrings']        → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+
+  4d strength       prio=[]                             → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d strength       prio=['Quads']                      → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d strength       prio=['Chest', 'Back']              → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d strength       prio=['Quads', 'Hamstrings']        → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+
+  4d powerbuilding  prio=[]                             → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d powerbuilding  prio=['Quads']                      → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d powerbuilding  prio=['Chest', 'Back']              → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d powerbuilding  prio=['Quads', 'Hamstrings']        → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+
+  4d recomp         prio=[]                             → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d recomp         prio=['Quads']                      → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d recomp         prio=['Chest', 'Back']              → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  4d recomp         prio=['Quads', 'Hamstrings']        → 4 sessions
+    Heavy Upper          → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Heavy Lower          → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Hyp Upper            → ['Chest', 'Back', 'Delts', 'Triceps', 'Biceps']
+    Hyp Lower            → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+
+  5d hypertrophy    prio=[]                             → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Chest', 'Delts', 'Triceps']
+    Priority 2           → ['Back', 'Biceps']
+  5d hypertrophy    prio=['Quads']                      → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Quads']
+    Priority 2           → ['Back', 'Biceps']
+  5d hypertrophy    prio=['Chest', 'Back']              → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Chest']
+    Priority 2           → ['Back']
+  5d hypertrophy    prio=['Quads', 'Hamstrings']        → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Quads']
+    Priority 2           → ['Hamstrings']
+
+  5d strength       prio=[]                             → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Chest', 'Delts', 'Triceps']
+    Priority 2           → ['Back', 'Biceps']
+  5d strength       prio=['Quads']                      → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Quads']
+    Priority 2           → ['Back', 'Biceps']
+  5d strength       prio=['Chest', 'Back']              → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Chest']
+    Priority 2           → ['Back']
+  5d strength       prio=['Quads', 'Hamstrings']        → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Quads']
+    Priority 2           → ['Hamstrings']
+
+  5d powerbuilding  prio=[]                             → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Chest', 'Delts', 'Triceps']
+    Priority 2           → ['Back', 'Biceps']
+  5d powerbuilding  prio=['Quads']                      → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Quads']
+    Priority 2           → ['Back', 'Biceps']
+  5d powerbuilding  prio=['Chest', 'Back']              → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Chest']
+    Priority 2           → ['Back']
+  5d powerbuilding  prio=['Quads', 'Hamstrings']        → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Quads']
+    Priority 2           → ['Hamstrings']
+
+  5d recomp         prio=[]                             → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Chest', 'Delts', 'Triceps']
+    Priority 2           → ['Back', 'Biceps']
+  5d recomp         prio=['Quads']                      → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Quads']
+    Priority 2           → ['Back', 'Biceps']
+  5d recomp         prio=['Chest', 'Back']              → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Chest']
+    Priority 2           → ['Back']
+  5d recomp         prio=['Quads', 'Hamstrings']        → 5 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Priority 1           → ['Quads']
+    Priority 2           → ['Hamstrings']
+
+  6d hypertrophy    prio=[]                             → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d hypertrophy    prio=['Quads']                      → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d hypertrophy    prio=['Chest', 'Back']              → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d hypertrophy    prio=['Quads', 'Hamstrings']        → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs-Posterior       → ['Hamstrings', 'Glutes', 'Calves']
+
+  6d strength       prio=[]                             → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d strength       prio=['Quads']                      → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d strength       prio=['Chest', 'Back']              → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d strength       prio=['Quads', 'Hamstrings']        → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs-Posterior       → ['Hamstrings', 'Glutes', 'Calves']
+
+  6d powerbuilding  prio=[]                             → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d powerbuilding  prio=['Quads']                      → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d powerbuilding  prio=['Chest', 'Back']              → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d powerbuilding  prio=['Quads', 'Hamstrings']        → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs-Posterior       → ['Hamstrings', 'Glutes', 'Calves']
+
+  6d recomp         prio=[]                             → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d recomp         prio=['Quads']                      → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d recomp         prio=['Chest', 'Back']              → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+  6d recomp         prio=['Quads', 'Hamstrings']        → 6 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs-Posterior       → ['Hamstrings', 'Glutes', 'Calves']
+
+  7d hypertrophy    prio=[]                             → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d hypertrophy    prio=['Quads']                      → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d hypertrophy    prio=['Chest', 'Back']              → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d hypertrophy    prio=['Quads', 'Hamstrings']        → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs-Posterior       → ['Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+
+  7d strength       prio=[]                             → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d strength       prio=['Quads']                      → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d strength       prio=['Chest', 'Back']              → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d strength       prio=['Quads', 'Hamstrings']        → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs-Posterior       → ['Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+
+  7d powerbuilding  prio=[]                             → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d powerbuilding  prio=['Quads']                      → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d powerbuilding  prio=['Chest', 'Back']              → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d powerbuilding  prio=['Quads', 'Hamstrings']        → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs-Posterior       → ['Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+
+  7d recomp         prio=[]                             → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d recomp         prio=['Quads']                      → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d recomp         prio=['Chest', 'Back']              → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs A               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs B               → ['Quads', 'Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+  7d recomp         prio=['Quads', 'Hamstrings']        → 7 sessions
+    Push A               → ['Chest', 'Delts', 'Triceps']
+    Pull A               → ['Back', 'Biceps']
+    Legs-QuadFocus       → ['Quads', 'Calves']
+    Push B               → ['Chest', 'Delts', 'Triceps']
+    Pull B               → ['Back', 'Biceps']
+    Legs-Posterior       → ['Hamstrings', 'Glutes', 'Calves']
+    Rest                 → []
+
+
+==========================================================================================
+TEST 2: WEEKLY SET TARGETS — every muscle × experience × tier × blockType × calorie
+==========================================================================================
+
+  ─── Chest ───
+    beginner     priority    acc=10 int= 6 reacc=11 peak= 6 deload= 6  MRV(sur)=33 MRV(agg)=24
+    beginner     neutral     acc= 6 int= 6 reacc= 6 peak= 6 deload= 6  MRV(sur)=22 MRV(agg)=16
+    beginner     maintenance acc= 6 int= 6 reacc= 6 peak= 6 deload= 6  MRV(sur)=15 MRV(agg)=11
+    intermediate priority    acc=12 int= 7 reacc=13 peak= 6 deload= 6  MRV(sur)=39 MRV(agg)=29
+    intermediate neutral     acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=26 MRV(agg)=19
+    intermediate maintenance acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=18 MRV(agg)=13
+    advanced     priority    acc=16 int=10 reacc=18 peak= 8 deload= 6  MRV(sur)=43 MRV(agg)=32
+    advanced     neutral     acc=12 int= 7 reacc=13 peak= 6 deload= 6  MRV(sur)=29 MRV(agg)=21
+    advanced     maintenance acc=12 int= 7 reacc=13 peak= 6 deload= 6  MRV(sur)=20 MRV(agg)=15
+    elite        priority    acc=17 int=11 reacc=19 peak= 8 deload= 6  MRV(sur)=46 MRV(agg)=34
+    elite        neutral     acc=13 int= 8 reacc=14 peak= 6 deload= 6  MRV(sur)=31 MRV(agg)=23
+    elite        maintenance acc=13 int= 8 reacc=14 peak= 6 deload= 6  MRV(sur)=21 MRV(agg)=15
+
+  ─── Back ───
+    beginner     priority    acc=12 int= 7 reacc=13 peak= 6 deload= 6  MRV(sur)=36 MRV(agg)=27
+    beginner     neutral     acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=24 MRV(agg)=18
+    beginner     maintenance acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=16 MRV(agg)=12
+    intermediate priority    acc=15 int= 9 reacc=17 peak= 7 deload= 6  MRV(sur)=42 MRV(agg)=31
+    intermediate neutral     acc=11 int= 7 reacc=12 peak= 6 deload= 6  MRV(sur)=28 MRV(agg)=21
+    intermediate maintenance acc=11 int= 7 reacc=12 peak= 6 deload= 6  MRV(sur)=19 MRV(agg)=14
+    advanced     priority    acc=20 int=13 reacc=23 peak=10 deload= 6  MRV(sur)=48 MRV(agg)=36
+    advanced     neutral     acc=16 int=10 reacc=18 peak= 8 deload= 6  MRV(sur)=32 MRV(agg)=24
+    advanced     maintenance acc=16 int=10 reacc=18 peak= 8 deload= 6  MRV(sur)=22 MRV(agg)=16
+    elite        priority    acc=22 int=14 reacc=25 peak=11 deload= 6  MRV(sur)=51 MRV(agg)=38
+    elite        neutral     acc=18 int=11 reacc=20 peak= 9 deload= 6  MRV(sur)=34 MRV(agg)=25
+    elite        maintenance acc=18 int=11 reacc=20 peak= 9 deload= 6  MRV(sur)=23 MRV(agg)=17
+
+  ─── Quads ───
+    beginner     priority    acc=10 int= 6 reacc=11 peak= 6 deload= 6  MRV(sur)=33 MRV(agg)=24
+    beginner     neutral     acc= 6 int= 6 reacc= 6 peak= 6 deload= 6  MRV(sur)=22 MRV(agg)=16
+    beginner     maintenance acc= 6 int= 6 reacc= 6 peak= 6 deload= 6  MRV(sur)=15 MRV(agg)=11
+    intermediate priority    acc=12 int= 7 reacc=13 peak= 6 deload= 6  MRV(sur)=39 MRV(agg)=29
+    intermediate neutral     acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=26 MRV(agg)=19
+    intermediate maintenance acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=18 MRV(agg)=13
+    advanced     priority    acc=16 int=10 reacc=18 peak= 8 deload= 6  MRV(sur)=43 MRV(agg)=32
+    advanced     neutral     acc=12 int= 7 reacc=13 peak= 6 deload= 6  MRV(sur)=29 MRV(agg)=21
+    advanced     maintenance acc=12 int= 7 reacc=13 peak= 6 deload= 6  MRV(sur)=20 MRV(agg)=15
+    elite        priority    acc=17 int=11 reacc=19 peak= 8 deload= 6  MRV(sur)=46 MRV(agg)=34
+    elite        neutral     acc=13 int= 8 reacc=14 peak= 6 deload= 6  MRV(sur)=31 MRV(agg)=23
+    elite        maintenance acc=13 int= 8 reacc=14 peak= 6 deload= 6  MRV(sur)=21 MRV(agg)=15
+
+  ─── Hamstrings ───
+    beginner     priority    acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=27 MRV(agg)=20
+    beginner     neutral     acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=18 MRV(agg)=13
+    beginner     maintenance acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=12 MRV(agg)= 9
+    intermediate priority    acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=31 MRV(agg)=23
+    intermediate neutral     acc= 5 int= 4 reacc= 5 peak= 4 deload= 4  MRV(sur)=21 MRV(agg)=15
+    intermediate maintenance acc= 5 int= 4 reacc= 5 peak= 4 deload= 4  MRV(sur)=14 MRV(agg)=10
+    advanced     priority    acc=12 int= 7 reacc=13 peak= 6 deload= 4  MRV(sur)=36 MRV(agg)=27
+    advanced     neutral     acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=24 MRV(agg)=18
+    advanced     maintenance acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=16 MRV(agg)=12
+    elite        priority    acc=13 int= 8 reacc=14 peak= 6 deload= 4  MRV(sur)=39 MRV(agg)=29
+    elite        neutral     acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=26 MRV(agg)=19
+    elite        maintenance acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=18 MRV(agg)=13
+
+  ─── Glutes ───
+    beginner     priority    acc= 6 int= 4 reacc= 6 peak= 4 deload= 4  MRV(sur)=27 MRV(agg)=20
+    beginner     neutral     acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=18 MRV(agg)=13
+    beginner     maintenance acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=12 MRV(agg)= 9
+    intermediate priority    acc= 6 int= 4 reacc= 6 peak= 4 deload= 4  MRV(sur)=31 MRV(agg)=23
+    intermediate neutral     acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=21 MRV(agg)=15
+    intermediate maintenance acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=14 MRV(agg)=10
+    advanced     priority    acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=36 MRV(agg)=27
+    advanced     neutral     acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=24 MRV(agg)=18
+    advanced     maintenance acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=16 MRV(agg)=12
+    elite        priority    acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=39 MRV(agg)=29
+    elite        neutral     acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=26 MRV(agg)=19
+    elite        maintenance acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=18 MRV(agg)=13
+
+  ─── Calves ───
+    beginner     priority    acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=24 MRV(agg)=18
+    beginner     neutral     acc= 6 int= 6 reacc= 6 peak= 6 deload= 6  MRV(sur)=16 MRV(agg)=12
+    beginner     maintenance acc= 6 int= 6 reacc= 6 peak= 6 deload= 6  MRV(sur)=11 MRV(agg)= 8
+    intermediate priority    acc= 9 int= 6 reacc=10 peak= 6 deload= 6  MRV(sur)=28 MRV(agg)=21
+    intermediate neutral     acc= 6 int= 6 reacc= 6 peak= 6 deload= 6  MRV(sur)=19 MRV(agg)=14
+    intermediate maintenance acc= 6 int= 6 reacc= 6 peak= 6 deload= 6  MRV(sur)=13 MRV(agg)= 9
+    advanced     priority    acc=12 int= 7 reacc=13 peak= 6 deload= 6  MRV(sur)=31 MRV(agg)=23
+    advanced     neutral     acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=21 MRV(agg)=15
+    advanced     maintenance acc= 8 int= 6 reacc= 9 peak= 6 deload= 6  MRV(sur)=14 MRV(agg)=10
+    elite        priority    acc=13 int= 8 reacc=14 peak= 6 deload= 6  MRV(sur)=34 MRV(agg)=25
+    elite        neutral     acc= 9 int= 6 reacc=10 peak= 6 deload= 6  MRV(sur)=23 MRV(agg)=17
+    elite        maintenance acc= 9 int= 6 reacc=10 peak= 6 deload= 6  MRV(sur)=16 MRV(agg)=12
+
+  ─── Biceps ───
+    beginner     priority    acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=27 MRV(agg)=20
+    beginner     neutral     acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=18 MRV(agg)=13
+    beginner     maintenance acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=12 MRV(agg)= 9
+    intermediate priority    acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=31 MRV(agg)=23
+    intermediate neutral     acc= 5 int= 4 reacc= 5 peak= 4 deload= 4  MRV(sur)=21 MRV(agg)=15
+    intermediate maintenance acc= 5 int= 4 reacc= 5 peak= 4 deload= 4  MRV(sur)=14 MRV(agg)=10
+    advanced     priority    acc=12 int= 7 reacc=13 peak= 6 deload= 4  MRV(sur)=36 MRV(agg)=27
+    advanced     neutral     acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=24 MRV(agg)=18
+    advanced     maintenance acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=16 MRV(agg)=12
+    elite        priority    acc=13 int= 8 reacc=14 peak= 6 deload= 4  MRV(sur)=39 MRV(agg)=29
+    elite        neutral     acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=26 MRV(agg)=19
+    elite        maintenance acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=18 MRV(agg)=13
+
+  ─── Triceps ───
+    beginner     priority    acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=24 MRV(agg)=18
+    beginner     neutral     acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=16 MRV(agg)=12
+    beginner     maintenance acc= 4 int= 4 reacc= 4 peak= 4 deload= 4  MRV(sur)=11 MRV(agg)= 8
+    intermediate priority    acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=28 MRV(agg)=21
+    intermediate neutral     acc= 5 int= 4 reacc= 5 peak= 4 deload= 4  MRV(sur)=19 MRV(agg)=14
+    intermediate maintenance acc= 5 int= 4 reacc= 5 peak= 4 deload= 4  MRV(sur)=13 MRV(agg)= 9
+    advanced     priority    acc=12 int= 7 reacc=13 peak= 6 deload= 4  MRV(sur)=31 MRV(agg)=23
+    advanced     neutral     acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=21 MRV(agg)=15
+    advanced     maintenance acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=14 MRV(agg)=10
+    elite        priority    acc=13 int= 8 reacc=14 peak= 6 deload= 4  MRV(sur)=34 MRV(agg)=25
+    elite        neutral     acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=23 MRV(agg)=17
+    elite        maintenance acc= 9 int= 5 reacc=10 peak= 4 deload= 4  MRV(sur)=16 MRV(agg)=12
+
+  ─── Delts ───
+    beginner     priority    acc=10 int= 6 reacc=11 peak= 5 deload= 4  MRV(sur)=30 MRV(agg)=22
+    beginner     neutral     acc= 6 int= 4 reacc= 6 peak= 4 deload= 4  MRV(sur)=20 MRV(agg)=15
+    beginner     maintenance acc= 6 int= 4 reacc= 6 peak= 4 deload= 4  MRV(sur)=14 MRV(agg)=10
+    intermediate priority    acc=12 int= 7 reacc=13 peak= 6 deload= 4  MRV(sur)=36 MRV(agg)=27
+    intermediate neutral     acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=24 MRV(agg)=18
+    intermediate maintenance acc= 8 int= 5 reacc= 9 peak= 4 deload= 4  MRV(sur)=16 MRV(agg)=12
+    advanced     priority    acc=16 int=10 reacc=18 peak= 8 deload= 4  MRV(sur)=40 MRV(agg)=30
+    advanced     neutral     acc=12 int= 7 reacc=13 peak= 6 deload= 4  MRV(sur)=27 MRV(agg)=20
+    advanced     maintenance acc=12 int= 7 reacc=13 peak= 6 deload= 4  MRV(sur)=18 MRV(agg)=13
+    elite        priority    acc=17 int=11 reacc=19 peak= 8 deload= 4  MRV(sur)=43 MRV(agg)=32
+    elite        neutral     acc=13 int= 8 reacc=14 peak= 6 deload= 4  MRV(sur)=29 MRV(agg)=21
+    elite        maintenance acc=13 int= 8 reacc=14 peak= 6 deload= 4  MRV(sur)=20 MRV(agg)=15
+
+==========================================================================================
+TEST 3: BLOCK SEQUENCES — 20 transitions per goal
+==========================================================================================
+
+  ─── hypertrophy ───
+    bn= 0  accumulation       → deload
+    bn= 1  deload             → reaccumulation
+    bn= 2  reaccumulation     → deload
+    bn= 3  deload             → accumulation
+    bn= 4  accumulation       → deload
+    bn= 5  deload             → reaccumulation
+    bn= 6  reaccumulation     → deload
+    bn= 7  deload             → accumulation
+    bn= 8  accumulation       → deload
+    bn= 9  deload             → reaccumulation
+    bn=10  reaccumulation     → deload
+    bn=11  deload             → accumulation
+    bn=12  accumulation       → deload
+    bn=13  deload             → reaccumulation
+    bn=14  reaccumulation     → deload
+    bn=15  deload             → accumulation
+    bn=16  accumulation       → deload
+    bn=17  deload             → reaccumulation
+    bn=18  reaccumulation     → deload
+    bn=19  deload             → accumulation
+
+  ─── strength ───
+    bn= 0  accumulation       → deload
+    bn= 1  deload             → intensification
+    bn= 2  intensification    → deload
+    bn= 3  deload             → peak
+    bn= 4  peak               → accumulation
+    bn= 5  accumulation       → deload
+    bn= 6  deload             → peak
+    bn= 7  peak               → accumulation
+    bn= 8  accumulation       → deload
+    bn= 9  deload             → peak
+    bn=10  peak               → accumulation
+    bn=11  accumulation       → deload
+    bn=12  deload             → peak
+    bn=13  peak               → accumulation
+    bn=14  accumulation       → deload
+    bn=15  deload             → peak
+    bn=16  peak               → accumulation
+    bn=17  accumulation       → deload
+    bn=18  deload             → peak
+    bn=19  peak               → accumulation
+
+  ─── powerbuilding ───
+    bn= 0  accumulation       → deload
+    bn= 1  deload             → intensification
+    bn= 2  intensification    → deload
+    bn= 3  deload             → reaccumulation
+    bn= 4  reaccumulation     → deload
+    bn= 5  deload             → reaccumulation
+    bn= 6  reaccumulation     → deload
+    bn= 7  deload             → intensification
+    bn= 8  intensification    → deload
+    bn= 9  deload             → reaccumulation
+    bn=10  reaccumulation     → deload
+    bn=11  deload             → reaccumulation
+    bn=12  reaccumulation     → deload
+    bn=13  deload             → intensification
+    bn=14  intensification    → deload
+    bn=15  deload             → reaccumulation
+    bn=16  reaccumulation     → deload
+    bn=17  deload             → reaccumulation
+    bn=18  reaccumulation     → deload
+    bn=19  deload             → intensification
+
+  ─── recomp ───
+    bn= 0  accumulation       → deload
+    bn= 1  deload             → accumulation
+    bn= 2  accumulation       → deload
+    bn= 3  deload             → accumulation
+    bn= 4  accumulation       → deload
+    bn= 5  deload             → accumulation
+    bn= 6  accumulation       → deload
+    bn= 7  deload             → accumulation
+    bn= 8  accumulation       → deload
+    bn= 9  deload             → accumulation
+    bn=10  accumulation       → deload
+    bn=11  deload             → accumulation
+    bn=12  accumulation       → deload
+    bn=13  deload             → accumulation
+    bn=14  accumulation       → deload
+    bn=15  deload             → accumulation
+    bn=16  accumulation       → deload
+    bn=17  deload             → accumulation
+    bn=18  accumulation       → deload
+    bn=19  deload             → accumulation
+
+==========================================================================================
+TEST 4: EXERCISE TIER ALLOCATION — sets 0-20 for T1 and non-T1 muscles
+==========================================================================================
+
+  ─── WITH T1 anchor ───
+    sets= 0  T1=0 T2a=0 T2b=0 T3=0  assigned=0 dropped=0
+    sets= 1  T1=1 T2a=0 T2b=0 T3=0  assigned=1 dropped=0
+    sets= 2  T1=2 T2a=0 T2b=0 T3=0  assigned=2 dropped=0
+    sets= 3  T1=3 T2a=0 T2b=0 T3=0  assigned=3 dropped=0
+    sets= 4  T1=4 T2a=0 T2b=0 T3=0  assigned=4 dropped=0
+    sets= 5  T1=5 T2a=0 T2b=0 T3=0  assigned=5 dropped=0
+    sets= 6  T1=5 T2a=1 T2b=0 T3=0  assigned=6 dropped=0
+    sets= 7  T1=5 T2a=2 T2b=0 T3=0  assigned=7 dropped=0
+    sets= 8  T1=5 T2a=3 T2b=0 T3=0  assigned=8 dropped=0
+    sets= 9  T1=5 T2a=4 T2b=0 T3=0  assigned=9 dropped=0
+    sets=10  T1=5 T2a=4 T2b=1 T3=0  assigned=10 dropped=0
+    sets=11  T1=5 T2a=4 T2b=2 T3=0  assigned=11 dropped=0
+    sets=12  T1=5 T2a=4 T2b=3 T3=0  assigned=12 dropped=0
+    sets=13  T1=5 T2a=4 T2b=3 T3=1  assigned=13 dropped=0
+    sets=14  T1=5 T2a=4 T2b=3 T3=2  assigned=14 dropped=0
+    sets=15  T1=5 T2a=4 T2b=3 T3=3  assigned=15 dropped=0
+    sets=16  T1=5 T2a=4 T2b=3 T3=3  assigned=15 dropped=1
+    sets=17  T1=5 T2a=4 T2b=3 T3=3  assigned=15 dropped=2
+    sets=18  T1=5 T2a=4 T2b=3 T3=3  assigned=15 dropped=3
+    sets=19  T1=5 T2a=4 T2b=3 T3=3  assigned=15 dropped=4
+    sets=20  T1=5 T2a=4 T2b=3 T3=3  assigned=15 dropped=5
+
+  ─── WITHOUT T1 anchor ───
+    sets= 0  T1=0 T2a=0 T2b=0 T3=0  assigned=0 dropped=0
+    sets= 1  T1=0 T2a=1 T2b=0 T3=0  assigned=1 dropped=0
+    sets= 2  T1=0 T2a=2 T2b=0 T3=0  assigned=2 dropped=0
+    sets= 3  T1=0 T2a=3 T2b=0 T3=0  assigned=3 dropped=0
+    sets= 4  T1=0 T2a=4 T2b=0 T3=0  assigned=4 dropped=0
+    sets= 5  T1=0 T2a=4 T2b=1 T3=0  assigned=5 dropped=0
+    sets= 6  T1=0 T2a=4 T2b=2 T3=0  assigned=6 dropped=0
+    sets= 7  T1=0 T2a=4 T2b=3 T3=0  assigned=7 dropped=0
+    sets= 8  T1=0 T2a=4 T2b=3 T3=1  assigned=8 dropped=0
+    sets= 9  T1=0 T2a=4 T2b=3 T3=2  assigned=9 dropped=0
+    sets=10  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=0
+    sets=11  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=1
+    sets=12  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=2
+    sets=13  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=3
+    sets=14  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=4
+    sets=15  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=5
+    sets=16  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=6
+    sets=17  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=7
+    sets=18  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=8
+    sets=19  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=9
+    sets=20  T1=0 T2a=4 T2b=3 T3=3  assigned=10 dropped=10
+
+==========================================================================================
+TEST 5: SESSION SET TOTALS — does any session exceed 24 sets?
+==========================================================================================
+  2d hypertrophy    beginner     all_neutral  Full Body A         : 24 sets
+  2d hypertrophy    beginner     all_neutral  Full Body B         : 24 sets
+  2d hypertrophy    beginner     all_priority Full Body A         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    beginner     all_priority Full Body B         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    intermediate all_neutral  Full Body A         : 24 sets  DROPPED: ['Calves']
+  2d hypertrophy    intermediate all_neutral  Full Body B         : 24 sets  DROPPED: ['Calves']
+  2d hypertrophy    intermediate all_priority Full Body A         : 24 sets  DROPPED: ['Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    intermediate all_priority Full Body B         : 24 sets  DROPPED: ['Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    advanced     all_neutral  Full Body A         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    advanced     all_neutral  Full Body B         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    advanced     all_priority Full Body A         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    advanced     all_priority Full Body B         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    elite        all_neutral  Full Body A         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    elite        all_neutral  Full Body B         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    elite        all_priority Full Body A         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d hypertrophy    elite        all_priority Full Body B         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       beginner     all_neutral  Full Body A         : 24 sets
+  2d strength       beginner     all_neutral  Full Body B         : 24 sets
+  2d strength       beginner     all_priority Full Body A         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  2d strength       beginner     all_priority Full Body B         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  2d strength       intermediate all_neutral  Full Body A         : 24 sets  DROPPED: ['Calves']
+  2d strength       intermediate all_neutral  Full Body B         : 24 sets  DROPPED: ['Calves']
+  2d strength       intermediate all_priority Full Body A         : 24 sets  DROPPED: ['Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       intermediate all_priority Full Body B         : 24 sets  DROPPED: ['Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       advanced     all_neutral  Full Body A         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       advanced     all_neutral  Full Body B         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       advanced     all_priority Full Body A         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       advanced     all_priority Full Body B         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       elite        all_neutral  Full Body A         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       elite        all_neutral  Full Body B         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       elite        all_priority Full Body A         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d strength       elite        all_priority Full Body B         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  beginner     all_neutral  Full Body A         : 24 sets
+  2d powerbuilding  beginner     all_neutral  Full Body B         : 24 sets
+  2d powerbuilding  beginner     all_priority Full Body A         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  beginner     all_priority Full Body B         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  intermediate all_neutral  Full Body A         : 24 sets  DROPPED: ['Calves']
+  2d powerbuilding  intermediate all_neutral  Full Body B         : 24 sets  DROPPED: ['Calves']
+  2d powerbuilding  intermediate all_priority Full Body A         : 24 sets  DROPPED: ['Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  intermediate all_priority Full Body B         : 24 sets  DROPPED: ['Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  advanced     all_neutral  Full Body A         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  advanced     all_neutral  Full Body B         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  advanced     all_priority Full Body A         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  advanced     all_priority Full Body B         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  elite        all_neutral  Full Body A         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  elite        all_neutral  Full Body B         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  elite        all_priority Full Body A         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d powerbuilding  elite        all_priority Full Body B         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         beginner     all_neutral  Full Body A         : 24 sets
+  2d recomp         beginner     all_neutral  Full Body B         : 24 sets
+  2d recomp         beginner     all_priority Full Body A         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  2d recomp         beginner     all_priority Full Body B         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  2d recomp         intermediate all_neutral  Full Body A         : 24 sets  DROPPED: ['Calves']
+  2d recomp         intermediate all_neutral  Full Body B         : 24 sets  DROPPED: ['Calves']
+  2d recomp         intermediate all_priority Full Body A         : 24 sets  DROPPED: ['Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         intermediate all_priority Full Body B         : 24 sets  DROPPED: ['Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         advanced     all_neutral  Full Body A         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         advanced     all_neutral  Full Body B         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         advanced     all_priority Full Body A         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         advanced     all_priority Full Body B         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         elite        all_neutral  Full Body A         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         elite        all_neutral  Full Body B         : 24 sets  DROPPED: ['Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         elite        all_priority Full Body A         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  2d recomp         elite        all_priority Full Body B         : 24 sets  DROPPED: ['Hamstrings', 'Glutes', 'Delts', 'Triceps', 'Biceps', 'Calves']
+  3d hypertrophy    beginner     all_priority Push                : 24 sets
+  3d hypertrophy    beginner     all_priority Legs                : 24 sets  DROPPED: ['Calves']
+  3d hypertrophy    intermediate all_neutral  Push                : 21 sets
+  3d hypertrophy    intermediate all_neutral  Legs                : 23 sets
+  3d hypertrophy    intermediate all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d hypertrophy    intermediate all_priority Pull                : 24 sets
+  3d hypertrophy    intermediate all_priority Legs                : 24 sets  DROPPED: ['Calves']
+  3d hypertrophy    advanced     all_neutral  Push                : 24 sets  DROPPED: ['Triceps']
+  3d hypertrophy    advanced     all_neutral  Pull                : 24 sets
+  3d hypertrophy    advanced     all_neutral  Legs                : 24 sets  DROPPED: ['Calves']
+  3d hypertrophy    advanced     all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d hypertrophy    advanced     all_priority Pull                : 24 sets
+  3d hypertrophy    advanced     all_priority Legs                : 24 sets  DROPPED: ['Glutes', 'Calves']
+  3d hypertrophy    elite        all_neutral  Push                : 24 sets  DROPPED: ['Triceps']
+  3d hypertrophy    elite        all_neutral  Pull                : 24 sets
+  3d hypertrophy    elite        all_neutral  Legs                : 24 sets  DROPPED: ['Calves']
+  3d hypertrophy    elite        all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d hypertrophy    elite        all_priority Pull                : 24 sets
+  3d hypertrophy    elite        all_priority Legs                : 24 sets  DROPPED: ['Glutes', 'Calves']
+  3d strength       beginner     all_priority Full Body A         : 23 sets
+  3d strength       beginner     all_priority Full Body B         : 23 sets
+  3d strength       beginner     all_priority Full Body C         : 23 sets
+  3d strength       intermediate all_priority Full Body A         : 24 sets  DROPPED: ['Biceps', 'Calves']
+  3d strength       intermediate all_priority Full Body B         : 24 sets  DROPPED: ['Biceps', 'Calves']
+  3d strength       intermediate all_priority Full Body C         : 24 sets  DROPPED: ['Biceps', 'Calves']
+  3d strength       advanced     all_neutral  Full Body A         : 24 sets  DROPPED: ['Calves']
+  3d strength       advanced     all_neutral  Full Body B         : 24 sets  DROPPED: ['Calves']
+  3d strength       advanced     all_neutral  Full Body C         : 24 sets  DROPPED: ['Calves']
+  3d strength       advanced     all_priority Full Body A         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  3d strength       advanced     all_priority Full Body B         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  3d strength       advanced     all_priority Full Body C         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  3d strength       elite        all_neutral  Full Body A         : 24 sets  DROPPED: ['Biceps', 'Calves']
+  3d strength       elite        all_neutral  Full Body B         : 24 sets  DROPPED: ['Biceps', 'Calves']
+  3d strength       elite        all_neutral  Full Body C         : 24 sets  DROPPED: ['Biceps', 'Calves']
+  3d strength       elite        all_priority Full Body A         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  3d strength       elite        all_priority Full Body B         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  3d strength       elite        all_priority Full Body C         : 24 sets  DROPPED: ['Triceps', 'Biceps', 'Calves']
+  3d powerbuilding  beginner     all_priority Push                : 24 sets
+  3d powerbuilding  beginner     all_priority Legs                : 24 sets  DROPPED: ['Calves']
+  3d powerbuilding  intermediate all_neutral  Push                : 21 sets
+  3d powerbuilding  intermediate all_neutral  Legs                : 23 sets
+  3d powerbuilding  intermediate all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d powerbuilding  intermediate all_priority Pull                : 24 sets
+  3d powerbuilding  intermediate all_priority Legs                : 24 sets  DROPPED: ['Calves']
+  3d powerbuilding  advanced     all_neutral  Push                : 24 sets  DROPPED: ['Triceps']
+  3d powerbuilding  advanced     all_neutral  Pull                : 24 sets
+  3d powerbuilding  advanced     all_neutral  Legs                : 24 sets  DROPPED: ['Calves']
+  3d powerbuilding  advanced     all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d powerbuilding  advanced     all_priority Pull                : 24 sets
+  3d powerbuilding  advanced     all_priority Legs                : 24 sets  DROPPED: ['Glutes', 'Calves']
+  3d powerbuilding  elite        all_neutral  Push                : 24 sets  DROPPED: ['Triceps']
+  3d powerbuilding  elite        all_neutral  Pull                : 24 sets
+  3d powerbuilding  elite        all_neutral  Legs                : 24 sets  DROPPED: ['Calves']
+  3d powerbuilding  elite        all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d powerbuilding  elite        all_priority Pull                : 24 sets
+  3d powerbuilding  elite        all_priority Legs                : 24 sets  DROPPED: ['Glutes', 'Calves']
+  3d recomp         beginner     all_priority Push                : 24 sets
+  3d recomp         beginner     all_priority Legs                : 24 sets  DROPPED: ['Calves']
+  3d recomp         intermediate all_neutral  Push                : 21 sets
+  3d recomp         intermediate all_neutral  Legs                : 23 sets
+  3d recomp         intermediate all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d recomp         intermediate all_priority Pull                : 24 sets
+  3d recomp         intermediate all_priority Legs                : 24 sets  DROPPED: ['Calves']
+  3d recomp         advanced     all_neutral  Push                : 24 sets  DROPPED: ['Triceps']
+  3d recomp         advanced     all_neutral  Pull                : 24 sets
+  3d recomp         advanced     all_neutral  Legs                : 24 sets  DROPPED: ['Calves']
+  3d recomp         advanced     all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d recomp         advanced     all_priority Pull                : 24 sets
+  3d recomp         advanced     all_priority Legs                : 24 sets  DROPPED: ['Glutes', 'Calves']
+  3d recomp         elite        all_neutral  Push                : 24 sets  DROPPED: ['Triceps']
+  3d recomp         elite        all_neutral  Pull                : 24 sets
+  3d recomp         elite        all_neutral  Legs                : 24 sets  DROPPED: ['Calves']
+  3d recomp         elite        all_priority Push                : 24 sets  DROPPED: ['Triceps']
+  3d recomp         elite        all_priority Pull                : 24 sets
+  3d recomp         elite        all_priority Legs                : 24 sets  DROPPED: ['Glutes', 'Calves']
+  4d hypertrophy    beginner     all_priority Heavy Upper         : 24 sets
+  4d hypertrophy    beginner     all_priority Hyp Upper           : 24 sets
+  4d hypertrophy    intermediate all_priority Heavy Upper         : 24 sets
+  4d hypertrophy    intermediate all_priority Hyp Upper           : 24 sets
+  4d hypertrophy    advanced     all_neutral  Heavy Upper         : 24 sets  DROPPED: ['Biceps']
+  4d hypertrophy    advanced     all_neutral  Hyp Upper           : 24 sets  DROPPED: ['Biceps']
+  4d hypertrophy    advanced     all_priority Heavy Upper         : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d hypertrophy    advanced     all_priority Heavy Lower         : 24 sets
+  4d hypertrophy    advanced     all_priority Hyp Upper           : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d hypertrophy    advanced     all_priority Hyp Lower           : 24 sets
+  4d hypertrophy    elite        all_neutral  Heavy Upper         : 24 sets  DROPPED: ['Biceps']
+  4d hypertrophy    elite        all_neutral  Hyp Upper           : 24 sets  DROPPED: ['Biceps']
+  4d hypertrophy    elite        all_priority Heavy Upper         : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d hypertrophy    elite        all_priority Heavy Lower         : 24 sets
+  4d hypertrophy    elite        all_priority Hyp Upper           : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d hypertrophy    elite        all_priority Hyp Lower           : 24 sets
+  4d strength       beginner     all_priority Heavy Upper         : 24 sets
+  4d strength       beginner     all_priority Hyp Upper           : 24 sets
+  4d strength       intermediate all_priority Heavy Upper         : 24 sets
+  4d strength       intermediate all_priority Hyp Upper           : 24 sets
+  4d strength       advanced     all_neutral  Heavy Upper         : 24 sets  DROPPED: ['Biceps']
+  4d strength       advanced     all_neutral  Hyp Upper           : 24 sets  DROPPED: ['Biceps']
+  4d strength       advanced     all_priority Heavy Upper         : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d strength       advanced     all_priority Heavy Lower         : 24 sets
+  4d strength       advanced     all_priority Hyp Upper           : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d strength       advanced     all_priority Hyp Lower           : 24 sets
+  4d strength       elite        all_neutral  Heavy Upper         : 24 sets  DROPPED: ['Biceps']
+  4d strength       elite        all_neutral  Hyp Upper           : 24 sets  DROPPED: ['Biceps']
+  4d strength       elite        all_priority Heavy Upper         : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d strength       elite        all_priority Heavy Lower         : 24 sets
+  4d strength       elite        all_priority Hyp Upper           : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d strength       elite        all_priority Hyp Lower           : 24 sets
+  4d powerbuilding  beginner     all_priority Heavy Upper         : 24 sets
+  4d powerbuilding  beginner     all_priority Hyp Upper           : 24 sets
+  4d powerbuilding  intermediate all_priority Heavy Upper         : 24 sets
+  4d powerbuilding  intermediate all_priority Hyp Upper           : 24 sets
+  4d powerbuilding  advanced     all_neutral  Heavy Upper         : 24 sets  DROPPED: ['Biceps']
+  4d powerbuilding  advanced     all_neutral  Hyp Upper           : 24 sets  DROPPED: ['Biceps']
+  4d powerbuilding  advanced     all_priority Heavy Upper         : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d powerbuilding  advanced     all_priority Heavy Lower         : 24 sets
+  4d powerbuilding  advanced     all_priority Hyp Upper           : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d powerbuilding  advanced     all_priority Hyp Lower           : 24 sets
+  4d powerbuilding  elite        all_neutral  Heavy Upper         : 24 sets  DROPPED: ['Biceps']
+  4d powerbuilding  elite        all_neutral  Hyp Upper           : 24 sets  DROPPED: ['Biceps']
+  4d powerbuilding  elite        all_priority Heavy Upper         : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d powerbuilding  elite        all_priority Heavy Lower         : 24 sets
+  4d powerbuilding  elite        all_priority Hyp Upper           : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d powerbuilding  elite        all_priority Hyp Lower           : 24 sets
+  4d recomp         beginner     all_priority Heavy Upper         : 24 sets
+  4d recomp         beginner     all_priority Hyp Upper           : 24 sets
+  4d recomp         intermediate all_priority Heavy Upper         : 24 sets
+  4d recomp         intermediate all_priority Hyp Upper           : 24 sets
+  4d recomp         advanced     all_neutral  Heavy Upper         : 24 sets  DROPPED: ['Biceps']
+  4d recomp         advanced     all_neutral  Hyp Upper           : 24 sets  DROPPED: ['Biceps']
+  4d recomp         advanced     all_priority Heavy Upper         : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d recomp         advanced     all_priority Heavy Lower         : 24 sets
+  4d recomp         advanced     all_priority Hyp Upper           : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d recomp         advanced     all_priority Hyp Lower           : 24 sets
+  4d recomp         elite        all_neutral  Heavy Upper         : 24 sets  DROPPED: ['Biceps']
+  4d recomp         elite        all_neutral  Hyp Upper           : 24 sets  DROPPED: ['Biceps']
+  4d recomp         elite        all_priority Heavy Upper         : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d recomp         elite        all_priority Heavy Lower         : 24 sets
+  4d recomp         elite        all_priority Hyp Upper           : 24 sets  DROPPED: ['Triceps', 'Biceps']
+  4d recomp         elite        all_priority Hyp Lower           : 24 sets
+  5d hypertrophy    beginner     all_priority Legs A              : 24 sets  DROPPED: ['Calves']
+  5d hypertrophy    intermediate all_neutral  Legs A              : 23 sets
+  5d hypertrophy    intermediate all_priority Legs A              : 24 sets  DROPPED: ['Calves']
+  5d hypertrophy    advanced     all_neutral  Legs A              : 24 sets  DROPPED: ['Calves']
+  5d hypertrophy    advanced     all_priority Push A              : 22 sets
+  5d hypertrophy    advanced     all_priority Legs A              : 24 sets  DROPPED: ['Glutes', 'Calves']
+  5d hypertrophy    advanced     all_priority Priority 1          : 22 sets
+  5d hypertrophy    elite        all_neutral  Legs A              : 24 sets  DROPPED: ['Calves']
+  5d hypertrophy    elite        all_priority Push A              : 22 sets
+  5d hypertrophy    elite        all_priority Legs A              : 24 sets  DROPPED: ['Glutes', 'Calves']
+  5d hypertrophy    elite        all_priority Priority 1          : 22 sets
+  5d strength       beginner     all_priority Legs A              : 24 sets  DROPPED: ['Calves']
+  5d strength       intermediate all_neutral  Legs A              : 23 sets
+  5d strength       intermediate all_priority Legs A              : 24 sets  DROPPED: ['Calves']
+  5d strength       advanced     all_neutral  Legs A              : 24 sets  DROPPED: ['Calves']
+  5d strength       advanced     all_priority Push A              : 22 sets
+  5d strength       advanced     all_priority Legs A              : 24 sets  DROPPED: ['Glutes', 'Calves']
+  5d strength       advanced     all_priority Priority 1          : 22 sets
+  5d strength       elite        all_neutral  Legs A              : 24 sets  DROPPED: ['Calves']
+  5d strength       elite        all_priority Push A              : 22 sets
+  5d strength       elite        all_priority Legs A              : 24 sets  DROPPED: ['Glutes', 'Calves']
+  5d strength       elite        all_priority Priority 1          : 22 sets
+  5d powerbuilding  beginner     all_priority Legs A              : 24 sets  DROPPED: ['Calves']
+  5d powerbuilding  intermediate all_neutral  Legs A              : 23 sets
+  5d powerbuilding  intermediate all_priority Legs A              : 24 sets  DROPPED: ['Calves']
+  5d powerbuilding  advanced     all_neutral  Legs A              : 24 sets  DROPPED: ['Calves']
+  5d powerbuilding  advanced     all_priority Push A              : 22 sets
+  5d powerbuilding  advanced     all_priority Legs A              : 24 sets  DROPPED: ['Glutes', 'Calves']
+  5d powerbuilding  advanced     all_priority Priority 1          : 22 sets
+  5d powerbuilding  elite        all_neutral  Legs A              : 24 sets  DROPPED: ['Calves']
+  5d powerbuilding  elite        all_priority Push A              : 22 sets
+  5d powerbuilding  elite        all_priority Legs A              : 24 sets  DROPPED: ['Glutes', 'Calves']
+  5d powerbuilding  elite        all_priority Priority 1          : 22 sets
+  5d recomp         beginner     all_priority Legs A              : 24 sets  DROPPED: ['Calves']
+  5d recomp         intermediate all_neutral  Legs A              : 23 sets
+  5d recomp         intermediate all_priority Legs A              : 24 sets  DROPPED: ['Calves']
+  5d recomp         advanced     all_neutral  Legs A              : 24 sets  DROPPED: ['Calves']
+  5d recomp         advanced     all_priority Push A              : 22 sets
+  5d recomp         advanced     all_priority Legs A              : 24 sets  DROPPED: ['Glutes', 'Calves']
+  5d recomp         advanced     all_priority Priority 1          : 22 sets
+  5d recomp         elite        all_neutral  Legs A              : 24 sets  DROPPED: ['Calves']
+  5d recomp         elite        all_priority Push A              : 22 sets
+  5d recomp         elite        all_priority Legs A              : 24 sets  DROPPED: ['Glutes', 'Calves']
+  5d recomp         elite        all_priority Priority 1          : 22 sets
+  6d hypertrophy    advanced     all_priority Push A              : 22 sets
+  6d hypertrophy    advanced     all_priority Legs A              : 24 sets
+  6d hypertrophy    advanced     all_priority Push B              : 22 sets
+  6d hypertrophy    advanced     all_priority Legs B              : 24 sets
+  6d hypertrophy    elite        all_priority Push A              : 22 sets
+  6d hypertrophy    elite        all_priority Legs A              : 24 sets
+  6d hypertrophy    elite        all_priority Push B              : 22 sets
+  6d hypertrophy    elite        all_priority Legs B              : 24 sets
+  6d strength       advanced     all_priority Push A              : 22 sets
+  6d strength       advanced     all_priority Legs A              : 24 sets
+  6d strength       advanced     all_priority Push B              : 22 sets
+  6d strength       advanced     all_priority Legs B              : 24 sets
+  6d strength       elite        all_priority Push A              : 22 sets
+  6d strength       elite        all_priority Legs A              : 24 sets
+  6d strength       elite        all_priority Push B              : 22 sets
+  6d strength       elite        all_priority Legs B              : 24 sets
+  6d powerbuilding  advanced     all_priority Push A              : 22 sets
+  6d powerbuilding  advanced     all_priority Legs A              : 24 sets
+  6d powerbuilding  advanced     all_priority Push B              : 22 sets
+  6d powerbuilding  advanced     all_priority Legs B              : 24 sets
+  6d powerbuilding  elite        all_priority Push A              : 22 sets
+  6d powerbuilding  elite        all_priority Legs A              : 24 sets
+  6d powerbuilding  elite        all_priority Push B              : 22 sets
+  6d powerbuilding  elite        all_priority Legs B              : 24 sets
+  6d recomp         advanced     all_priority Push A              : 22 sets
+  6d recomp         advanced     all_priority Legs A              : 24 sets
+  6d recomp         advanced     all_priority Push B              : 22 sets
+  6d recomp         advanced     all_priority Legs B              : 24 sets
+  6d recomp         elite        all_priority Push A              : 22 sets
+  6d recomp         elite        all_priority Legs A              : 24 sets
+  6d recomp         elite        all_priority Push B              : 22 sets
+  6d recomp         elite        all_priority Legs B              : 24 sets
+
+==========================================================================================
+TEST 6: previousBlockPeakSets cap on week 1
+==========================================================================================
+
+  ─── Chest (intermediate, neutral, accumulation, surplus) ───
+    peak=None   result= 8  ok
+    peak=20     result= 8  ok
+    peak=14     result= 8  ok
+    peak=10     result= 8  ok
+    peak=8      result= 6  peak_cap:8→6
+    peak=6      result= 6  peak_cap:8→4 G2:4→6
+    peak=4      result= 6  peak_cap:8→2 G2:2→6
+    peak=2      result= 6  peak_cap:8→0 G2:0→6
+    peak=0      result= 6  peak_cap:8→-2 G2:-2→6
+
+  ─── Back (intermediate, neutral, accumulation, surplus) ───
+    peak=None   result=11  ok
+    peak=20     result=11  ok
+    peak=14     result=11  ok
+    peak=10     result= 8  peak_cap:11→8
+    peak=8      result= 6  peak_cap:11→6
+    peak=6      result= 6  peak_cap:11→4 G2:4→6
+    peak=4      result= 6  peak_cap:11→2 G2:2→6
+    peak=2      result= 6  peak_cap:11→0 G2:0→6
+    peak=0      result= 6  peak_cap:11→-2 G2:-2→6
+
+  ─── Hamstrings (intermediate, neutral, accumulation, surplus) ───
+    peak=None   result= 5  ok
+    peak=20     result= 5  ok
+    peak=14     result= 5  ok
+    peak=10     result= 5  ok
+    peak=8      result= 5  ok
+    peak=6      result= 4  peak_cap:5→4
+    peak=4      result= 4  peak_cap:5→2 G2:2→4
+    peak=2      result= 4  peak_cap:5→0 G2:0→4
+    peak=0      result= 4  peak_cap:5→-2 G2:-2→4
+
+==========================================================================================
+TEST 7: Extreme nextWeekAdjustment values
+==========================================================================================
+
+  ─── Chest (intermediate, neutral, accumulation, surplus, week 3) ───
+    adj=-15  result= 6  MRV=26 MV=6 [AT MV FLOOR]  G2:-7→6
+    adj=-10  result= 6  MRV=26 MV=6 [AT MV FLOOR]  G2:-2→6
+    adj= -5  result= 6  MRV=26 MV=6 [AT MV FLOOR]  G2:3→6
+    adj= +0  result= 8  MRV=26 MV=6  ok
+    adj= +5  result=13  MRV=26 MV=6  ok
+    adj=+10  result=18  MRV=26 MV=6  ok
+    adj=+15  result=23  MRV=26 MV=6  ok
+
+  ─── Hamstrings (intermediate, neutral, accumulation, surplus, week 3) ───
+    adj=-15  result= 4  MRV=21 MV=4 [AT MV FLOOR]  G2:-10→4
+    adj=-10  result= 4  MRV=21 MV=4 [AT MV FLOOR]  G2:-5→4
+    adj= -5  result= 4  MRV=21 MV=4 [AT MV FLOOR]  G2:0→4
+    adj= +0  result= 5  MRV=21 MV=4  ok
+    adj= +5  result=10  MRV=21 MV=4  ok
+    adj=+10  result=15  MRV=21 MV=4  ok
+    adj=+15  result=20  MRV=21 MV=4  ok
+
+  ─── Glutes (intermediate, neutral, accumulation, surplus, week 3) ───
+    adj=-15  result= 4  MRV=21 MV=4 [AT MV FLOOR]  G2:-13→4
+    adj=-10  result= 4  MRV=21 MV=4 [AT MV FLOOR]  G2:-8→4
+    adj= -5  result= 4  MRV=21 MV=4 [AT MV FLOOR]  G2:-3→4
+    adj= +0  result= 4  MRV=21 MV=4 [AT MV FLOOR]  G2:2→4
+    adj= +5  result= 7  MRV=21 MV=4  ok
+    adj=+10  result=12  MRV=21 MV=4  ok
+    adj=+15  result=17  MRV=21 MV=4  ok
+
+==========================================================================================
+TEST 8: Does calorie context actually constrain anything?
+==========================================================================================
+  Back         elite        maintenance: surplus=18 agg_deficit=17 (MRV constrains)
+
+  Calorie context changed the result in 1 of 108 combinations
+
+==========================================================================================
+TEST 9: Block length for every goal × experience
+==========================================================================================
+  hypertrophy    beginner    : 5 weeks + 1 deload = 6 total
+  hypertrophy    intermediate: 5 weeks + 1 deload = 6 total
+  hypertrophy    advanced    : 4 weeks + 1 deload = 5 total
+  hypertrophy    elite       : 4 weeks + 1 deload = 5 total
+  strength       beginner    : 5 weeks + 1 deload = 6 total
+  strength       intermediate: 5 weeks + 1 deload = 6 total
+  strength       advanced    : 4 weeks + 1 deload = 5 total
+  strength       elite       : 4 weeks + 1 deload = 5 total
+  powerbuilding  beginner    : 5 weeks + 1 deload = 6 total
+  powerbuilding  intermediate: 5 weeks + 1 deload = 6 total
+  powerbuilding  advanced    : 4 weeks + 1 deload = 5 total
+  powerbuilding  elite       : 4 weeks + 1 deload = 5 total
+  recomp         beginner    : 3 weeks + 1 deload = 4 total
+  recomp         intermediate: 3 weeks + 1 deload = 4 total
+  recomp         advanced    : 3 weeks + 1 deload = 4 total
+  recomp         elite       : 3 weeks + 1 deload = 4 total
+
+==========================================================================================
+TEST 10: Can base set target EVER exceed MRV ceiling?
+==========================================================================================
+  MRV violations found: 0
+  G1 (clampToMRV) is working correctly across all 2160 combinations
+
+==========================================================================================
+TEST 11: Can base set target EVER go below MV floor?
+==========================================================================================
+  MV violations found: 0
+  G2 (floorAtMV) is working correctly across all combinations
+
+==========================================================================================
+TEST 12: FULL PROGRAM SIMULATION — 5 representative profiles
+==========================================================================================
+
+  ════════════════════════════════════════════════════════════════════════════════
+  PROFILE: Beginner Hypertrophy 4d Surplus
+  ════════════════════════════════════════════════════════════════════════════════
+  Block length: 5 weeks + 1 deload
+  Split: Heavy Upper, Heavy Lower, Hyp Upper, Hyp Lower
+
+  Block 0: accumulation (multiplier=1.00)
+    Week 1:
+      Heavy Upper          [14 sets] Chest=3(3+0+0+0), Back=4(4+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [14 sets] Chest=3(3+0+0+0), Back=4(4+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+    Week 5:
+      Heavy Upper          [14 sets] Chest=3(3+0+0+0), Back=4(4+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [14 sets] Chest=3(3+0+0+0), Back=4(4+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+
+  Block 1: deload (multiplier=1.00)
+    Week 1:
+      Heavy Upper          [12 sets] Chest=3(3+0+0+0), Back=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [12 sets] Chest=3(3+0+0+0), Back=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+    Week 5:
+      Heavy Upper          [12 sets] Chest=3(3+0+0+0), Back=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [12 sets] Chest=3(3+0+0+0), Back=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+
+  Block 2: reaccumulation (multiplier=1.15)
+    Week 1:
+      Heavy Upper          [14 sets] Chest=3(3+0+0+0), Back=4(4+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [14 sets] Chest=3(3+0+0+0), Back=4(4+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+    Week 5:
+      Heavy Upper          [14 sets] Chest=3(3+0+0+0), Back=4(4+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [14 sets] Chest=3(3+0+0+0), Back=4(4+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+
+  ════════════════════════════════════════════════════════════════════════════════
+  PROFILE: Intermediate Strength 3d Maintenance
+  ════════════════════════════════════════════════════════════════════════════════
+  Block length: 5 weeks + 1 deload
+  Split: Full Body A, Full Body B, Full Body C
+
+  Block 0: accumulation (multiplier=1.00)
+    Week 1:
+      Full Body A          [15 sets] Chest=2(2+0+0+0), Back=3(3+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=2(2+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body B          [15 sets] Chest=2(2+0+0+0), Back=3(3+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=2(2+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body C          [15 sets] Chest=2(2+0+0+0), Back=3(3+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=2(2+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+    Week 5:
+      Full Body A          [15 sets] Chest=2(2+0+0+0), Back=3(3+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=2(2+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body B          [15 sets] Chest=2(2+0+0+0), Back=3(3+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=2(2+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body C          [15 sets] Chest=2(2+0+0+0), Back=3(3+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=2(2+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+
+  Block 1: deload (multiplier=1.00)
+    Week 1:
+      Full Body A          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body B          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body C          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+    Week 5:
+      Full Body A          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body B          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body C          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+
+  Block 2: intensification (multiplier=0.65)
+    Week 1:
+      Full Body A          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body B          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body C          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+    Week 5:
+      Full Body A          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body B          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+      Full Body C          [13 sets] Chest=2(2+0+0+0), Back=2(2+0+0+0), Quads=2(2+0+0+0), Hamstrings=1(0+1+0+0), Glutes=1(0+1+0+0), Delts=1(1+0+0+0), Triceps=1(0+1+0+0), Biceps=1(0+1+0+0), Calves=2(0+2+0+0)
+
+  ════════════════════════════════════════════════════════════════════════════════
+  PROFILE: Advanced PB 6d ModDeficit Quad+Chest Prio
+  ════════════════════════════════════════════════════════════════════════════════
+  Block length: 4 weeks + 1 deload
+  Split: Push A, Pull A, Legs-QuadFocus, Push B, Pull B, Legs B
+
+  Block 0: accumulation (multiplier=1.00)
+    Week 1:
+      Push A               [18 sets] Chest=8(5+3+0+0), Delts=6(5+1+0+0), Triceps=4(0+4+0+0)
+      Pull A               [12 sets] Back=8(5+3+0+0), Biceps=4(0+4+0+0)
+      Legs-QuadFocus       [12 sets] Quads=8(5+3+0+0), Calves=4(0+4+0+0)
+      Push B               [18 sets] Chest=8(5+3+0+0), Delts=6(5+1+0+0), Triceps=4(0+4+0+0)
+      Pull B               [12 sets] Back=8(5+3+0+0), Biceps=4(0+4+0+0)
+      Legs B               [24 sets] Quads=8(5+3+0+0), Hamstrings=8(0+4+3+1), Glutes=4(0+4+0+0), Calves=4(0+4+0+0)
+    Week 4:
+      Push A               [18 sets] Chest=8(5+3+0+0), Delts=6(5+1+0+0), Triceps=4(0+4+0+0)
+      Pull A               [12 sets] Back=8(5+3+0+0), Biceps=4(0+4+0+0)
+      Legs-QuadFocus       [12 sets] Quads=8(5+3+0+0), Calves=4(0+4+0+0)
+      Push B               [18 sets] Chest=8(5+3+0+0), Delts=6(5+1+0+0), Triceps=4(0+4+0+0)
+      Pull B               [12 sets] Back=8(5+3+0+0), Biceps=4(0+4+0+0)
+      Legs B               [24 sets] Quads=8(5+3+0+0), Hamstrings=8(0+4+3+1), Glutes=4(0+4+0+0), Calves=4(0+4+0+0)
+
+  Block 1: deload (multiplier=1.00)
+    Week 1:
+      Push A               [ 7 sets] Chest=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0)
+      Pull A               [ 5 sets] Back=3(3+0+0+0), Biceps=2(0+2+0+0)
+      Legs-QuadFocus       [ 6 sets] Quads=3(3+0+0+0), Calves=3(0+3+0+0)
+      Push B               [ 7 sets] Chest=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0)
+      Pull B               [ 5 sets] Back=3(3+0+0+0), Biceps=2(0+2+0+0)
+      Legs B               [14 sets] Quads=3(3+0+0+0), Hamstrings=4(0+4+0+0), Glutes=4(0+4+0+0), Calves=3(0+3+0+0)
+    Week 4:
+      Push A               [ 7 sets] Chest=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0)
+      Pull A               [ 5 sets] Back=3(3+0+0+0), Biceps=2(0+2+0+0)
+      Legs-QuadFocus       [ 6 sets] Quads=3(3+0+0+0), Calves=3(0+3+0+0)
+      Push B               [ 7 sets] Chest=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0)
+      Pull B               [ 5 sets] Back=3(3+0+0+0), Biceps=2(0+2+0+0)
+      Legs B               [14 sets] Quads=3(3+0+0+0), Hamstrings=4(0+4+0+0), Glutes=4(0+4+0+0), Calves=3(0+3+0+0)
+
+  Block 2: intensification (multiplier=0.65)
+    Week 1:
+      Push A               [10 sets] Chest=5(5+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0)
+      Pull A               [ 7 sets] Back=5(5+0+0+0), Biceps=2(0+2+0+0)
+      Legs-QuadFocus       [ 8 sets] Quads=5(5+0+0+0), Calves=3(0+3+0+0)
+      Push B               [10 sets] Chest=5(5+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0)
+      Pull B               [ 7 sets] Back=5(5+0+0+0), Biceps=2(0+2+0+0)
+      Legs B               [17 sets] Quads=5(5+0+0+0), Hamstrings=5(0+4+1+0), Glutes=4(0+4+0+0), Calves=3(0+3+0+0)
+    Week 4:
+      Push A               [10 sets] Chest=5(5+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0)
+      Pull A               [ 7 sets] Back=5(5+0+0+0), Biceps=2(0+2+0+0)
+      Legs-QuadFocus       [ 8 sets] Quads=5(5+0+0+0), Calves=3(0+3+0+0)
+      Push B               [10 sets] Chest=5(5+0+0+0), Delts=3(3+0+0+0), Triceps=2(0+2+0+0)
+      Pull B               [ 7 sets] Back=5(5+0+0+0), Biceps=2(0+2+0+0)
+      Legs B               [17 sets] Quads=5(5+0+0+0), Hamstrings=5(0+4+1+0), Glutes=4(0+4+0+0), Calves=3(0+3+0+0)
+
+  ════════════════════════════════════════════════════════════════════════════════
+  PROFILE: Elite Hypertrophy 6d AggDeficit 4 Priorities
+  ════════════════════════════════════════════════════════════════════════════════
+  Block length: 4 weeks + 1 deload
+  Split: Push A, Pull A, Legs-QuadFocus, Push B, Pull B, Legs B
+
+  Block 0: accumulation (multiplier=1.00)
+    Week 1:
+      Push A               [20 sets] Chest=8(5+3+0+0), Delts=8(5+3+0+0), Triceps=4(0+4+0+0)
+      Pull A               [15 sets] Back=11(5+4+2+0), Biceps=4(0+4+0+0)
+      Legs-QuadFocus       [12 sets] Quads=8(5+3+0+0), Calves=4(0+4+0+0)
+      Push B               [20 sets] Chest=8(5+3+0+0), Delts=8(5+3+0+0), Triceps=4(0+4+0+0)
+      Pull B               [15 sets] Back=11(5+4+2+0), Biceps=4(0+4+0+0)
+      Legs B               [24 sets] Quads=8(5+3+0+0), Hamstrings=9(0+4+3+2), Glutes=4(0+4+0+0), Calves=3(0+3+0+0)
+    Week 4:
+      Push A               [20 sets] Chest=8(5+3+0+0), Delts=8(5+3+0+0), Triceps=4(0+4+0+0)
+      Pull A               [15 sets] Back=11(5+4+2+0), Biceps=4(0+4+0+0)
+      Legs-QuadFocus       [12 sets] Quads=8(5+3+0+0), Calves=4(0+4+0+0)
+      Push B               [20 sets] Chest=8(5+3+0+0), Delts=8(5+3+0+0), Triceps=4(0+4+0+0)
+      Pull B               [15 sets] Back=11(5+4+2+0), Biceps=4(0+4+0+0)
+      Legs B               [24 sets] Quads=8(5+3+0+0), Hamstrings=9(0+4+3+2), Glutes=4(0+4+0+0), Calves=3(0+3+0+0)
+
+  Block 1: deload (multiplier=1.00)
+    Week 1:
+      Push A               [ 7 sets] Chest=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0)
+      Pull A               [ 5 sets] Back=3(3+0+0+0), Biceps=2(0+2+0+0)
+      Legs-QuadFocus       [ 6 sets] Quads=3(3+0+0+0), Calves=3(0+3+0+0)
+      Push B               [ 7 sets] Chest=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0)
+      Pull B               [ 5 sets] Back=3(3+0+0+0), Biceps=2(0+2+0+0)
+      Legs B               [14 sets] Quads=3(3+0+0+0), Hamstrings=4(0+4+0+0), Glutes=4(0+4+0+0), Calves=3(0+3+0+0)
+    Week 4:
+      Push A               [ 7 sets] Chest=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0)
+      Pull A               [ 5 sets] Back=3(3+0+0+0), Biceps=2(0+2+0+0)
+      Legs-QuadFocus       [ 6 sets] Quads=3(3+0+0+0), Calves=3(0+3+0+0)
+      Push B               [ 7 sets] Chest=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0)
+      Pull B               [ 5 sets] Back=3(3+0+0+0), Biceps=2(0+2+0+0)
+      Legs B               [14 sets] Quads=3(3+0+0+0), Hamstrings=4(0+4+0+0), Glutes=4(0+4+0+0), Calves=3(0+3+0+0)
+
+  Block 2: reaccumulation (multiplier=1.15)
+    Week 1:
+      Push A               [23 sets] Chest=9(5+4+0+0), Delts=9(5+4+0+0), Triceps=5(0+4+1+0)
+      Pull A               [17 sets] Back=12(5+4+3+0), Biceps=5(0+4+1+0)
+      Legs-QuadFocus       [14 sets] Quads=9(5+4+0+0), Calves=5(0+4+1+0)
+      Push B               [23 sets] Chest=9(5+4+0+0), Delts=9(5+4+0+0), Triceps=5(0+4+1+0)
+      Pull B               [17 sets] Back=12(5+4+3+0), Biceps=5(0+4+1+0)
+      Legs B               [24 sets] Quads=9(5+4+0+0), Hamstrings=10(0+4+3+3), Glutes=4(0+4+0+0), Calves=1(0+1+0+0)
+    Week 4:
+      Push A               [23 sets] Chest=9(5+4+0+0), Delts=9(5+4+0+0), Triceps=5(0+4+1+0)
+      Pull A               [17 sets] Back=12(5+4+3+0), Biceps=5(0+4+1+0)
+      Legs-QuadFocus       [14 sets] Quads=9(5+4+0+0), Calves=5(0+4+1+0)
+      Push B               [23 sets] Chest=9(5+4+0+0), Delts=9(5+4+0+0), Triceps=5(0+4+1+0)
+      Pull B               [17 sets] Back=12(5+4+3+0), Biceps=5(0+4+1+0)
+      Legs B               [24 sets] Quads=9(5+4+0+0), Hamstrings=10(0+4+3+3), Glutes=4(0+4+0+0), Calves=1(0+1+0+0)
+
+  ════════════════════════════════════════════════════════════════════════════════
+  PROFILE: Intermediate Recomp 4d Maintenance
+  ════════════════════════════════════════════════════════════════════════════════
+  Block length: 3 weeks + 1 deload
+  Split: Heavy Upper, Heavy Lower, Hyp Upper, Hyp Lower
+
+  Block 0: accumulation (multiplier=1.00)
+    Week 1:
+      Heavy Upper          [17 sets] Chest=4(4+0+0+0), Back=5(5+0+0+0), Delts=4(4+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [11 sets] Quads=4(4+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [17 sets] Chest=4(4+0+0+0), Back=5(5+0+0+0), Delts=4(4+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [11 sets] Quads=4(4+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+    Week 3:
+      Heavy Upper          [17 sets] Chest=4(4+0+0+0), Back=5(5+0+0+0), Delts=4(4+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [11 sets] Quads=4(4+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [17 sets] Chest=4(4+0+0+0), Back=5(5+0+0+0), Delts=4(4+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [11 sets] Quads=4(4+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+
+  Block 1: deload (multiplier=1.00)
+    Week 1:
+      Heavy Upper          [12 sets] Chest=3(3+0+0+0), Back=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [12 sets] Chest=3(3+0+0+0), Back=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+    Week 3:
+      Heavy Upper          [12 sets] Chest=3(3+0+0+0), Back=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [12 sets] Chest=3(3+0+0+0), Back=3(3+0+0+0), Delts=2(2+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [10 sets] Quads=3(3+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+
+  Block 2: accumulation (multiplier=1.00)
+    Week 1:
+      Heavy Upper          [17 sets] Chest=4(4+0+0+0), Back=5(5+0+0+0), Delts=4(4+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [11 sets] Quads=4(4+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [17 sets] Chest=4(4+0+0+0), Back=5(5+0+0+0), Delts=4(4+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [11 sets] Quads=4(4+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+    Week 3:
+      Heavy Upper          [17 sets] Chest=4(4+0+0+0), Back=5(5+0+0+0), Delts=4(4+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Heavy Lower          [11 sets] Quads=4(4+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+      Hyp Upper            [17 sets] Chest=4(4+0+0+0), Back=5(5+0+0+0), Delts=4(4+0+0+0), Triceps=2(0+2+0+0), Biceps=2(0+2+0+0)
+      Hyp Lower            [11 sets] Quads=4(4+0+0+0), Hamstrings=2(0+2+0+0), Glutes=2(0+2+0+0), Calves=3(0+3+0+0)
+
+==========================================================================================
+SIMULATION SUMMARY
+==========================================================================================
+  Total combinations tested: 17210
+  G1 (MRV clamp) activations: 42
+  G2 (MV floor) activations: 4862
+  Anomalies found: 0
+  Bugs found: 0
+  Warnings: 0
+
+  NO BUGS FOUND — all guard rails working correctly

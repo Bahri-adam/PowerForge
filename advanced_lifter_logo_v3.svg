@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a0000"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+
+    <linearGradient id="redMain" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%"   stop-color="#ff6060"/>
+      <stop offset="30%"  stop-color="#e01010"/>
+      <stop offset="65%"  stop-color="#990000"/>
+      <stop offset="100%" stop-color="#5a0000"/>
+    </linearGradient>
+
+    <linearGradient id="redBar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#ff5555"/>
+      <stop offset="35%"  stop-color="#cc0000"/>
+      <stop offset="100%" stop-color="#6b0000"/>
+    </linearGradient>
+
+    <linearGradient id="topSheen" x1="50%" y1="0%" x2="50%" y2="100%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#ff2222" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#ff0000" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3333" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#990000" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#ff3333" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <filter id="ambientGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="16" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0 0 0 0.4
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0.6 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="sharpGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0 0 0 0.5
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0.45 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <clipPath id="iosClip">
+      <rect x="0" y="0" width="400" height="400" rx="88" ry="88"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <g clip-path="url(#iosClip)">
+    <rect width="400" height="400" fill="url(#bgGrad)"/>
+    <rect width="400" height="400" fill="url(#topSheen)"/>
+  </g>
+
+  <!-- Icon -->
+  <g filter="url(#ambientGlow)" clip-path="url(#iosClip)">
+
+    <!-- Left leg of A -->
+    <polygon
+      points="200,68  144,300  174,300  210,168"
+      fill="url(#redMain)"
+      filter="url(#sharpGlow)"
+    />
+
+    <!-- Right leg of A -->
+    <polygon
+      points="200,68  256,300  226,300  190,168"
+      fill="url(#redMain)"
+      filter="url(#sharpGlow)"
+    />
+
+    <!-- Barbell shaft -->
+    <rect x="108" y="196" width="184" height="16" rx="4" fill="url(#redBar)" filter="url(#sharpGlow)"/>
+
+    <!-- Left inner collar -->
+    <rect x="148" y="187" width="13" height="34" rx="3" fill="url(#redBar)" filter="url(#sharpGlow)"/>
+    <!-- Left outer plate -->
+    <rect x="118" y="179" width="14" height="50" rx="4" fill="url(#redBar)" filter="url(#sharpGlow)"/>
+    <rect x="106" y="183" width="13" height="42" rx="3" fill="url(#redBar)" filter="url(#sharpGlow)"/>
+
+    <!-- Right inner collar -->
+    <rect x="239" y="187" width="13" height="34" rx="3" fill="url(#redBar)" filter="url(#sharpGlow)"/>
+    <!-- Right outer plate -->
+    <rect x="268" y="179" width="14" height="50" rx="4" fill="url(#redBar)" filter="url(#sharpGlow)"/>
+    <rect x="281" y="183" width="13" height="42" rx="3" fill="url(#redBar)" filter="url(#sharpGlow)"/>
+
+  </g>
+
+  <!-- Rim border -->
+  <rect x="0" y="0" width="400" height="400" rx="88" ry="88"
+    fill="none" stroke="url(#rimGrad)" stroke-width="1.5"/>
+</svg>
