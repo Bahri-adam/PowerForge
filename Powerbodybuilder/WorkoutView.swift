@@ -502,11 +502,13 @@ struct WorkoutView: View {
         }
 
         // Check if today's schedule has a day template assigned
-        let cal = Calendar.current
-        let todayWeekday = cal.component(.weekday, from: Date()) // 1=Sun, 7=Sat
-        let todayDow = todayWeekday == 1 ? 0 : todayWeekday - 1  // 0=Sun, 1=Mon...6=Sat
+        // Look up the schedule entry for the session being tapped (not today's
+        // date) so day templates load even when the user is making up a missed
+        // day. Match by sessionType — for templates, both the schedule's
+        // sessionType and the tapped sessionType are .freeform, so a freeform
+        // tap with a non-empty dayTemplateId in the schedule wins.
         let matchingSchedule = inst.schedules.first(where: { sched in
-            sched.dayOfWeek == todayDow && !sched.dayTemplateId.isEmpty &&
+            sched.sessionType == sessionType && !sched.dayTemplateId.isEmpty &&
             (sched.isPermanent || sched.week == week)
         })
 

@@ -832,7 +832,9 @@ struct ProgramTabView: View {
 
     private var templatesSection: some View {
         VStack(spacing: 14) {
-            DayTemplateLibraryView()
+            // Embedded inline — not a sheet — so the inline + button shows
+            // (the old NavigationView toolbar wasn't reliable when nested).
+            DayTemplateLibraryView(presentsAsSheet: false)
         }
     }
 

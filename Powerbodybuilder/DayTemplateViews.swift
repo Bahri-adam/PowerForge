@@ -755,6 +755,12 @@ struct DayTemplateCreatorSheet: View {
 // ═══════════════════════════════════════════
 
 struct DayTemplateLibraryView: View {
+    /// When true (the default), the view wraps itself in a NavigationView with a
+    /// dismiss button — used when presented as a sheet from Settings. When
+    /// embedded inline (Program tab), set to false so the parent's nav chrome
+    /// isn't duplicated. Either way the inline + button is always visible.
+    var presentsAsSheet: Bool = true
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var dayTemplates: [DayTemplate]
@@ -762,74 +768,101 @@ struct DayTemplateLibraryView: View {
     @State private var showCreateNew = false
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.appBG.ignoresSafeArea()
-                if dayTemplates.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "doc.text.magnifyingglass").font(.system(size: 36)).foregroundColor(.appTextDim)
-                        Text("No templates yet").font(.system(size: 16, weight: .bold)).foregroundColor(.appTextSecondary)
-                        Text("Create reusable session templates that you can assign to any day.")
-                            .font(.system(size: 13)).foregroundColor(.appTextDim).multilineTextAlignment(.center)
-                    }.padding(40)
-                }
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 10) {
-                        ForEach(dayTemplates, id: \.templateId) { template in
-                            Button(action: { editingTemplate = template }) {
-                                HStack(spacing: 0) {
-                                    Rectangle().fill(templateColor(template.colorHex)).frame(width: 3, height: 42).cornerRadius(1.5)
-                                        .padding(.trailing, 10)
-                                    Image(systemName: template.iconName).font(.system(size: 16))
-                                        .foregroundColor(templateColor(template.colorHex)).frame(width: 28)
-                                        .padding(.trailing, 8)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(template.name).font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
-                                        Text("\(template.exercises.count) exercises").font(.system(size: 11)).foregroundColor(.appTextDim)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(.appTextDim)
-                                }
-                                .padding(14)
-                                .background(Color.appSurface).cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+        if presentsAsSheet {
+            NavigationView {
+                content
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark").font(.system(size: 13, weight: .bold)).foregroundColor(.appTextSecondary)
                             }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    modelContext.delete(template)
-                                    try? modelContext.save()
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+                        }
+                        ToolbarItem(placement: .principal) {
+                            Text("DAY TEMPLATES").font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary).kerning(1)
+                        }
+                    }
+            }
+            .sheet(isPresented: $showCreateNew) { DayTemplateCreatorSheet() }
+            .sheet(item: $editingTemplate) { template in
+                DayTemplateCreatorSheet(editingTemplate: template)
+            }
+        } else {
+            content
+                .sheet(isPresented: $showCreateNew) { DayTemplateCreatorSheet() }
+                .sheet(item: $editingTemplate) { template in
+                    DayTemplateCreatorSheet(editingTemplate: template)
+                }
+        }
+    }
+
+    /// Inline + button — always rendered in the body so it shows up regardless
+    /// of NavigationView/toolbar quirks. The toolbar one in sheet mode is gone.
+    private var addTemplateRow: some View {
+        Button {
+            showCreateNew = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill").font(.system(size: 18)).foregroundColor(.appRed)
+                Text("New Day Template").font(.system(size: 14, weight: .black)).foregroundColor(.appRed)
+                Spacer()
+            }
+            .padding(14)
+            .background(Color.appRed.opacity(0.06)).cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appRed.opacity(0.25), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var content: some View {
+        ZStack {
+            Color.appBG.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 10) {
+                    addTemplateRow
+
+                    if dayTemplates.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "doc.text.magnifyingglass").font(.system(size: 36)).foregroundColor(.appTextDim)
+                            Text("No templates yet").font(.system(size: 16, weight: .bold)).foregroundColor(.appTextSecondary)
+                            Text("Create reusable session templates that you can assign to any day.")
+                                .font(.system(size: 13)).foregroundColor(.appTextDim).multilineTextAlignment(.center)
+                        }.padding(.vertical, 30)
+                    }
+
+                    ForEach(dayTemplates, id: \.templateId) { template in
+                        Button(action: { editingTemplate = template }) {
+                            HStack(spacing: 0) {
+                                Rectangle().fill(templateColor(template.colorHex)).frame(width: 3, height: 42).cornerRadius(1.5)
+                                    .padding(.trailing, 10)
+                                Image(systemName: template.iconName).font(.system(size: 16))
+                                    .foregroundColor(templateColor(template.colorHex)).frame(width: 28)
+                                    .padding(.trailing, 8)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(template.name).font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
+                                    Text("\(template.exercises.count) exercises").font(.system(size: 11)).foregroundColor(.appTextDim)
                                 }
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(.appTextDim)
+                            }
+                            .padding(14)
+                            .background(Color.appSurface).cornerRadius(12)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                modelContext.delete(template)
+                                try? modelContext.save()
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
                     }
-                    .padding(16).padding(.bottom, 40)
                 }
+                .padding(.horizontal, presentsAsSheet ? 16 : 0)
+                .padding(.bottom, 40)
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark").font(.system(size: 13, weight: .bold)).foregroundColor(.appTextSecondary)
-                    }
-                }
-                ToolbarItem(placement: .principal) {
-                    Text("DAY TEMPLATES").font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary).kerning(1)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showCreateNew = true }) {
-                        Image(systemName: "plus").font(.system(size: 14, weight: .bold)).foregroundColor(.appRed)
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: $showCreateNew) {
-            DayTemplateCreatorSheet()
-        }
-        .sheet(item: $editingTemplate) { template in
-            DayTemplateCreatorSheet(editingTemplate: template)
         }
     }
 }

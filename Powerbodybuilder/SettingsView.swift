@@ -637,10 +637,37 @@ struct SettingsView: View {
         inst.previousBlockExerciseKeys = []
         inst.startDate = Date()
 
+        // Restore block layout to the program's defaults — clears any user
+        // reshaping done via BlockSequenceEditor (custom + skipped deload weeks)
+        // and resets blockLength to the program's original training-week count.
+        // For custom programs (pid >= 100) we preserve the user-designed
+        // blockLength since that IS the "original" for them.
+        inst.customDeloadWeeks = []
+        inst.skippedDeloadWeeks = []
+        if let originalLength = originalBlockLength(for: inst.programId) {
+            inst.blockLength = originalLength
+        }
+
         // Note: ProgressionState, StrengthGoals, LandmarkCalibration all preserved
         // so the algorithm keeps its memory of best lifts and adaptive landmarks
 
         try? modelContext.save()
+    }
+
+    /// The training-week count baked into each seeded program's deload pattern.
+    /// Returns nil for custom/generated programs — for those, blockLength was
+    /// set by the user at creation and we leave it alone on reset.
+    private func originalBlockLength(for programId: Int) -> Int? {
+        switch programId {
+        case 1: return 8   // Powerbuilding (deloads at 4, 12, 20)
+        case 2: return 8   // PPL (deloads at 4, 12, 16)
+        case 3: return 4   // Strength
+        case 4: return 4   // Beginner
+        case 5: return 4   // Athletic
+        case 6: return 4   // Minimalist
+        case 7: return 2   // Bahri (deloads every 3rd week → 2 training weeks per block)
+        default: return nil
+        }
     }
 
     // ── CSV Export ─────────────────────────────────────────────────────

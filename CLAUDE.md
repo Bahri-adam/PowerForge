@@ -670,3 +670,159 @@ Linear regression on session-grouped e1RM data. Requires 4+ sessions. Returns we
 
 ### Progress Tab (`ProgressView.swift`)
 4 sections: Overview (stats, most improved, recent PRs, weak points), Strength (goals, PRs, e1RM trend with prediction, balance ratios, genetic potential), Volume (line chart with muscle filter, frequency heatmap), History (all sessions + searchable exercise browser with drill-down).
+
+---
+
+## Recent Session Reference (May 2026)
+
+### Project location
+**`/Users/ayb/Desktop/PowerForge_recovered/`** — moved from the old
+`/Users/ayb/Desktop/Powerbodybuilder/` location, which now only has the
+.xcodeproj shell. All source lives in `PowerForge_recovered/Powerbodybuilder/`.
+Build commands at top of this file are still correct (run from project root).
+
+### Block-phase display — single source of truth
+**`ComputedBlockInfo`** (`Models.swift`):
+```swift
+ComputedBlockInfo.compute(
+    forWeek: Int, programId: Int, blockLength: Int,
+    totalWeeks: Int, goal: GoalType, instance: UserProgramInstance? = nil
+) -> ComputedBlockInfo  // .blockType, .blockNumber, .weekInBlock,
+                        // .blockTrainingWeeks, .isDeloadWeek,
+                        // .displayPhaseName (goal-aware)
+```
+Computes from `deloadWeeks(...)` boundaries. Block 1 = before first deload,
+block 2 = between first and second, etc. Block type alternates per goal:
+hyp/recomp = accum/reaccum, strength = accum/intens/peak (3-cycle),
+powerbuilding = accum/intens/then alternating.
+
+ALL display sites use this — never read `inst.blockType` / `blockWeek` /
+`totalBlocksCompleted` directly for display. Engine code (RPE, progression)
+still reads inst state directly because that's the engine's contract.
+
+### deloadWeeks helper (`WorkoutView.swift`)
+```swift
+deloadWeeks(for: programId, blockLength: blockLength,
+            instance: UserProgramInstance? = nil) -> Set<Int>
+```
+Returns program defaults, with `inst.skippedDeloadWeeks` subtracted and
+`inst.customDeloadWeeks` added when instance is passed. Lets user-defined
+block layouts (set via BlockSequenceEditor.applyChanges) reshape boundaries
+on seeded programs whose pattern is otherwise hardcoded.
+
+### Cross-program template lookup
+```swift
+lookupTemplates(programId:week:sessionType:allTemplates:) -> [ProgramSessionTemplate]
+```
+Tries user's program first, falls back to any program with that sessionType
+at same week, then week 1. Used wherever templates are read so imported
+sessions show real exercise/set counts.
+
+### Block-aware adaptation
+```swift
+lookupAdaptedTemplates(programId:week:sessionType:allTemplates:
+                       instance:totalWeeks:blockLength:goal:)
+```
+Wraps `lookupTemplates`. When user's intended phase (training/deload) for
+a week differs from the seeded phase, walks ±5 neighbors for a matching
+seeded phase. So a re-blocked week pulls a neighbor's training prescriptions
+instead of the seeded deload prescriptions for that exact week.
+
+**Wired into**: `WorkoutView.templatesFor`, `HomeView.programmedSetsByMuscle`,
+`ProgramTabView.programmedSetsForMuscle`, `ProgramTabView.sessionsForWeek`.
+
+**NOT wired into `WorkoutView.buildPreview`** — the function is at the
+Swift type-checker complexity limit. Adding the call inline crashes the
+compiler. Means actual workouts use seeded prescriptions even when displays
+show adapted info. Fix path: refactor buildPreview to extract chunks, or
+do a 2-step pre-compute outside it.
+
+### Mid-workout persistence (Strava-style)
+`WorkoutSnapshot` / `ExerciseSnapshot` / `SetSnapshot` Codable mirrors of
+`ActiveWorkoutSession` (`WorkoutView.swift`). `WorkoutPersistence` enum:
+- `save(_ session:)` — encodes to UserDefaults under
+  `PowerForge.activeWorkoutSnapshot.v1`
+- `load() -> WorkoutSnapshot?`
+- `clear()`
+
+Saves on `scenePhase` `.background` / `.inactive`, on session start, on
+"Finish & Save" tap. Clears on finalize / discard. Restores on `.onAppear`
+if a snapshot exists. `startedAt` preserved → elapsed timer keeps counting
+from real start time.
+
+### activeSessionsForWeek helper
+```swift
+activeSessionsForWeek(programId:instance:profile:week:templates:) -> Set<SessionType>
+```
+Returns the actual scheduled sessions for a week (mirrors
+`ProgramConfiguratorSheet.currentRotation`). Filters out
+permanent/week-specific rest overrides, adds extras. Used in volume math
+and Program tab Weeks display.
+
+### Configure Program tabs (4)
+- **Sessions** — rename / add / swap / remove sessions in rotation
+- **Schedule** (new) — visual 7-day calendar; tap a day for clear / replace
+  with a session from program rotation; week-scoped only
+- **Blocks** (new) — current-block summary, type picker (goal-aware), length
+  stepper, "OPEN SEQUENCE EDITOR" button (uses parent callback to avoid
+  sheet-within-sheet)
+- **Import** — full-week imports + per-session imports + custom programs in
+  catalog + day templates with proper `dayTemplateId` persistence
+
+`Week Override` tab removed — Import covers it.
+
+### Custom programs
+- V2 builder uses `pid = max(100, ...)`. One-time migration in
+  `ContentView.migrateBrokenCustomProgramsIfNeeded` rewrites pids in 8..<100
+  range to ≥ 100 (across ProgramTemplate, ProgramSessionTemplate,
+  UserProgramInstance, UserProgram).
+- `sessionRotation` / `splitRotation` / `splitOrder` / `baseRotation` all
+  have a fallback to `ProgramTemplate.sessionTypes` for any unrecognized
+  pid (not just ≥100).
+- Custom programs deletable from `ProgramSelectionView` (trash icon when
+  `id >= 100`, cascade-deletes via `instance.schedules` etc.).
+
+### Volume Adjuster
+- Scope picker: This week / This block / All future / Range (with steppers)
+- Decrement (`−`) per existing exercise → creates `SessionOverride` with
+  `setCountDelta` (new field, negative = reduce)
+- Tap-to-type target editor (NumericInputSheet) — also reachable from
+  Settings → Muscle Priorities
+- Mid-workout warning when an `ActiveWorkout` is in progress
+- Past-week clamp (`appliesFromWeek >= currentWeek`)
+
+### Day templates
+- `DayTemplateLibraryView(presentsAsSheet: Bool = true)` — `false` for
+  embed in Program tab (no NavigationView wrapper), `true` for Settings
+  sheet. Inline `+` button always rendered in body.
+- Configure Program → Import day-template button uses
+  `assignDayTemplateToSelectedDay(_:)` which sets `ProgramSchedule.dayTemplateId`.
+  Previously called `assignToSelectedDay(.freeform)` and lost the template.
+- `WorkoutView.buildPreview` schedule lookup matches by `sessionType` (not
+  today's date) so missed-day makeups still load the right template.
+
+### Bahri Split phantom-key history
+Replaced 10 phantom exercise keys in Bahrisplitseeder with canonical ones
+(cable_fly→cable_fly_neutral, pullup_weighted→pullup, etc.). One-time
+migration `BahriSplitSeeder.migrateLegacyKeysIfNeeded` rewrites
+WorkoutLog / ProgressionState / StrengthGoal / SessionOverride records.
+
+### What's pending (uncommitted at session end)
+Day template fixes:
+- `DayTemplateViews.swift` — `presentsAsSheet` parameter, inline + button
+- `ProgramTabView.swift` — passes `presentsAsSheet: false`
+- `ProgramConfiguratorSheet.swift` — `assignDayTemplateToSelectedDay` helper
+- `WorkoutView.swift` — buildPreview schedule lookup by sessionType
+
+### Open issues to address next session
+1. **buildPreview adaptation** — biggest ergonomics gap. Workouts use
+   seeded prescriptions even when user reshapes blocks. Fix: extract
+   buildPreview chunks until it's small enough that adding
+   `lookupAdaptedTemplates` doesn't crash the type checker.
+2. **Two .freeform days with templates** — buildPreview's sessionType
+   matching can't disambiguate. Needs dow threaded through SessionPickerCard
+   → onStart → buildPreview.
+3. **Seeded program prescriptions don't regenerate** when blocks reshaped.
+   Adaptation handles training/deload swap; full per-week regen would need
+   a deeper template-rebuild on Sequence Editor apply.
+

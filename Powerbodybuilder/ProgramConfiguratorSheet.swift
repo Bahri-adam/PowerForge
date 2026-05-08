@@ -617,7 +617,7 @@ struct ProgramConfiguratorSheet: View {
 
                     ForEach(dayTemplates) { template in
                         Button {
-                            assignToSelectedDay(.freeform)
+                            assignDayTemplateToSelectedDay(template)
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "plus.circle").font(.system(size: 12)).foregroundColor(.appGreen)
@@ -707,6 +707,32 @@ struct ProgramConfiguratorSheet: View {
                                      isRestDay: false,
                                      week: importPermanent ? 0 : configWeek,
                                      isPermanent: importPermanent)
+        instance.schedules.append(sched)
+        try? modelContext.save()
+    }
+
+    /// Assigns a user-created day template to the selected day. Stores the
+    /// template's UUID in `dayTemplateId` so WorkoutView's buildPreview can
+    /// load the actual template exercises (instead of falling through to
+    /// freestyle). Uses .freeform as the slot's sessionType — buildPreview
+    /// short-circuits before the sessionType lookup when dayTemplateId is set.
+    private func assignDayTemplateToSelectedDay(_ template: DayTemplate) {
+        guard let dow = importSelectedDow else { return }
+
+        if importPermanent {
+            instance.schedules.removeAll { $0.dayOfWeek == dow && $0.isPermanent }
+        } else {
+            instance.schedules.removeAll { $0.dayOfWeek == dow && !$0.isPermanent && $0.week == configWeek }
+        }
+
+        let sched = ProgramSchedule(
+            dayOfWeek: dow,
+            sessionType: .freeform,
+            isRestDay: false,
+            week: importPermanent ? 0 : configWeek,
+            isPermanent: importPermanent,
+            dayTemplateId: template.templateId.uuidString
+        )
         instance.schedules.append(sched)
         try? modelContext.save()
     }
