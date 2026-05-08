@@ -396,6 +396,35 @@ struct BlockSequenceEditor: View {
         guard let first = blocks.first else { return }
         instance.blockLength = first.weeks
         instance.blockType = first.blockType
+
+        // Translate the editable block sequence into a concrete deload-week
+        // pattern. Each block contributes `weeks` training weeks followed by
+        // its `recoveryWeeks` deload week(s). The resulting deload-week numbers
+        // are stored as customDeloadWeeks; any program-default deloads that
+        // fall on training weeks under the new layout get added to
+        // skippedDeloadWeeks so they no longer fire.
+        var deloadWeekNums: [Int] = []
+        var trainingWeekNums: Set<Int> = []
+        var weekCursor = 0
+        for block in blocks {
+            for _ in 0..<block.weeks {
+                weekCursor += 1
+                trainingWeekNums.insert(weekCursor)
+            }
+            if block.includeRecovery {
+                for _ in 0..<block.recoveryWeeks {
+                    weekCursor += 1
+                    deloadWeekNums.append(weekCursor)
+                }
+            }
+        }
+
+        // Program-default deloads that are now training weeks → skip them.
+        let programDefaults = UserProgramInstance.defaultDeloadWeeks(for: instance.programId)
+        instance.skippedDeloadWeeks = programDefaults.intersection(trainingWeekNums)
+        // Any new deload weeks not in the program default → mark custom.
+        instance.customDeloadWeeks = Set(deloadWeekNums).subtracting(programDefaults)
+
         try? modelContext.save()
         dismiss()
     }

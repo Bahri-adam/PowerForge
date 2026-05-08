@@ -124,9 +124,22 @@ struct HomeView: View {
     }
 
     // ── Block info helpers ──
+    /// Computed block info for the displayed week (not the stored inst.blockType,
+    /// which only advances on finalizeWorkout).
+    private var displayedBlockInfo: ComputedBlockInfo? {
+        guard let inst = instance else { return nil }
+        return ComputedBlockInfo.compute(
+            forWeek: displayWeek,
+            programId: inst.programId,
+            blockLength: inst.blockLength,
+            totalWeeks: programTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks ?? 24,
+            goal: profile?.goal ?? .hypertrophy,
+            instance: inst
+        )
+    }
+
     private var blockTypeLabel: String {
-        guard let inst = instance else { return "Training" }
-        return blockDisplayName(inst.blockType, goal: profile?.goal ?? .hypertrophy)
+        displayedBlockInfo?.displayPhaseName ?? "Training"
     }
 
     /// Goal-aware block naming. Strength/powerbuilding use periodization terms.
@@ -1891,8 +1904,17 @@ struct MuscleCoverageCard: View {
     var targetOverrides: [String: Int] = [:]
     var onAdjustVolume: ((String) -> Void)? = nil
     @Query private var programTemplates: [ProgramTemplate]
+    @Query private var profilesQuery: [UserProfile]
     private let muscles = ExerciseDictionary.trackingMuscles
     @State private var selectedMuscle: String? = nil
+
+    /// Total weeks for the user's program — needed to bound the adapted-
+    /// templates neighbor walk.
+    private var totalWeeksForInstance: Int {
+        guard let inst = instance else { return 24 }
+        return programTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks
+            ?? (inst.programId == 2 ? 16 : 24)
+    }
 
     init(weekLogs: [WorkoutLog], exercises: [Exercise], priorityMuscles: [String], muscleTiers: [String: MuscleTier] = [:], experience: ExperienceLevel = .intermediate, instance: UserProgramInstance? = nil, allTemplates: [ProgramSessionTemplate] = [], displayWeek: Int = 1, targetOverrides: [String: Int] = [:], onAdjustVolume: ((String) -> Void)? = nil) {
         self.weekLogs = weekLogs
@@ -1918,14 +1940,17 @@ struct MuscleCoverageCard: View {
         let activeSessions = activeSessionsForWeek(
             programId: inst.programId, instance: inst, profile: nil, week: displayWeek,
             templates: programTemplates)
-        // Resolve templates per active session using cross-program lookup so
-        // imported sessions (whose templates live under another program's pid)
-        // still contribute volume.
+        // Block-aware lookup so volume metrics reflect what the user will
+        // actually train under their current block layout. Also covers the
+        // imported-session cross-program fallback.
+        let goal = profilesQuery.first?.goal ?? .hypertrophy
         var weekTemplates: [ProgramSessionTemplate] = []
         for st in activeSessions {
-            weekTemplates.append(contentsOf: lookupTemplates(
-                programId: inst.programId, week: displayWeek,
-                sessionType: st, allTemplates: allTemplates))
+            weekTemplates.append(contentsOf: lookupAdaptedTemplates(
+                programId: inst.programId, week: displayWeek, sessionType: st,
+                allTemplates: allTemplates,
+                instance: inst, totalWeeks: totalWeeksForInstance,
+                blockLength: inst.blockLength, goal: goal))
         }
         for t in weekTemplates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
@@ -2856,70 +2881,71 @@ struct WeekOverviewSheet: View {
 
     @State private var expandedWeek: Int? = nil
 
+    @Query private var allProgramTemplates: [ProgramTemplate]
+
     private var goal: GoalType { profile?.goal ?? .hypertrophy }
     private var isHyp: Bool { goal == .hypertrophy || goal == .recomp }
-    private var bl: Int { max(instance?.blockLength ?? 5, 1) }
     private var currentWeek: Int { instance?.currentWeek ?? 1 }
-    private var cycleLen: Int { bl + 1 }
 
     private var totalWeeks: Int {
-        if let inst = instance, inst.isGenerated { return cycleLen * 4 }
-        if instance?.programId == 2 { return 16 }
-        return 24
+        guard let inst = instance else { return 24 }
+        return allProgramTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks
+            ?? (inst.programId == 2 ? 16 : 24)
     }
 
-    private func posInBlock(_ w: Int) -> Int { ((w - 1) % cycleLen) + 1 }
-    private func blockNum(_ w: Int) -> Int { (w - 1) / cycleLen }
+    /// Single source of truth for any week's block phase. Uses ComputedBlockInfo
+    /// so this view, the Train tab pill, and the BlockConfigCard never disagree.
+    private func info(for w: Int) -> ComputedBlockInfo? {
+        guard let inst = instance else { return nil }
+        return ComputedBlockInfo.compute(
+            forWeek: w,
+            programId: inst.programId,
+            blockLength: inst.blockLength,
+            totalWeeks: totalWeeks,
+            goal: goal,
+            instance: inst
+        )
+    }
+
     private func isRecoveryWeek(_ w: Int) -> Bool {
-        if let inst = instance, inst.isGenerated { return posInBlock(w) > bl }
-        if instance?.programId == 2 { return [4, 12, 16].contains(w) }
-        return [4, 12, 20].contains(w)
+        info(for: w)?.isDeloadWeek ?? false
     }
 
     private func phaseName(_ w: Int) -> String {
-        if isRecoveryWeek(w) { return isHyp ? "Recovery" : "Deload" }
-        if let inst = instance, inst.isGenerated {
-            let bn = blockNum(w)
-            if isHyp { return bn % 2 == 0 ? "Training Block" : "Growth Phase" }
-            switch goal {
-            case .strength: return bn == 0 ? "Accumulation" : (bn == 1 ? "Intensification" : "Peaking")
-            case .powerbuilding: return bn % 3 == 0 ? "Accumulation" : (bn % 3 == 1 ? "Intensification" : "Volume Phase")
-            default: return "Training"
-            }
-        }
-        // Seeded
-        if instance?.programId == 2 {
-            return w <= 8 ? (isHyp ? "Training Block" : "Accumulation") : (isHyp ? "Growth Phase" : "Intensification")
-        }
-        if w <= 8 { return isHyp ? "Training Block" : "Accumulation" }
-        if w <= 16 { return isHyp ? "Growth Phase" : "Intensification" }
-        return isHyp ? "Training Block" : "Peaking"
+        info(for: w)?.displayPhaseName ?? "Training"
     }
 
     private func weekTitle(_ w: Int) -> String {
-        let pos = posInBlock(w)
-        let phase = phaseName(w)
-        if isRecoveryWeek(w) { return "Recovery Week" }
+        guard let bi = info(for: w) else { return "" }
+        if bi.isDeloadWeek { return "Recovery Week" }
+        let pos = bi.weekInBlock
+        let phase = bi.displayPhaseName
         if phase == "Growth Phase" {
             if pos == 1 { return "Growth Phase Begins" }
-            if pos == bl { return "Final Push — Growth Phase" }
+            if pos == bi.blockTrainingWeeks { return "Final Push — Growth Phase" }
             return "Growth Phase — Week \(pos)"
         }
         if pos == 1 { return isHyp ? "New Block Starts" : "\(phase) Begins" }
-        if pos == bl { return "Final Week Before Recovery" }
+        if pos == bi.blockTrainingWeeks { return "Final Week Before Recovery" }
         return isHyp ? "Training Week \(pos)" : "\(phase) — Week \(pos)"
     }
 
     private func weekDetail(_ w: Int) -> String {
-        let pos = posInBlock(w)
-        let phase = phaseName(w)
+        guard let bi = info(for: w) else { return "" }
+        let pos = bi.weekInBlock
+        let phase = bi.displayPhaseName
+        let trainingWeeks = bi.blockTrainingWeeks
 
-        if isRecoveryWeek(w) {
+        if bi.isDeloadWeek {
             return "Drop to maintenance volume. Use lighter weights — around 50-60% of your working loads. Focus on movement quality and full range of motion. This week resets accumulated fatigue so you can push harder in the next block."
         }
 
         if isHyp {
             let isGrowth = phase == "Growth Phase"
+            // Final-training-week message is the same idea regardless of block length
+            if pos == trainingWeeks && trainingWeeks > 1 {
+                return "Last training week before recovery. Push hard — this is your chance to set new benchmarks before the deload. Go for rep PRs on your T2/T3 exercises. Your T1 weights should be at their heaviest for this block."
+            }
             switch pos {
             case 1:
                 if isGrowth {
@@ -2930,13 +2956,6 @@ struct WeekOverviewSheet: View {
                 return "You should have your working weights locked in. This week, aim to match or slightly beat last week on every exercise. If you hit the top of your rep range on all sets, you're ready to add weight next week."
             case 3:
                 return "Progressive overload kicks in. Add 5 lbs to compounds or 1-2 reps to accessory movements if you hit your targets last week. If you missed reps, repeat the same weight — consistency beats ego lifting."
-            case 4:
-                if pos == bl {
-                    return "Last training week before recovery. Push hard — this is your chance to set new benchmarks before the deload. Go for rep PRs on your T2/T3 exercises. Your T1 weights should be at their heaviest for this block."
-                }
-                return "You're in the thick of the block. Fatigue is building but so is fitness. Stay focused on progressive overload — even small jumps (2.5 lbs, 1 extra rep) compound over time."
-            case 5:
-                return "Final week of the block. Fatigue is highest but so is your fitness. Push for your best numbers — this week's performance sets the baseline for your next block. Recovery week follows."
             default:
                 return "Continue progressive overload. Add weight when you hit the top of your rep range. Prioritize the exercises where you're closest to a new personal best."
             }
@@ -3069,9 +3088,29 @@ struct WeekOverviewSheet: View {
 struct BlockInfoSheet: View {
     let instance: UserProgramInstance?
     let profile: UserProfile?
+    @Query private var allProgramTemplates: [ProgramTemplate]
 
     private var goal: GoalType { profile?.goal ?? .hypertrophy }
     private var isHyp: Bool { goal == .hypertrophy || goal == .recomp }
+    /// Total program weeks for this instance — drives the upper bound when
+    /// walking the block timeline.
+    private var totalWeeks: Int {
+        guard let inst = instance else { return 24 }
+        return allProgramTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks
+            ?? (inst.programId == 2 ? 16 : 24)
+    }
+    /// Single source of truth for the current week's block phase.
+    private var info: ComputedBlockInfo? {
+        guard let inst = instance else { return nil }
+        return ComputedBlockInfo.compute(
+            forWeek: inst.currentWeek,
+            programId: inst.programId,
+            blockLength: inst.blockLength,
+            totalWeeks: totalWeeks,
+            goal: goal,
+            instance: inst
+        )
+    }
 
     private func dn(_ bt: BlockType) -> String {
         switch (isHyp, bt) {
@@ -3104,27 +3143,28 @@ struct BlockInfoSheet: View {
 
                 Text("YOUR MESOCYCLE").font(.system(size: 11, weight: .black)).foregroundColor(.appRed).kerning(2)
 
-                if let inst = instance {
+                if let inst = instance, let info = info {
                     // ── CURRENT BLOCK ──
                     VStack(spacing: 8) {
-                        Text(dn(inst.blockType))
+                        Text(info.displayPhaseName)
                             .font(.system(size: 24, weight: .black, design: .rounded)).foregroundColor(.appTextPrimary)
                         HStack(spacing: 20) {
                             VStack(spacing: 2) {
                                 Text("WEEK").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
-                                Text("\(inst.blockWeek) / \(inst.blockLength)")
+                                Text(info.isDeloadWeek ? "RECOVERY" : "\(info.weekInBlock) / \(info.blockTrainingWeeks)")
                                     .font(.system(size: 20, weight: .black, design: .rounded)).foregroundColor(.appRed)
+                                    .lineLimit(1).minimumScaleFactor(0.6)
                             }
                             Rectangle().fill(Color.appBorder).frame(width: 1, height: 32)
                             VStack(spacing: 2) {
                                 Text("BLOCK").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
-                                Text("#\(inst.totalBlocksCompleted + 1)")
+                                Text("#\(info.blockNumber)")
                                     .font(.system(size: 20, weight: .black, design: .rounded)).foregroundColor(.appBlue)
                             }
                             Rectangle().fill(Color.appBorder).frame(width: 1, height: 32)
                             VStack(spacing: 2) {
                                 Text("VOLUME").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
-                                let mult = Int(blockMultiplier(inst.blockType) * 100)
+                                let mult = Int(blockMultiplier(info.blockType) * 100)
                                 Text("\(mult)%")
                                     .font(.system(size: 20, weight: .black, design: .rounded))
                                     .foregroundColor(mult > 100 ? .appGold : (mult < 100 ? .appBlue : .appGreen))
@@ -3136,7 +3176,7 @@ struct BlockInfoSheet: View {
 
                     // ── WHAT THIS BLOCK MEANS ──
                     VStack(alignment: .leading, spacing: 8) {
-                        blockExplanation(inst.blockType, goal: goal)
+                        blockExplanation(info.blockType, goal: goal)
                     }
                     .padding(14).background(Color.appSurface).cornerRadius(12)
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
@@ -3144,7 +3184,7 @@ struct BlockInfoSheet: View {
                     // ── WEEKLY FOCUS ──
                     VStack(alignment: .leading, spacing: 6) {
                         Text("THIS WEEK'S FOCUS").font(.system(size: 10, weight: .bold)).foregroundColor(.appTextDim).kerning(1)
-                        Text(weekFocus(inst.blockType, blockWeek: inst.blockWeek, blockLength: inst.blockLength, goal: goal))
+                        Text(weekFocus(info.blockType, blockWeek: info.weekInBlock, blockLength: info.blockTrainingWeeks, goal: goal))
                             .font(.system(size: 13, weight: .semibold)).foregroundColor(.appTextPrimary)
                     }
                     .padding(14).background(Color.appSurface).cornerRadius(12)
@@ -3153,14 +3193,14 @@ struct BlockInfoSheet: View {
                     // ── WEEK-BY-WEEK PROGRESSION ──
                     VStack(alignment: .leading, spacing: 8) {
                         Text("WEEK-BY-WEEK WITHIN THIS BLOCK").font(.system(size: 10, weight: .bold)).foregroundColor(.appTextDim).kerning(1)
-                        ForEach(1...inst.blockLength, id: \.self) { wk in
-                            let isCurrent = wk == inst.blockWeek
+                        ForEach(1...info.blockTrainingWeeks, id: \.self) { wk in
+                            let isCurrent = !info.isDeloadWeek && wk == info.weekInBlock
                             HStack(spacing: 10) {
                                 Circle().fill(isCurrent ? Color.appRed : Color.appBorder).frame(width: 8, height: 8)
                                 Text("Week \(wk)").font(.system(size: 13, weight: isCurrent ? .bold : .medium))
                                     .foregroundColor(isCurrent ? .appTextPrimary : .appTextSecondary)
                                 Spacer()
-                                Text(weekDescription(wk, of: inst.blockLength, goal: goal))
+                                Text(weekDescription(wk, of: info.blockTrainingWeeks, goal: goal))
                                     .font(.system(size: 11)).foregroundColor(.appTextDim)
                             }
                             .padding(.vertical, 4)
@@ -3171,13 +3211,21 @@ struct BlockInfoSheet: View {
                                 }.padding(.leading, 18)
                             }
                         }
-                        // Deload week
+                        // Deload week (always shown — it ends the block)
                         HStack(spacing: 10) {
-                            Circle().fill(Color.appBlue).frame(width: 8, height: 8)
-                            Text("Recovery Week").font(.system(size: 13, weight: .medium)).foregroundColor(.appBlue)
+                            Circle().fill(info.isDeloadWeek ? Color.appRed : Color.appBlue).frame(width: 8, height: 8)
+                            Text("Recovery Week")
+                                .font(.system(size: 13, weight: info.isDeloadWeek ? .bold : .medium))
+                                .foregroundColor(info.isDeloadWeek ? .appTextPrimary : .appBlue)
                             Spacer()
                             Text("Light weight, maintain movement").font(.system(size: 11)).foregroundColor(.appTextDim)
                         }.padding(.vertical, 4)
+                        if info.isDeloadWeek {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.right").font(.system(size: 8)).foregroundColor(.appRed)
+                                Text("YOU ARE HERE").font(.system(size: 9, weight: .black)).foregroundColor(.appRed).kerning(1)
+                            }.padding(.leading, 18)
+                        }
                     }
                     .padding(14).background(Color.appSurface).cornerRadius(12)
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
@@ -3266,34 +3314,44 @@ struct BlockInfoSheet: View {
 
     struct TimelineBlock { let name: String; let detail: String; let color: Color; let isCurrent: Bool; let isPast: Bool }
 
+    /// Walks the program week-by-week and groups runs into blocks. Each entry
+    /// is one block (or a deload week, which is its own 1-week entry). Past
+    /// blocks (relative to inst.currentWeek) are marked completed.
     private func buildTimeline(_ inst: UserProgramInstance) -> [TimelineBlock] {
-        var blocks: [TimelineBlock] = []
-        var bt: BlockType = .accumulation
-        let currentBlockNum = inst.totalBlocksCompleted
-
-        for i in 0..<min(currentBlockNum + 4, 10) {
-            let isCurrent = i == currentBlockNum
-            let isPast = i < currentBlockNum
-
-            if isCurrent { bt = inst.blockType }
-            else if i > currentBlockNum {
-                bt = BlockType.next(current: bt, goal: goal, blockNumber: i)
+        var entries: [TimelineBlock] = []
+        var w = 1
+        let currentWeek = inst.currentWeek
+        while w <= totalWeeks && entries.count < 12 {
+            let bi = ComputedBlockInfo.compute(
+                forWeek: w, programId: inst.programId,
+                blockLength: inst.blockLength, totalWeeks: totalWeeks, goal: goal,
+                instance: inst)
+            if bi.isDeloadWeek {
+                let isCurrent = w == currentWeek
+                let isPast = w < currentWeek
+                entries.append(TimelineBlock(
+                    name: dn(.deload),
+                    detail: isPast ? "Completed" : (isCurrent ? "This week" : "Recovery week"),
+                    color: blockColor(.deload),
+                    isCurrent: isCurrent, isPast: isPast))
+                w += 1
             } else {
-                // Past blocks — approximate
-                bt = i % 2 == 0 ? .accumulation : (isHyp ? .reaccumulation : .intensification)
-                if goal == .strength && i > 2 { bt = .peak }
-            }
-
-            let name = dn(bt)
-            let detail = isPast ? "Completed" : (isCurrent ? "Week \(inst.blockWeek)/\(inst.blockLength)" : "Upcoming")
-            blocks.append(TimelineBlock(name: name, detail: detail, color: blockColor(bt), isCurrent: isCurrent, isPast: isPast))
-
-            // Add deload between non-deload blocks for future
-            if !isCurrent && !isPast && bt != .deload && i < currentBlockNum + 3 {
-                bt = .deload
+                let blockEnd = w + bi.blockTrainingWeeks - 1
+                let isCurrent = currentWeek >= w && currentWeek <= blockEnd
+                let isPast = currentWeek > blockEnd
+                let detail: String
+                if isPast { detail = "Completed" }
+                else if isCurrent { detail = "Week \(bi.weekInBlock) of \(bi.blockTrainingWeeks)" }
+                else { detail = "\(bi.blockTrainingWeeks) weeks" }
+                entries.append(TimelineBlock(
+                    name: bi.displayPhaseName,
+                    detail: detail,
+                    color: blockColor(bi.blockType),
+                    isCurrent: isCurrent, isPast: isPast))
+                w = blockEnd + 1
             }
         }
-        return blocks
+        return entries
     }
 
     private func blockExplanation(_ bt: BlockType, goal: GoalType) -> some View {

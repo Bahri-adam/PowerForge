@@ -178,6 +178,99 @@ extension BlockType {
     }
 }
 
+// ═══════════════════════════════════════════
+// COMPUTED BLOCK INFO
+// Derives block phase (type, number, week-in-block, display name) from a
+// given week and program structure. Use this for ALL display sites so the UI
+// reflects the week the user is browsing — not the stale `inst.blockType`
+// stored state, which only advances when finalizeWorkout transitions.
+// ═══════════════════════════════════════════
+
+struct ComputedBlockInfo {
+    let blockType: BlockType
+    let blockNumber: Int           // 1-indexed
+    let weekInBlock: Int           // 1-indexed, position within current block
+    let blockTrainingWeeks: Int    // training weeks in this block (excludes the trailing deload)
+    let isDeloadWeek: Bool
+    let displayPhaseName: String   // goal-aware (e.g., "Training Block", "Growth Phase", "Recovery")
+
+    static func compute(forWeek week: Int,
+                        programId: Int,
+                        blockLength: Int,
+                        totalWeeks: Int,
+                        goal: GoalType,
+                        instance: UserProgramInstance? = nil) -> ComputedBlockInfo {
+        // deloadWeeks(for:blockLength:instance:) lives in WorkoutView.swift —
+        // it's the single source of truth, and when instance is provided it
+        // honors user-defined overrides (customDeloadWeeks / skippedDeloadWeeks
+        // set by BlockSequenceEditor).
+        let deloads = deloadWeeks(for: programId, blockLength: blockLength, instance: instance)
+        let isDeload = deloads.contains(week)
+        let priorDeloads = deloads.filter { $0 < week }.sorted()
+        let blockNumber = priorDeloads.count + 1
+        let blockStart = (priorDeloads.last ?? 0) + 1
+        // The deload week that ENDS this block. For the final block of a
+        // program with no trailing deload, fall back to totalWeeks + 1.
+        let nextDeload = deloads.filter { $0 >= week }.min() ?? (totalWeeks + 1)
+        // Training weeks in the block = weeks between blockStart and the next
+        // deload, exclusive of the deload itself. Bahri block 1: 1..2, week 3
+        // = deload → 2 training weeks.
+        let blockTrainingWeeks = max(1, nextDeload - blockStart)
+        // weekInBlock counts only training weeks. During a deload, the value
+        // matches the position in the block but UI should display "Recovery".
+        let weekInBlock = isDeload
+            ? blockTrainingWeeks + 1
+            : max(1, week - blockStart + 1)
+
+        // Block type derived from block number + goal. Direct mapping —
+        // simpler than walking BlockType.next and matches the conventional
+        // periodization patterns users expect.
+        let bt: BlockType = {
+            if isDeload { return .deload }
+            switch goal {
+            case .hypertrophy, .recomp:
+                // Alternating accumulation / reaccumulation
+                return blockNumber % 2 == 1 ? .accumulation : .reaccumulation
+            case .strength:
+                // 3-block cycles: accum → intens → peak
+                let phase = (blockNumber - 1) % 3
+                if phase == 0 { return .accumulation }
+                if phase == 1 { return .intensification }
+                return .peak
+            case .powerbuilding:
+                // Block 1 = accum, 2 = intens, 3+ alternates between reaccum and accum
+                if blockNumber == 1 { return .accumulation }
+                if blockNumber == 2 { return .intensification }
+                return blockNumber % 2 == 1 ? .accumulation : .reaccumulation
+            }
+        }()
+
+        let isHyp = goal == .hypertrophy || goal == .recomp
+        let displayPhaseName: String = {
+            if isDeload { return isHyp ? "Recovery" : "Deload" }
+            if isHyp {
+                return bt == .reaccumulation ? "Growth Phase" : "Training Block"
+            }
+            switch bt {
+            case .accumulation:    return "Accumulation"
+            case .intensification: return "Intensification"
+            case .reaccumulation:  return goal == .powerbuilding ? "Volume Phase" : "Accumulation"
+            case .peak:            return "Peaking"
+            case .deload:          return "Deload"
+            }
+        }()
+
+        return ComputedBlockInfo(
+            blockType: bt,
+            blockNumber: blockNumber,
+            weekInBlock: weekInBlock,
+            blockTrainingWeeks: blockTrainingWeeks,
+            isDeloadWeek: isDeload,
+            displayPhaseName: displayPhaseName
+        )
+    }
+}
+
 enum BlockPhase: String, Codable {
     case earlyAccumulation
     case lateAccumulation

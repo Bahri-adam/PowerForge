@@ -218,14 +218,17 @@ struct ProgramTabView: View {
         let activeSessions = activeSessionsForWeek(
             programId: inst.programId, instance: inst, profile: profile, week: week,
             templates: programTemplates)
-        // Resolve templates per active session using cross-program lookup so
-        // imported sessions (whose templates live under another program's pid)
-        // still contribute volume.
+        // Block-aware lookup so volume metrics match what the user will train
+        // under their current block layout. Also covers the imported-session
+        // cross-program fallback.
+        let goal = profile?.goal ?? .hypertrophy
         var templates: [ProgramSessionTemplate] = []
         for st in activeSessions {
-            templates.append(contentsOf: lookupTemplates(
-                programId: inst.programId, week: week,
-                sessionType: st, allTemplates: allSessionTemplates))
+            templates.append(contentsOf: lookupAdaptedTemplates(
+                programId: inst.programId, week: week, sessionType: st,
+                allTemplates: allSessionTemplates,
+                instance: inst, totalWeeks: totalWeeks,
+                blockLength: inst.blockLength, goal: goal))
         }
         for t in templates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
@@ -307,28 +310,37 @@ struct ProgramTabView: View {
 
     private var overviewSection: some View {
         VStack(spacing: 14) {
-            // Mesocycle summary
+            // Mesocycle summary — derived from current week so the phase label
+            // and block number reflect what week the user is actually on, not
+            // the stale stored inst.blockType.
             if let inst = instance, inst.programId != 0 {
                 let goal = profile?.goal ?? .hypertrophy
-                let isHyp = goal == .hypertrophy || goal == .recomp
+                let info = ComputedBlockInfo.compute(
+                    forWeek: inst.currentWeek,
+                    programId: inst.programId,
+                    blockLength: inst.blockLength,
+                    totalWeeks: programTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks ?? 24,
+                    goal: goal,
+                    instance: inst
+                )
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text("MESOCYCLE").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(2)
 
                     HStack(spacing: 16) {
                         VStack(spacing: 2) {
-                            Text(isHyp ? "Training Block" : inst.blockType.rawValue.capitalized)
+                            Text(info.displayPhaseName)
                                 .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
                             Text("Current Phase").font(.system(size: 10)).foregroundColor(.appTextDim)
                         }
                         Spacer()
                         VStack(spacing: 2) {
-                            Text("\(inst.blockWeek)/\(inst.blockLength)")
+                            Text("\(info.weekInBlock)/\(info.blockTrainingWeeks)")
                                 .font(.system(size: 18, weight: .black, design: .rounded)).foregroundColor(.appRed)
                             Text("Block Week").font(.system(size: 10)).foregroundColor(.appTextDim)
                         }
                         VStack(spacing: 2) {
-                            Text("#\(inst.totalBlocksCompleted + 1)")
+                            Text("#\(info.blockNumber)")
                                 .font(.system(size: 18, weight: .black, design: .rounded)).foregroundColor(.appBlue)
                             Text("Block").font(.system(size: 10)).foregroundColor(.appTextDim)
                         }
@@ -341,6 +353,7 @@ struct ProgramTabView: View {
             // Block configurator
             if let inst = instance, inst.programId != 0 {
                 BlockConfigCard(inst: inst, goal: profile?.goal ?? .hypertrophy,
+                                totalWeeks: totalWeeks,
                                 onTapBlock: { idx in blockEditorFocusIndex = idx; showBlockSequenceEditor = true },
                                 modelContext: modelContext)
             }
@@ -865,58 +878,25 @@ struct ProgramTabView: View {
 
     private func isRecoveryWeek(_ week: Int) -> Bool {
         guard let inst = instance else { return false }
-        // ALL programs use blockLength as source of truth (synced everywhere)
-        let bl = inst.blockLength > 0 ? inst.blockLength : 5
-        return ((week - 1) % (bl + 1)) + 1 > bl
+        return deloadWeeks(for: inst.programId, blockLength: inst.blockLength, instance: inst).contains(week)
     }
 
     private func weekTypeLabel(_ week: Int) -> String {
-        let goal = profile?.goal ?? .hypertrophy
-        let isHyp = goal == .hypertrophy || goal == .recomp
-
-        if isRecoveryWeek(week) { return isHyp ? "Recovery Week" : "Deload Week" }
-
         guard let inst = instance else { return "Training" }
-
-        // Generated/custom
-        if inst.isGenerated || inst.programId > 10 {
-            let bl = inst.blockLength > 0 ? inst.blockLength : 5
-            let blockNum = (week - 1) / (bl + 1)
-            let posInBlock = ((week - 1) % (bl + 1)) + 1
-            let phase = isHyp ? (blockNum % 2 == 0 ? "Training Block" : "Growth Phase") : inst.blockType.rawValue.capitalized
-            return "\(phase) — Week \(posInBlock) of \(bl)"
+        let info = ComputedBlockInfo.compute(
+            forWeek: week,
+            programId: inst.programId,
+            blockLength: inst.blockLength,
+            totalWeeks: totalWeeks,
+            goal: profile?.goal ?? .hypertrophy,
+            instance: inst
+        )
+        if info.isDeloadWeek {
+            return profile?.goal == .strength || profile?.goal == .powerbuilding
+                ? "Deload Week"
+                : "Recovery Week"
         }
-
-        // Seeded: Bahri (3-week cycles)
-        if inst.programId == 7 {
-            // Remove deload weeks from counting
-            var trainingWeek = 0
-            for w in 1...week {
-                if ![3,6,9,12,15,18,21,24].contains(w) { trainingWeek += 1 }
-            }
-            let blockIdx = (trainingWeek - 1) / 2  // 2 training weeks per mini-block
-            return "Block \(blockIdx / 3 + 1) — Training Week \(trainingWeek)"
-        }
-
-        // Seeded: PPL (8-week blocks)
-        if inst.programId == 2 {
-            let adjustedWeek: Int
-            if week <= 3 { adjustedWeek = week }
-            else if week <= 8 { adjustedWeek = week - 1 }  // subtract deload at 4
-            else if week <= 11 { adjustedWeek = week - 5 }
-            else if week <= 16 { adjustedWeek = week - 6 }
-            else { adjustedWeek = week }
-            let phase = week <= 8 ? (isHyp ? "Training Block" : "Accumulation") : (isHyp ? "Growth Phase" : "Intensification")
-            return "\(phase) — Week \(adjustedWeek > 7 ? adjustedWeek - 7 : adjustedWeek)"
-        }
-
-        // Seeded: Powerbuilding (8-week blocks)
-        if week <= 3 { return "\(isHyp ? "Training Block" : "Accumulation") — Week \(week)" }
-        if week <= 8 { return "\(isHyp ? "Training Block" : "Accumulation") — Week \(week - 1)" }
-        if week <= 11 { return "\(isHyp ? "Growth Phase" : "Intensification") — Week \(week - 8)" }
-        if week <= 16 { return "\(isHyp ? "Growth Phase" : "Intensification") — Week \(week - 9)" }
-        if week <= 19 { return "\(isHyp ? "Training Block" : "Peaking") — Week \(week - 16)" }
-        return "\(isHyp ? "Training Block" : "Peaking") — Week \(week - 17)"
+        return "\(info.displayPhaseName) — Week \(info.weekInBlock) of \(info.blockTrainingWeeks)"
     }
 
     /// The program's actual session rotation — source of truth for what sessions exist
@@ -1007,9 +987,13 @@ struct ProgramTabView: View {
             programId: inst.programId, instance: inst, profile: profile,
             week: week, templates: programTemplates)
         let typesAfterInProgram = Set(templates.map { $0.sessionType })
+        let goal = profile?.goal ?? .hypertrophy
         for st in active where !typesAfterInProgram.contains(st) {
-            let foreign = lookupTemplates(programId: inst.programId, week: week,
-                                          sessionType: st, allTemplates: allSessionTemplates)
+            let foreign = lookupAdaptedTemplates(
+                programId: inst.programId, week: week, sessionType: st,
+                allTemplates: allSessionTemplates,
+                instance: inst, totalWeeks: totalWeeks,
+                blockLength: inst.blockLength, goal: goal)
             templates.append(contentsOf: foreign)
         }
 
@@ -1182,11 +1166,24 @@ struct ExerciseLibraryBrowser: View {
 struct BlockConfigCard: View {
     let inst: UserProgramInstance
     let goal: GoalType
+    let totalWeeks: Int
     let onTapBlock: (Int) -> Void   // passes block index in timeline
     let modelContext: ModelContext
 
     private var isHyp: Bool { goal == .hypertrophy || goal == .recomp }
-    private var isDeloadBlock: Bool { inst.blockType == .deload }
+    /// Computed block info for the current week — single source of truth for
+    /// what phase/block/week-in-block the user is actually in.
+    private var info: ComputedBlockInfo {
+        ComputedBlockInfo.compute(
+            forWeek: inst.currentWeek,
+            programId: inst.programId,
+            blockLength: inst.blockLength,
+            totalWeeks: totalWeeks,
+            goal: goal,
+            instance: inst
+        )
+    }
+    private var isDeloadBlock: Bool { info.isDeloadWeek }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1239,21 +1236,24 @@ struct BlockConfigCard: View {
 
     // ── Controls ──
 
+    /// Navigates the program week (microcycleIndex) — not just within-block.
+    /// Lets the user step forward into recovery/growth weeks instead of
+    /// being capped at the current block's length.
     private var blockWeekControl: some View {
         VStack(spacing: 6) {
             Text("WEEK").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
-            Text("\(inst.blockWeek) / \(inst.blockLength)")
+            Text("\(info.weekInBlock) / \(info.blockTrainingWeeks)")
                 .font(.system(size: 18, weight: .black, design: .rounded)).foregroundColor(.appRed)
                 .lineLimit(1).minimumScaleFactor(0.6)
             HStack(spacing: 10) {
                 Button {
-                    if inst.blockWeek > 1 { inst.blockWeek -= 1; save() }
+                    if inst.microcycleIndex > 0 { inst.microcycleIndex -= 1; save() }
                 } label: {
                     Image(systemName: "chevron.left").font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
                         .frame(width: 36, height: 28).background(Color.appBG).cornerRadius(6)
                 }.buttonStyle(.plain)
                 Button {
-                    if inst.blockWeek < inst.blockLength { inst.blockWeek += 1; save() }
+                    if inst.currentWeek < totalWeeks { inst.microcycleIndex += 1; save() }
                 } label: {
                     Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
                         .frame(width: 36, height: 28).background(Color.appBG).cornerRadius(6)
@@ -1262,28 +1262,42 @@ struct BlockConfigCard: View {
         }
     }
 
+    /// True for built-in seeded programs whose deload weeks are hardcoded
+    /// (Powerbuilding, PPL, Strength, Beginner, Athletic, Minimalist, Bahri).
+    /// For these, blockLength doesn't drive the structure — the seeded
+    /// templates already define which weeks are training vs deload.
+    private var isSeededProgram: Bool {
+        let id = inst.programId
+        return id >= 1 && id <= 10 && !inst.isGenerated
+    }
+
     private var blockLengthControl: some View {
         VStack(spacing: 6) {
             Text("LENGTH").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
-            Text("\(inst.blockLength) wk\(inst.blockLength == 1 ? "" : "s")")
+            // Display the COMPUTED training-week count for the current block —
+            // matches what the user sees as "Wk X / N" everywhere else.
+            Text("\(info.blockTrainingWeeks) wk\(info.blockTrainingWeeks == 1 ? "" : "s")")
                 .font(.system(size: 18, weight: .black, design: .rounded)).foregroundColor(.appBlue)
                 .lineLimit(1).minimumScaleFactor(0.6)
-            HStack(spacing: 10) {
-                Button {
-                    if inst.blockLength > 1 { inst.blockLength -= 1
-                        if inst.blockWeek > inst.blockLength { inst.blockWeek = inst.blockLength }
-                        save()
-                    }
-                } label: {
-                    Image(systemName: "minus").font(.system(size: 13, weight: .bold)).foregroundColor(.appBlue)
-                        .frame(width: 36, height: 28).background(Color.appBlue.opacity(0.06)).cornerRadius(6)
-                }.buttonStyle(.plain)
-                Button {
-                    if inst.blockLength < 12 { inst.blockLength += 1; save() }
-                } label: {
-                    Image(systemName: "plus").font(.system(size: 13, weight: .bold)).foregroundColor(.appBlue)
-                        .frame(width: 36, height: 28).background(Color.appBlue.opacity(0.06)).cornerRadius(6)
-                }.buttonStyle(.plain)
+            if isSeededProgram {
+                Text("Set by program")
+                    .font(.system(size: 9, weight: .medium)).foregroundColor(.appTextDim)
+                    .padding(.top, 2)
+            } else {
+                HStack(spacing: 10) {
+                    Button {
+                        if inst.blockLength > 1 { inst.blockLength -= 1; save() }
+                    } label: {
+                        Image(systemName: "minus").font(.system(size: 13, weight: .bold)).foregroundColor(.appBlue)
+                            .frame(width: 36, height: 28).background(Color.appBlue.opacity(0.06)).cornerRadius(6)
+                    }.buttonStyle(.plain)
+                    Button {
+                        if inst.blockLength < 12 { inst.blockLength += 1; save() }
+                    } label: {
+                        Image(systemName: "plus").font(.system(size: 13, weight: .bold)).foregroundColor(.appBlue)
+                            .frame(width: 36, height: 28).background(Color.appBlue.opacity(0.06)).cornerRadius(6)
+                    }.buttonStyle(.plain)
+                }
             }
         }
     }
@@ -1291,24 +1305,51 @@ struct BlockConfigCard: View {
     private var blockNumberDisplay: some View {
         VStack(spacing: 4) {
             Text("BLOCK #").font(.system(size: 8, weight: .bold)).foregroundColor(.appTextDim)
-            Text("\(inst.totalBlocksCompleted + 1)")
+            Text("\(info.blockNumber)")
                 .font(.system(size: 16, weight: .black, design: .rounded)).foregroundColor(.appGreen)
         }
     }
 
     // ── Timeline ──
+    /// Walk forward week-by-week from currentWeek and group runs into blocks.
+    /// Each block in the timeline corresponds to a contiguous run of training
+    /// weeks (or a single deload). Shown for the current block + next 6 blocks.
 
     private func timelineEntry(at index: Int) -> (name: String, detail: String, color: Color, isCurrent: Bool, weeks: Int) {
+        let blocks = upcomingBlocks(maxBlocks: 7)
+        guard index < blocks.count else {
+            return ("—", "", .appTextDim, false, 0)
+        }
+        let b = blocks[index]
+        let detail: String
         if index == 0 {
-            return (blockName(inst.blockType), "Wk \(inst.blockWeek)/\(inst.blockLength) · \(volumeDesc(inst.blockType))",
-                    blockColor(inst.blockType), true, inst.blockLength)
+            detail = "Wk \(info.weekInBlock)/\(b.weeks) · \(volumeDesc(b.type))"
+        } else {
+            detail = volumeDesc(b.type)
         }
-        var bt = inst.blockType
-        for _ in 0..<index {
-            bt = BlockType.next(current: bt, goal: goal, blockNumber: inst.totalBlocksCompleted + index - 1)
+        return (blockName(b.type), detail, blockColor(b.type), b.isCurrent, b.weeks)
+    }
+
+    private func upcomingBlocks(maxBlocks: Int) -> [(type: BlockType, weeks: Int, isCurrent: Bool)] {
+        var result: [(BlockType, Int, Bool)] = []
+        var w = inst.currentWeek
+        var current = true
+        while result.count < maxBlocks && w <= totalWeeks {
+            let bi = ComputedBlockInfo.compute(
+                forWeek: w, programId: inst.programId,
+                blockLength: inst.blockLength, totalWeeks: totalWeeks, goal: goal,
+                instance: inst)
+            if bi.isDeloadWeek {
+                result.append((.deload, 1, current))
+                w += 1
+            } else {
+                let weeksRemaining = bi.blockTrainingWeeks - bi.weekInBlock + 1
+                result.append((bi.blockType, bi.blockTrainingWeeks, current))
+                w += weeksRemaining
+            }
+            current = false
         }
-        let weeks = bt == .deload ? 1 : inst.blockLength
-        return (blockName(bt), volumeDesc(bt), blockColor(bt), false, weeks)
+        return result
     }
 
     private func blockName(_ bt: BlockType) -> String {

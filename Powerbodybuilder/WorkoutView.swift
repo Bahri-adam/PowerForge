@@ -7,26 +7,35 @@ import Charts
 // ═══════════════════════════════════════════
 
 /// Single source of truth for deload weeks per program.
-/// Matches what's actually seeded in the templates.
-func deloadWeeks(for programId: Int, blockLength: Int) -> Set<Int> {
-    switch programId {
-    case 1: return [4, 12, 20]                              // Powerbuilding
-    case 2: return [4, 12, 16]                              // PPL
-    case 3: return [4, 8, 13]                               // Strength
-    case 4: return [4, 8]                                   // Beginner
-    case 5: return [4, 12]                                  // Athletic
-    case 6: return [4, 8]                                   // Minimalist
-    case 7: return [3, 6, 9, 12, 15, 18, 21, 24]            // Bahri Split
-    default:
-        // Custom/generated programs use blockLength-based math
-        let bl = blockLength > 0 ? blockLength : 5
-        let cycleLen = bl + 1
-        var result: Set<Int> = []
-        for w in 1...24 where ((w - 1) % cycleLen) + 1 > bl {
-            result.insert(w)
+/// Matches what's actually seeded in the templates. When an instance is
+/// provided and has user-defined deload overrides (customDeloadWeeks /
+/// skippedDeloadWeeks set via BlockSequenceEditor), those take effect on top
+/// of the program default — letting users reshape block boundaries even on
+/// seeded programs.
+func deloadWeeks(for programId: Int, blockLength: Int, instance: UserProgramInstance? = nil) -> Set<Int> {
+    let programDefaults: Set<Int> = {
+        switch programId {
+        case 1: return [4, 12, 20]                              // Powerbuilding
+        case 2: return [4, 12, 16]                              // PPL
+        case 3: return [4, 8, 13]                               // Strength
+        case 4: return [4, 8]                                   // Beginner
+        case 5: return [4, 12]                                  // Athletic
+        case 6: return [4, 8]                                   // Minimalist
+        case 7: return [3, 6, 9, 12, 15, 18, 21, 24]            // Bahri Split
+        default:
+            let bl = blockLength > 0 ? blockLength : 5
+            let cycleLen = bl + 1
+            var result: Set<Int> = []
+            for w in 1...24 where ((w - 1) % cycleLen) + 1 > bl {
+                result.insert(w)
+            }
+            return result
         }
-        return result
-    }
+    }()
+    guard let inst = instance else { return programDefaults }
+    return programDefaults
+        .subtracting(inst.skippedDeloadWeeks)
+        .union(inst.customDeloadWeeks)
 }
 
 /// Returns the session rotation for any program ID.
@@ -142,6 +151,59 @@ func lookupTemplates(programId: Int,
     return []
 }
 
+/// Returns templates for (week, sessionType), adapted to the user's current
+/// block layout. If the user has reshaped blocks via Sequence Editor (custom
+/// or skipped deloads), the user's intended phase for a week may differ from
+/// the seeded phase — e.g., the seeded program treats Bahri week 3 as a
+/// deload, but the user extended block 1 to make it a training week. In that
+/// case, this falls back to a neighboring week whose seeded phase matches
+/// the user's intent so the prescriptions train at the right intensity.
+///
+/// Falls back to plain lookupTemplates(...) when phases match (the common case
+/// — most users don't reshape blocks).
+func lookupAdaptedTemplates(programId: Int,
+                            week: Int,
+                            sessionType: SessionType,
+                            allTemplates: [ProgramSessionTemplate],
+                            instance: UserProgramInstance,
+                            totalWeeks: Int,
+                            blockLength: Int,
+                            goal: GoalType) -> [ProgramSessionTemplate] {
+    let userInfo = ComputedBlockInfo.compute(
+        forWeek: week, programId: programId,
+        blockLength: blockLength, totalWeeks: totalWeeks,
+        goal: goal, instance: instance)
+    let seededInfo = ComputedBlockInfo.compute(
+        forWeek: week, programId: programId,
+        blockLength: blockLength, totalWeeks: totalWeeks,
+        goal: goal, instance: nil)
+
+    if userInfo.isDeloadWeek == seededInfo.isDeloadWeek {
+        // Phases match — use the actual week directly.
+        return lookupTemplates(programId: programId, week: week,
+                               sessionType: sessionType, allTemplates: allTemplates)
+    }
+
+    // Walk neighbors for a week whose seeded phase matches the user's intent.
+    for offset in [1, -1, 2, -2, 3, -3, 4, -4, 5, -5] {
+        let candidate = week + offset
+        guard candidate >= 1 && candidate <= totalWeeks else { continue }
+        let candidateSeeded = ComputedBlockInfo.compute(
+            forWeek: candidate, programId: programId,
+            blockLength: blockLength, totalWeeks: totalWeeks,
+            goal: goal, instance: nil)
+        if candidateSeeded.isDeloadWeek == userInfo.isDeloadWeek {
+            let adapted = lookupTemplates(programId: programId, week: candidate,
+                                          sessionType: sessionType, allTemplates: allTemplates)
+            if !adapted.isEmpty { return adapted }
+        }
+    }
+
+    // No neighbor matched — fall back to the original week's templates.
+    return lookupTemplates(programId: programId, week: week,
+                           sessionType: sessionType, allTemplates: allTemplates)
+}
+
 // ═══════════════════════════════════════════
 // WORKOUT COMPLETION SUMMARY
 // ═══════════════════════════════════════════
@@ -253,12 +315,15 @@ struct WorkoutView: View {
     }
     var profile: UserProfile? { profiles.first }
 
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var activeWorkout: ActiveWorkoutSession? = nil
     @State private var completionSummary: WorkoutCompletionSummary? = nil
     @State private var previewSession: ActiveWorkoutSession? = nil
     @State private var showCompleteConfirm = false
     @State private var showReadinessPrompt = false
     @State private var pendingSession: ActiveWorkoutSession? = nil
+    @State private var didRestoreActiveWorkout = false
 
     var exerciseNames: [String: String] {
         Dictionary(exercises.map { ($0.exerciseKey, $0.displayName) }, uniquingKeysWith: { first, _ in first })
@@ -316,9 +381,13 @@ struct WorkoutView: View {
             Button("Finish & Save") {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 activeWorkout?.isComplete = true
+                persistActiveWorkout()
             }
             Button("Keep Going") { }
-            Button("Discard Workout", role: .destructive) { activeWorkout = nil }
+            Button("Discard Workout", role: .destructive) {
+                activeWorkout = nil
+                WorkoutPersistence.clear()
+            }
         } message: {
             Text("Any sets you logged will be saved.")
         }
@@ -333,6 +402,7 @@ struct WorkoutView: View {
                         session.readiness = score
                         applyReadinessToSession(session, readiness: score)
                         activeWorkout = session
+                        persistActiveWorkout()
                     }
                     pendingSession = nil
                     showReadinessPrompt = false
@@ -341,6 +411,7 @@ struct WorkoutView: View {
                     if let session = pendingSession {
                         session.readiness = 3
                         activeWorkout = session
+                        persistActiveWorkout()
                     }
                     pendingSession = nil
                     showReadinessPrompt = false
@@ -348,6 +419,39 @@ struct WorkoutView: View {
             )
             .presentationDetents([.medium])
         }
+        .onAppear { restoreActiveWorkoutIfNeeded() }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Strava-style: save on every transition away from active so the
+            // workout survives app suspension, swipe-up termination, and OS kill.
+            if newPhase == .background || newPhase == .inactive {
+                persistActiveWorkout()
+            }
+        }
+    }
+
+    /// Restore an in-progress workout from disk if one exists for the active
+    /// instance and we don't already have a session in memory. Called once when
+    /// the WorkoutView first appears.
+    private func restoreActiveWorkoutIfNeeded() {
+        guard !didRestoreActiveWorkout else { return }
+        didRestoreActiveWorkout = true
+        guard activeWorkout == nil, let snapshot = WorkoutPersistence.load() else { return }
+        // Only restore if it's still relevant to the current instance/week.
+        // (currentWeek check is loose — the snapshot.startedAt anchors the timer.)
+        let restored = ActiveWorkoutSession(snapshot: snapshot)
+        if !restored.isComplete {
+            activeWorkout = restored
+        } else {
+            // Session marked complete but never finalized — discard rather than
+            // re-show the WorkoutCompleteView, which would double-write logs if
+            // the user taps "Finish & Save" again.
+            WorkoutPersistence.clear()
+        }
+    }
+
+    /// Persist the current activeWorkout to disk. No-op if there's no session.
+    private func persistActiveWorkout() {
+        WorkoutPersistence.save(activeWorkout)
     }
 
     private func applyReadinessToSession(_ session: ActiveWorkoutSession, readiness: Int) {
@@ -455,7 +559,7 @@ struct WorkoutView: View {
         // If user opted out of deloads and this is a deload week, substitute
         // templates from the most recent non-deload week so they keep training.
         let skipDeloads = profile?.skipDeloads ?? false
-        let dlWeeks = deloadWeeks(for: pid, blockLength: inst.blockLength)
+        let dlWeeks = deloadWeeks(for: pid, blockLength: inst.blockLength, instance: inst)
         var effectiveWeek = week
         if skipDeloads && dlWeeks.contains(week) {
             for w in stride(from: week - 1, through: 1, by: -1) {
@@ -465,9 +569,6 @@ struct WorkoutView: View {
                 }
             }
         }
-        // lookupTemplates handles the user's program first, then falls back to
-        // any program that defines this session type (matching the same week
-        // when possible) so imported sessions render their exercises.
         let templates = lookupTemplates(programId: pid, week: effectiveWeek,
                                         sessionType: sessionType, allTemplates: allTemplates)
 
@@ -1090,6 +1191,7 @@ struct WorkoutView: View {
         try? modelContext.save()
         BackupManager.shared.scheduleBackup(context: modelContext)
         activeWorkout = nil
+        WorkoutPersistence.clear()
     }
 
     private func buildVolumeHistory(
@@ -1412,15 +1514,15 @@ struct ScheduleView: View {
                                 Spacer()
                                 if let inst = instance {
                                     let goal = profilesQuery.first?.goal ?? .hypertrophy
-                                    let label: String = {
-                                        switch (goal, inst.blockType) {
-                                        case (.hypertrophy, .accumulation), (.recomp, .accumulation): return "Training Block"
-                                        case (.hypertrophy, .reaccumulation), (.recomp, .reaccumulation): return "Growth Phase"
-                                        case (.hypertrophy, .deload), (.recomp, .deload): return "Recovery"
-                                        default: return inst.blockType.rawValue.capitalized
-                                        }
-                                    }()
-                                    Text("\(label) · Wk \(inst.blockWeek)/\(inst.blockLength)")
+                                    let info = ComputedBlockInfo.compute(
+                                        forWeek: currentWeek,
+                                        programId: inst.programId,
+                                        blockLength: inst.blockLength,
+                                        totalWeeks: totalWeeks,
+                                        goal: goal,
+                                        instance: inst
+                                    )
+                                    Text("\(info.displayPhaseName) · Wk \(info.weekInBlock)/\(info.blockTrainingWeeks) · Block \(info.blockNumber)")
                                         .font(.system(size: 11, weight: .bold)).foregroundColor(.appBlue)
                                 }
                                 Image(systemName: "info.circle")
@@ -1462,27 +1564,14 @@ struct ScheduleView: View {
     }
 
     private func templatesFor(_ session: SessionType, week: Int) -> [ProgramSessionTemplate] {
-        let direct = allTemplates
-            .filter { $0.programId == pid && $0.week == week && $0.sessionType == session }
-            .sorted { $0.exerciseIndex < $1.exerciseIndex }
-        if !direct.isEmpty { return direct }
-
-        // Same-program nearest training week fallback (only useful for training weeks
-        // where the user's program SHOULD have templates but doesn't, e.g., DUP variants).
-        if !isEffectiveDeloadWeek(week) {
-            for offset in [1, -1, 2, -2, 3, -3] {
-                let fallbackWeek = week + offset
-                guard fallbackWeek >= 1 && fallbackWeek <= totalWeeks else { continue }
-                guard !isEffectiveDeloadWeek(fallbackWeek) else { continue }
-                let fallback = allTemplates
-                    .filter { $0.programId == pid && $0.week == fallbackWeek && $0.sessionType == session }
-                    .sorted { $0.exerciseIndex < $1.exerciseIndex }
-                if !fallback.isEmpty { return fallback }
-            }
+        if let inst = instance {
+            let goal = profilesQuery.first?.goal ?? .hypertrophy
+            return lookupAdaptedTemplates(
+                programId: pid, week: week, sessionType: session,
+                allTemplates: allTemplates,
+                instance: inst, totalWeeks: totalWeeks,
+                blockLength: inst.blockLength, goal: goal)
         }
-
-        // Cross-program fallback — runs regardless of deload status so imported
-        // sessions show their real exercise/set counts in the SessionPickerCard.
         return lookupTemplates(programId: pid, week: week, sessionType: session,
                                allTemplates: allTemplates)
     }
@@ -1519,7 +1608,7 @@ struct ScheduleView: View {
     private func isEffectiveDeloadWeek(_ week: Int) -> Bool {
         guard let inst = instance else { return false }
         if profilesQuery.first?.skipDeloads == true { return false }
-        return deloadWeeks(for: inst.programId, blockLength: inst.blockLength).contains(week)
+        return deloadWeeks(for: inst.programId, blockLength: inst.blockLength, instance: inst).contains(week)
     }
 
     private func blockLabel(week: Int, pid: Int) -> String {
@@ -3975,12 +4064,170 @@ class ActiveWorkoutSession: ObservableObject, Identifiable {
         self.exercises = exercises
     }
 
+    /// Restore from a persisted snapshot — preserves the original startedAt and all
+    /// exercise/set state so a Strava-style mid-workout resume picks up exactly
+    /// where the user left off.
+    init(snapshot: WorkoutSnapshot) {
+        self.sessionType = SessionType(rawValue: snapshot.sessionTypeRaw) ?? .freeform
+        self.week = snapshot.week
+        self.startedAt = snapshot.startedAt
+        self.isCustom = snapshot.isCustom
+        self.exercises = snapshot.exercises.map { LiveExercise(snapshot: $0) }
+        self.isComplete = snapshot.isComplete
+        self.notes = snapshot.notes
+        self.readiness = snapshot.readiness
+    }
+
     var sessionLabel: String {
         isCustom ? "Custom \(sessionType.shortLabel)" : sessionType.shortLabel
     }
     var totalSetsLogged: Int { exercises.flatMap { $0.sets }.filter { $0.isLogged }.count }
     var totalSets: Int { exercises.flatMap { $0.sets }.count }
     var elapsedSeconds: Int { Int(Date().timeIntervalSince(startedAt)) }
+}
+
+// ═══════════════════════════════════════════
+// WORKOUT SNAPSHOT — Codable mirror of ActiveWorkoutSession
+// Persisted to UserDefaults so an in-progress workout survives app kills,
+// background termination, and device reboots. The session keeps running
+// against wall-clock time (startedAt) until the user finalizes or discards it.
+// ═══════════════════════════════════════════
+
+struct WorkoutSnapshot: Codable {
+    let sessionTypeRaw: String
+    let week: Int
+    let startedAt: Date
+    let isCustom: Bool
+    let isComplete: Bool
+    let notes: String
+    let readiness: Int
+    let exercises: [ExerciseSnapshot]
+
+    init(from s: ActiveWorkoutSession) {
+        self.sessionTypeRaw = s.sessionType.rawValue
+        self.week = s.week
+        self.startedAt = s.startedAt
+        self.isCustom = s.isCustom
+        self.isComplete = s.isComplete
+        self.notes = s.notes
+        self.readiness = s.readiness
+        self.exercises = s.exercises.map { ExerciseSnapshot(from: $0) }
+    }
+}
+
+struct ExerciseSnapshot: Codable {
+    let exerciseKey: String
+    let displayName: String
+    let slotId: String
+    let roleRaw: String
+    let exerciseTierRaw: String
+    let targetSets: Int
+    let targetRepsLow: Int
+    let targetRepsHigh: Int
+    let targetRPE: Double
+    let restSeconds: Int
+    let notes: String
+    let supersetGroupId: String?
+    let sets: [SetSnapshot]
+
+    init(from e: LiveExercise) {
+        self.exerciseKey = e.exerciseKey
+        self.displayName = e.displayName
+        self.slotId = e.slotId
+        self.roleRaw = e.role.rawValue
+        self.exerciseTierRaw = e.exerciseTier.rawValue
+        self.targetSets = e.targetSets
+        self.targetRepsLow = e.targetRepsLow
+        self.targetRepsHigh = e.targetRepsHigh
+        self.targetRPE = e.targetRPE
+        self.restSeconds = e.restSeconds
+        self.notes = e.notes
+        self.supersetGroupId = e.supersetGroupId
+        self.sets = e.sets.map { SetSnapshot(from: $0) }
+    }
+}
+
+struct SetSnapshot: Codable {
+    let setIndex: Int
+    let recommendedWeight: Double
+    let recommendedReps: Int
+    let recommendedRepsHigh: Int?
+    let roleRaw: String?
+    let loggedWeight: Double?
+    let loggedReps: Int?
+    let loggedRPE: Double?
+    let isSkipped: Bool
+    let completedAt: Date?
+
+    init(from s: LiveSet) {
+        self.setIndex = s.setIndex
+        self.recommendedWeight = s.recommendedWeight
+        self.recommendedReps = s.recommendedReps
+        self.recommendedRepsHigh = s.recommendedRepsHigh
+        self.roleRaw = s.role?.rawValue
+        self.loggedWeight = s.loggedWeight
+        self.loggedReps = s.loggedReps
+        self.loggedRPE = s.loggedRPE
+        self.isSkipped = s.isSkipped
+        self.completedAt = s.completedAt
+    }
+}
+
+extension LiveExercise {
+    init(snapshot: ExerciseSnapshot) {
+        self.exerciseKey = snapshot.exerciseKey
+        self.displayName = snapshot.displayName
+        self.slotId = snapshot.slotId
+        self.role = ExerciseRole(rawValue: snapshot.roleRaw) ?? .accessory
+        self.exerciseTier = ExerciseTier(rawValue: snapshot.exerciseTierRaw) ?? .tier3
+        self.targetSets = snapshot.targetSets
+        self.targetRepsLow = snapshot.targetRepsLow
+        self.targetRepsHigh = snapshot.targetRepsHigh
+        self.targetRPE = snapshot.targetRPE
+        self.restSeconds = snapshot.restSeconds
+        self.notes = snapshot.notes
+        self.supersetGroupId = snapshot.supersetGroupId
+        self.sets = snapshot.sets.map { LiveSet(snapshot: $0) }
+        self.warmupSets = []  // regenerated on session start; not critical to persist
+    }
+}
+
+extension LiveSet {
+    init(snapshot: SetSnapshot) {
+        self.setIndex = snapshot.setIndex
+        self.recommendedWeight = snapshot.recommendedWeight
+        self.recommendedReps = snapshot.recommendedReps
+        self.recommendedRepsHigh = snapshot.recommendedRepsHigh
+        self.role = snapshot.roleRaw.flatMap { ProgressionEngine.SetRole(rawValue: $0) }
+        self.loggedWeight = snapshot.loggedWeight
+        self.loggedReps = snapshot.loggedReps
+        self.loggedRPE = snapshot.loggedRPE
+        self.isSkipped = snapshot.isSkipped
+        self.completedAt = snapshot.completedAt
+    }
+}
+
+/// Persists in-progress workout state to UserDefaults so a workout survives
+/// app kills, force-quits, and device reboots — Strava-style.
+enum WorkoutPersistence {
+    private static let key = "PowerForge.activeWorkoutSnapshot.v1"
+
+    static func save(_ session: ActiveWorkoutSession?) {
+        guard let session, !session.isComplete else { clear(); return }
+        let snapshot = WorkoutSnapshot(from: session)
+        if let data = try? JSONEncoder().encode(snapshot) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+
+    static func load() -> WorkoutSnapshot? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(WorkoutSnapshot.self, from: data)
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
+    }
 }
 
 struct WarmupSet: Identifiable {
