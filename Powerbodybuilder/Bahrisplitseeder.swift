@@ -9,7 +9,7 @@ import SwiftData
 struct BahriSplitSeeder {
 
     static let programId = 7
-    static let currentSeedVersion = 1
+    static let currentSeedVersion = 2
 
     static func seedIfNeeded(context: ModelContext) {
         let descriptor = FetchDescriptor<ProgramTemplate>(
@@ -86,33 +86,75 @@ struct BahriSplitSeeder {
         insertSunday(week: week, p: p, context: context)
     }
 
-    // ── DELOAD — Full Body A (legQuadFocus) + Full Body B (legsPosterior) ─────
+    // ── DELOAD — All 6 sessions populated with reduced volume + RPE ─────
 
     static func insertDeload(week: Int, p: DayParams, context: ModelContext) {
         let (rl, rh) = r(8, 10, p.repsShift)
-        // Deload A — Monday slot
-        let deloadA: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
+
+        // Monday — legQuadFocus
+        let deloadMon: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
             ("hack_squat",             "A1", 0, s(3, p.setsMult), rl, rh, p.rpe,       120, false, "Smooth reps. Stop 4-5 short. No 3-sec eccentric."),
             ("rdl_barbell",            "A2", 1, s(3, p.setsMult), rl, rh, p.rpe,       120, false, "Controlled eccentric. Feel stretch without forcing."),
-            ("bench_press_barbell",    "A3", 2, s(3, p.setsMult), rl, rh, p.rpe,       120, false, "Smooth eccentric. Full ROM. Stop 4-5 short."),
-            ("lat_pulldown",           "A4", 3, s(3, p.setsMult), rl, rh, p.rpe,       90,  false, "Full stretch top, full contraction bottom."),
-            ("lateral_raise_dumbbell", "A5", 4, s(2, p.setsMult), 15, 18, p.rpe,       60,  false, "Light. Stop well short of failure."),
-            ("calf_raise_seated",      "A6", 5, s(2, p.setsMult), 15, 20, p.rpe,       60,  false, "Full ROM. No loaded interset stretch.")
+            ("leg_extension",          "A3", 2, s(2, p.setsMult), 12, 15, p.rpe,       60,  false, "Light pump work. Stop 4-5 short."),
+            ("calf_raise_standing",    "A4", 3, s(2, p.setsMult), 12, 15, p.rpe,       60,  false, "Full ROM. No loaded interset stretch.")
         ]
-        for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in deloadA {
+        for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in deloadMon {
             context.insert(makeSlot(week, .legQuadFocus, sl, idx, key, sets, lo, hi, rpe, rest, main, note))
         }
-        // Deload B — Thursday slot
-        let deloadB: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
+
+        // Tuesday — chestBack
+        let deloadTue: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
+            ("bench_press_barbell",    "B1", 0, s(3, p.setsMult), rl, rh, p.rpe,       120, false, "Smooth eccentric. Full ROM. Stop 4-5 short."),
+            ("row_barbell",            "B2", 1, s(3, p.setsMult), rl, rh, p.rpe,       120, false, "Controlled. Full ROM."),
+            ("pulldown_wide",          "B3", 2, s(2, p.setsMult), rl, rh, p.rpe,       90,  false, "Full stretch top, full contraction bottom."),
+            ("fly_dumbbell",           "B4", 3, s(2, p.setsMult), 12, 15, p.rpe,       60,  false, "Light. Stop short.")
+        ]
+        for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in deloadTue {
+            context.insert(makeSlot(week, .chestBack, sl, idx, key, sets, lo, hi, rpe, rest, main, note))
+        }
+
+        // Wednesday — armsDelts
+        let deloadWed: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
+            ("ohp_dumbbell",           "C1", 0, s(2, p.setsMult), rl, rh, p.rpe,       90,  false, "Smooth reps. Light load."),
+            ("lateral_raise_dumbbell", "C2", 1, s(2, p.setsMult), 15, 18, p.rpe,       60,  false, "Light. Stop well short of failure."),
+            ("curl_dumbbell",          "C3", 2, s(2, p.setsMult), 10, 12, p.rpe,       60,  false, "Controlled. Stop short."),
+            ("tricep_pushdown_cable",  "C4", 3, s(2, p.setsMult), 12, 15, p.rpe,       60,  false, "Light pump.")
+        ]
+        for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in deloadWed {
+            context.insert(makeSlot(week, .armsDelts, sl, idx, key, sets, lo, hi, rpe, rest, main, note))
+        }
+
+        // Thursday — legsPosterior
+        let deloadThu: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
             ("leg_press",              "D1", 0, s(3, p.setsMult), rl, rh, p.rpe,       120, false, "Comfortable depth. Stop 4-5 RIR. No forced stretch."),
             ("leg_curl_seated",        "D2", 1, s(3, p.setsMult), rl, rh, p.rpe,       90,  false, "Controlled eccentric. Stop 4-5 short."),
-            ("incline_press_dumbbell", "D3", 2, s(3, p.setsMult), rl, rh, p.rpe,       120, false, "Full ROM. Controlled. Stop 4-5 short."),
-            ("cable_row",              "D4", 3, s(3, p.setsMult), rl, rh, p.rpe,       90,  false, "Row to lower chest. Controlled."),
-            ("face_pull_cable",        "D5", 4, s(2, p.setsMult), 15, 20, p.rpe,       60,  false, "Pull to face, external rotation. Stop short."),
-            ("calf_raise_standing",    "D6", 5, s(2, p.setsMult), 12, 15, p.rpe,       60,  false, "Full ROM. No loaded interset stretch.")
+            ("hip_thrust_barbell",     "D3", 2, s(2, p.setsMult), rl, rh, p.rpe,       90,  false, "Light. Squeeze top. Stop short."),
+            ("calf_raise_seated",      "D4", 3, s(2, p.setsMult), 15, 20, p.rpe,       60,  false, "Soleus emphasis. Full ROM.")
         ]
-        for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in deloadB {
+        for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in deloadThu {
             context.insert(makeSlot(week, .legsPosterior, sl, idx, key, sets, lo, hi, rpe, rest, main, note))
+        }
+
+        // Saturday — chestArms
+        let deloadSat: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
+            ("bench_press_incline_dumbbell", "E1", 0, s(2, p.setsMult), rl, rh, p.rpe, 90, false, "Light. Smooth eccentric."),
+            ("cable_fly_neutral",            "E2", 1, s(2, p.setsMult), 12, 15, p.rpe, 60, false, "Controlled. Stretch but don't force."),
+            ("curl_ez_bar",                  "E3", 2, s(2, p.setsMult), 10, 12, p.rpe, 60, false, "Light pump."),
+            ("skullcrusher_ez_bar",          "E4", 3, s(2, p.setsMult), 10, 12, p.rpe, 60, false, "Smooth. Stop short.")
+        ]
+        for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in deloadSat {
+            context.insert(makeSlot(week, .chestArms, sl, idx, key, sets, lo, hi, rpe, rest, main, note))
+        }
+
+        // Sunday — legsVolume
+        let deloadSun: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
+            ("squat_front",            "F1", 0, s(2, p.setsMult), rl, rh, p.rpe,       120, false, "Light. Comfortable depth."),
+            ("leg_curl_lying",         "F2", 1, s(2, p.setsMult), rl, rh, p.rpe,       90,  false, "Controlled. Stop short."),
+            ("calf_raise_standing",    "F3", 2, s(2, p.setsMult), 12, 15, p.rpe,       60,  false, "Light pump."),
+            ("face_pull_cable",        "F4", 3, s(2, p.setsMult), 15, 20, p.rpe,       60,  false, "Pull to face, external rotation.")
+        ]
+        for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in deloadSun {
+            context.insert(makeSlot(week, .legsVolume, sl, idx, key, sets, lo, hi, rpe, rest, main, note))
         }
     }
 

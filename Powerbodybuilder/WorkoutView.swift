@@ -6,6 +6,29 @@ import Charts
 // HELPERS — shared across WorkoutView
 // ═══════════════════════════════════════════
 
+/// Single source of truth for deload weeks per program.
+/// Matches what's actually seeded in the templates.
+func deloadWeeks(for programId: Int, blockLength: Int) -> Set<Int> {
+    switch programId {
+    case 1: return [4, 12, 20]                              // Powerbuilding
+    case 2: return [4, 12, 16]                              // PPL
+    case 3: return [4, 8, 13]                               // Strength
+    case 4: return [4, 8]                                   // Beginner
+    case 5: return [4, 12]                                  // Athletic
+    case 6: return [4, 8]                                   // Minimalist
+    case 7: return [3, 6, 9, 12, 15, 18, 21, 24]            // Bahri Split
+    default:
+        // Custom/generated programs use blockLength-based math
+        let bl = blockLength > 0 ? blockLength : 5
+        let cycleLen = bl + 1
+        var result: Set<Int> = []
+        for w in 1...24 where ((w - 1) % cycleLen) + 1 > bl {
+            result.insert(w)
+        }
+        return result
+    }
+}
+
 /// Returns the session rotation for any program ID.
 /// For custom programs (ID >= 100), looks up the ProgramTemplate from SwiftData.
 func sessionRotation(for programId: Int, templates: [ProgramTemplate] = [],
@@ -162,7 +185,7 @@ struct WorkoutView: View {
     @State private var pendingSession: ActiveWorkoutSession? = nil
 
     var exerciseNames: [String: String] {
-        Dictionary(uniqueKeysWithValues: exercises.map { ($0.exerciseKey, $0.displayName) })
+        Dictionary(exercises.map { ($0.exerciseKey, $0.displayName) }, uniquingKeysWith: { first, _ in first })
     }
 
     var body: some View {
@@ -353,9 +376,45 @@ struct WorkoutView: View {
             return
         }
 
-        let templates = allTemplates
-            .filter { $0.programId == pid && $0.week == week && $0.sessionType == sessionType }
+        // If user opted out of deloads and this is a deload week, substitute
+        // templates from the most recent non-deload week so they keep training.
+        let skipDeloads = profile?.skipDeloads ?? false
+        let dlWeeks = deloadWeeks(for: pid, blockLength: inst.blockLength)
+        var effectiveWeek = week
+        if skipDeloads && dlWeeks.contains(week) {
+            for w in stride(from: week - 1, through: 1, by: -1) {
+                if !dlWeeks.contains(w) {
+                    effectiveWeek = w
+                    break
+                }
+            }
+        }
+        var templates = allTemplates
+            .filter { $0.programId == pid && $0.week == effectiveWeek && $0.sessionType == sessionType }
             .sorted { $0.exerciseIndex < $1.exerciseIndex }
+
+        // Imported session fallback: if the current program has no templates for this
+        // session type (e.g., user imported legsPosterior from Bahri into Powerbuilding),
+        // borrow templates from whichever program defines this session type.
+        if templates.isEmpty {
+            let foreignAtCurrentWeek = allTemplates
+                .filter { $0.sessionType == sessionType && $0.week == effectiveWeek }
+            if !foreignAtCurrentWeek.isEmpty,
+               let foreignPid = foreignAtCurrentWeek.first?.programId {
+                templates = foreignAtCurrentWeek
+                    .filter { $0.programId == foreignPid }
+                    .sorted { $0.exerciseIndex < $1.exerciseIndex }
+            } else {
+                // Fall back to week 1 of any program with this session type
+                let foreignWeek1 = allTemplates
+                    .filter { $0.sessionType == sessionType && $0.week == 1 }
+                if let foreignPid = foreignWeek1.first?.programId {
+                    templates = foreignWeek1
+                        .filter { $0.programId == foreignPid }
+                        .sorted { $0.exerciseIndex < $1.exerciseIndex }
+                }
+            }
+        }
 
         var priorExercisesForPML: [(key: String, sets: Int)] = []
         var liveExercises: [LiveExercise] = []
@@ -526,6 +585,65 @@ struct WorkoutView: View {
 
             // Track for subsequent PML calculations
             priorExercisesForPML.append((key: effectiveKey, sets: t.targetSets))
+        }
+
+        // ── Inject volume additions (SessionOverride.isAddition=true) ─────────
+        let additions = inst.overrides.filter { ov in
+            ov.isAddition && ov.sessionType == sessionType && ov.appliesTo(week: week)
+        }
+        for (i, add) in additions.enumerated() {
+            let exKey = add.replacementExerciseKey
+            let name = exerciseNames[exKey] ?? exKey
+                .replacingOccurrences(of: "_", with: " ").capitalized
+            let progState = inst.progressionStates.first(where: { $0.exerciseKey == exKey })
+            let recentLogs = careerLogs.filter { $0.exerciseKey == exKey }.sorted { $0.date > $1.date }
+            let tier: ExerciseTier = {
+                let def = ExerciseDictionary.all[exKey]
+                if def?.isAnchorableAsTier1 == true { return .tier1 }
+                if def?.isCompound == true { return .tier2 }
+                return .tier3
+            }()
+            let pml = ProgressionEngine.computePML(
+                targetExerciseKey: exKey,
+                priorExercises: priorExercisesForPML,
+                personalSensitivity: progState?.personalFatigueSensitivity ?? 0.12
+            )
+            let rec = ProgressionEngine.recommend(
+                recentLogs: recentLogs,
+                targetRepsLow: add.addedRepsLow,
+                targetRepsHigh: add.addedRepsHigh,
+                targetRPE: add.addedRPE,
+                exerciseTier: tier,
+                useMetric: useMetric,
+                progressionState: progState,
+                lastSessionIFI: progState?.lastIFI,
+                blockPhase: inst.blockPhase,
+                progressionRate: profile?.progressionRate ?? .normal,
+                pmlFactor: pml.factor
+            )
+            let algoMode = profile?.algorithmMode ?? .full
+            let top = rec.recommendedWeight > 0 ? rec.recommendedWeight : 0
+            let setLetter = "Z\(i + 1)"
+            let sets = (0..<add.addedSets).map { idx -> LiveSet in
+                let weight = algoMode == .off ? 0 : top
+                let reps = algoMode == .off ? add.addedRepsHigh : rec.repsForSet(idx)
+                return LiveSet(setIndex: idx, recommendedWeight: weight, recommendedReps: reps)
+            }
+            liveExercises.append(LiveExercise(
+                exerciseKey: exKey,
+                displayName: name,
+                slotId: setLetter,
+                role: .accessory,
+                exerciseTier: tier,
+                targetSets: add.addedSets,
+                targetRepsLow: add.addedRepsLow,
+                targetRepsHigh: add.addedRepsHigh,
+                targetRPE: add.addedRPE,
+                restSeconds: add.addedRest,
+                notes: "Added for volume",
+                sets: sets
+            ))
+            priorExercisesForPML.append((key: exKey, sets: add.addedSets))
         }
 
         previewSession = ActiveWorkoutSession(
@@ -733,6 +851,14 @@ struct WorkoutView: View {
                     goal: blockProfile.goal,
                     blockNumber: inst.totalBlocksCompleted
                 )
+                // Skip deload block entirely if user opted out
+                if blockProfile.skipDeloads && inst.blockType == .deload {
+                    inst.blockType = BlockType.next(
+                        current: .deload,
+                        goal: blockProfile.goal,
+                        blockNumber: inst.totalBlocksCompleted + 1
+                    )
+                }
                 if inst.blockType == .deload {
                     inst.blockLength = 1
                 } else if !inst.isGenerated {
@@ -1254,7 +1380,8 @@ struct ScheduleView: View {
                             allTemplates: allTemplates,
                             exerciseNames: exerciseNames,
                             goal: profilesQuery.first?.goal ?? .hypertrophy,
-                            blockLength: instance?.blockLength ?? 5
+                            blockLength: instance?.blockLength ?? 5,
+                            skipDeloads: profilesQuery.first?.skipDeloads ?? false
                         )
                     }
 
@@ -1327,14 +1454,12 @@ struct ScheduleView: View {
         }
     }
 
-    /// Uses the user's block length as the single source of truth for deload placement.
-    /// Synced with Home tab — if Home says week 6 is deload, Train says the same.
+    /// Uses the per-program deload schedule. Matches the seeded templates exactly.
+    /// Returns false if user has opted to skip deloads entirely.
     private func isEffectiveDeloadWeek(_ week: Int) -> Bool {
         guard let inst = instance else { return false }
-        let bl = inst.blockLength > 0 ? inst.blockLength : 5
-        let cycleLen = bl + 1
-        let posInBlock = ((week - 1) % cycleLen) + 1
-        return posInBlock > bl
+        if profilesQuery.first?.skipDeloads == true { return false }
+        return deloadWeeks(for: inst.programId, blockLength: inst.blockLength).contains(week)
     }
 
     private func blockLabel(week: Int, pid: Int) -> String {
@@ -1530,6 +1655,7 @@ struct MesocycleBrowser: View {
     let exerciseNames: [String: String]
     var goal: GoalType = .hypertrophy
     var blockLength: Int = 5
+    var skipDeloads: Bool = false
     private var isHyp: Bool { goal == .hypertrophy || goal == .recomp }
     private var cycleLen: Int { blockLength + 1 }
 
@@ -1576,9 +1702,8 @@ struct MesocycleBrowser: View {
     }
 
     private func isDeloadWeek(_ w: Int) -> Bool {
-        // ALL programs use blockLength as source of truth (synced with Home tab)
-        let posInBlock = ((w - 1) % cycleLen) + 1
-        return posInBlock > blockLength
+        if skipDeloads { return false }
+        return deloadWeeks(for: programId, blockLength: blockLength).contains(w)
     }
 
     private func blockLabel(_ w: Int) -> String {
@@ -2493,6 +2618,12 @@ struct ActiveWorkoutView: View {
         let backoff = ex.isMainLift && setIdx > 0 && liveSet.recommendedWeight < firstSetWeight
         let removeBlock: (() -> Void)? = canRemoveSet ? removeSetAction(exIdx: exIdx, setIdx: setIdx) : nil
         let completeBlock = completeSetAction(ex: ex, exIdx: exIdx)
+        // Compute live top set: heaviest logged weight among logged sets in this exercise
+        let loggedWeights = ex.sets.compactMap { $0.isLogged ? $0.loggedWeight : nil }
+        let maxLoggedWeight = loggedWeights.max() ?? 0
+        let isLiveTopSet = liveSet.isLogged
+            && (liveSet.loggedWeight ?? 0) == maxLoggedWeight
+            && maxLoggedWeight > 0
         return SetLogRow(
             set: $session.exercises[exIdx].sets[setIdx],
             setNumber: setIdx + 1,
@@ -2501,6 +2632,7 @@ struct ActiveWorkoutView: View {
             targetRepsLow: ex.targetRepsLow,
             targetRepsHigh: ex.targetRepsHigh,
             useMetric: useMetric,
+            isLiveTopSet: isLiveTopSet,
             onRemove: removeBlock,
             onComplete: completeBlock
         )
@@ -2651,18 +2783,25 @@ struct FreestyleSwapSheet: View {
     }
 
     private var filtered: [RankedAlternative] {
-        let base = slot.musclesPrimary.isEmpty
+        // When searching, ignore muscle scoping and search the full library
+        if !searchText.isEmpty {
+            let tokens = searchText.lowercased()
+                .components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+            return allExercises
+                .filter { $0.exerciseKey != slot.exerciseKey }
+                .filter { ex in
+                    let haystack = ([ex.displayName] + ex.musclesPrimary + ex.musclesSecondary + [ex.equipmentRaw])
+                        .joined(separator: " ").lowercased()
+                    return tokens.allSatisfy { haystack.contains($0) }
+                }
+                .map { RankedAlternative(exercise: $0, score: 50) }
+                .sorted { $0.exercise.displayName < $1.exercise.displayName }
+        }
+        return slot.musclesPrimary.isEmpty
             ? allExercises.filter { $0.exerciseKey != slot.exerciseKey }
                 .map { RankedAlternative(exercise: $0, score: 50) }
                 .sorted { $0.exercise.displayName < $1.exercise.displayName }
             : ranked
-
-        if searchText.isEmpty { return base }
-        return base.filter {
-            $0.exercise.displayName.localizedCaseInsensitiveContains(searchText) ||
-            $0.exercise.musclesPrimary.joined().localizedCaseInsensitiveContains(searchText) ||
-            $0.exercise.equipmentRaw.localizedCaseInsensitiveContains(searchText)
-        }
     }
 
     private var smartPicks: [RankedAlternative] {
@@ -2885,6 +3024,18 @@ struct InWorkoutAddSheet: View {
     private let muscles = ExerciseDictionary.trackingMuscles
 
     private var filtered: [Exercise] {
+        // When searching, search the full library and ignore muscle filter
+        if !searchText.isEmpty {
+            let tokens = searchText.lowercased()
+                .components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+            return allExercises
+                .filter { ex in
+                    let haystack = ([ex.displayName] + ex.musclesPrimary + ex.musclesSecondary + [ex.equipmentRaw])
+                        .joined(separator: " ").lowercased()
+                    return tokens.allSatisfy { haystack.contains($0) }
+                }
+                .sorted { $0.displayName < $1.displayName }
+        }
         var result = allExercises.sorted { $0.displayName < $1.displayName }
         if let muscle = selectedMuscle {
             result = result.filter { ex in
@@ -2893,12 +3044,6 @@ struct InWorkoutAddSheet: View {
                 let def = ExerciseDictionary.all[ex.exerciseKey]
                 let addlNorm = (def?.additionalFilterMuscles ?? []).compactMap { ExerciseDictionary.normalizeMuscle($0) }
                 return priNorm.contains(muscle) || secNorm.contains(muscle) || addlNorm.contains(muscle)
-            }
-        }
-        if !searchText.isEmpty {
-            result = result.filter {
-                $0.displayName.localizedCaseInsensitiveContains(searchText) ||
-                $0.musclesPrimary.joined().localizedCaseInsensitiveContains(searchText)
             }
         }
         return result
@@ -3216,6 +3361,7 @@ struct SetLogRow: View {
     let targetRepsLow: Int
     let targetRepsHigh: Int
     let useMetric: Bool
+    var isLiveTopSet: Bool = false
     let onRemove: (() -> Void)?
     let onComplete: () -> Void
 
@@ -3240,16 +3386,19 @@ struct SetLogRow: View {
 
     @ViewBuilder
     private var roleBadge: some View {
-        if let role = set.role {
+        if isLiveTopSet {
+            // Live: show TOP SET only when this set IS the heaviest logged
+            HStack(spacing: 3) {
+                Image(systemName: "star.fill").font(.system(size: 7))
+                Text("TOP SET").font(.system(size: 8, weight: .black))
+            }
+            .foregroundColor(.appGold).kerning(0.5)
+            .padding(.horizontal, 5).padding(.vertical, 2)
+            .background(Color.appGold.opacity(0.12)).cornerRadius(3)
+        } else if let role = set.role {
             switch role {
             case .topSet:
-                HStack(spacing: 3) {
-                    Image(systemName: "star.fill").font(.system(size: 7))
-                    Text("TOP SET").font(.system(size: 8, weight: .black))
-                }
-                .foregroundColor(.appGold).kerning(0.5)
-                .padding(.horizontal, 5).padding(.vertical, 2)
-                .background(Color.appGold.opacity(0.12)).cornerRadius(3)
+                EmptyView()  // Suppress pre-assigned top set; computed live above
             case .feeder:
                 Text("FEEDER").font(.system(size: 8, weight: .black)).foregroundColor(.appBlue).kerning(0.5)
                     .padding(.horizontal, 5).padding(.vertical, 2)

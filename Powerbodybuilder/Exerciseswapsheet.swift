@@ -48,6 +48,27 @@ struct ExerciseSwapSheet: View {
     }
 
     private var filtered: [RankedAlternative] {
+        // When the user searches, ignore body-part scoping and search the FULL library.
+        // Token-based match: every word in the query must appear somewhere in the
+        // searchable text (handles "tricep extension" → "Triceps Extension" by allowing
+        // partial token match since "tricep" is a prefix of "triceps").
+        if !searchText.isEmpty {
+            let tokens = searchText
+                .lowercased()
+                .components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+            return allExercises
+                .filter { $0.exerciseKey != slot.exerciseKey }
+                .filter { ex in
+                    let haystack = ([ex.displayName] + ex.musclesPrimary + ex.musclesSecondary + [ex.equipmentRaw])
+                        .joined(separator: " ")
+                        .lowercased()
+                    return tokens.allSatisfy { haystack.contains($0) }
+                }
+                .map { RankedAlternative(exercise: $0, score: 50) }
+                .sorted { $0.exercise.displayName < $1.exercise.displayName }
+        }
+
         let base: [RankedAlternative]
         if hasMuscleData {
             base = alternatives
@@ -58,19 +79,16 @@ struct ExerciseSwapSheet: View {
                 .sorted { $0.exercise.displayName < $1.exercise.displayName }
         }
 
-        // Apply muscle filter chip (matches by normalized tracking group)
-        // When filtering to a DIFFERENT muscle than the slot's, search the full library
+        // Apply muscle filter chip (only when not searching)
         var result = base
         if let mf = selectedMuscleFilter {
             let slotNorm = slot.musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
             if slotNorm.contains(mf) {
-                // Same muscle as slot — filter within scored alternatives
                 result = result.filter { ex in
                     let priNorm = ex.exercise.musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
                     return priNorm.contains(mf)
                 }
             } else {
-                // Different muscle — show all exercises for that muscle from full library
                 result = allExercises
                     .filter { $0.exerciseKey != slot.exerciseKey }
                     .filter { ex in
@@ -80,16 +98,6 @@ struct ExerciseSwapSheet: View {
                     }
                     .map { RankedAlternative(exercise: $0, score: 30) }
                     .sorted { $0.exercise.displayName < $1.exercise.displayName }
-            }
-        }
-
-        // Apply text search
-        if !searchText.isEmpty {
-            result = result.filter {
-                $0.exercise.displayName.localizedCaseInsensitiveContains(searchText) ||
-                $0.exercise.musclesPrimary.joined().localizedCaseInsensitiveContains(searchText) ||
-                $0.exercise.musclesSecondary.joined().localizedCaseInsensitiveContains(searchText) ||
-                $0.exercise.equipmentRaw.localizedCaseInsensitiveContains(searchText)
             }
         }
         return result
@@ -575,10 +583,20 @@ struct CreateCustomExerciseSheet: View {
         guard !name.isEmpty else { errorMessage = "Exercise name is required."; return }
         guard !primaryMuscles.isEmpty else { errorMessage = "Select at least one primary muscle."; return }
 
-        // Build a stable exerciseKey from the name
-        let key = "custom_" + name.lowercased()
+        // Reject duplicate display names (case-insensitive) — prevents crash from duplicate exerciseKey
+        let descriptor = FetchDescriptor<Exercise>()
+        let existing = (try? modelContext.fetch(descriptor)) ?? []
+        if existing.contains(where: { $0.displayName.localizedCaseInsensitiveCompare(name) == .orderedSame }) {
+            errorMessage = "An exercise named \"\(name)\" already exists. Pick a different name."
+            return
+        }
+
+        // Build a stable, unique exerciseKey from the name + timestamp
+        let baseSlug = name.lowercased()
             .replacingOccurrences(of: " ", with: "_")
             .filter { $0.isLetter || $0 == "_" }
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let key = "custom_\(baseSlug)_\(timestamp)"
 
         let exercise = Exercise(
             exerciseKey: key,

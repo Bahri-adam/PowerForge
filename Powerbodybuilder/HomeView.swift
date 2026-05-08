@@ -27,6 +27,7 @@ struct HomeView: View {
     @State private var bodyweightInput = ""
     @State private var scheduleByDay: Bool = UserDefaults.standard.object(forKey: "scheduleByDay") as? Bool ?? true
     @State private var editSessionItem: SessionEditorItem? = nil
+    @State private var volumeAdjustMuscle: String? = nil
 
     private var displayWeek: Int { viewingWeek > 0 ? viewingWeek : (instance?.currentWeek ?? 1) }
 
@@ -310,11 +311,22 @@ struct HomeView: View {
                 let fw = displayWeek + offset
                 guard fw >= 1 && fw <= total else { continue }
                 let fwPos = ((fw - 1) % (bl + 1)) + 1
-                guard fwPos <= bl else { continue }  // skip deload weeks
+                guard fwPos <= bl else { continue }
                 let fallback = allSessionTemplates
                     .filter { $0.programId == inst.programId && $0.week == fw && $0.sessionType == session }
                     .sorted { $0.exerciseIndex < $1.exerciseIndex }
                 if !fallback.isEmpty { return fallback }
+            }
+            // Last resort: borrow templates from any other program that has this session type
+            let foreignAtWeek = allSessionTemplates.filter { $0.sessionType == session && $0.week == displayWeek }
+            if let foreignPid = foreignAtWeek.first?.programId {
+                return foreignAtWeek.filter { $0.programId == foreignPid }
+                    .sorted { $0.exerciseIndex < $1.exerciseIndex }
+            }
+            let foreignWeek1 = allSessionTemplates.filter { $0.sessionType == session && $0.week == 1 }
+            if let foreignPid = foreignWeek1.first?.programId {
+                return foreignWeek1.filter { $0.programId == foreignPid }
+                    .sorted { $0.exerciseIndex < $1.exerciseIndex }
             }
         }
 
@@ -523,7 +535,14 @@ struct HomeView: View {
                         .background(Color.appSurface).cornerRadius(12)
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
 
-                        MuscleCoverageCard(weekLogs: weekLogs, exercises: allExercises, priorityMuscles: profile?.priorityMuscles ?? [], muscleTiers: profile?.muscleTiers ?? [:], experience: profile?.experience ?? .intermediate)
+                        MuscleCoverageCard(
+                            weekLogs: weekLogs,
+                            exercises: allExercises,
+                            priorityMuscles: profile?.priorityMuscles ?? [],
+                            muscleTiers: profile?.muscleTiers ?? [:],
+                            experience: profile?.experience ?? .intermediate,
+                            onAdjustVolume: { muscle in volumeAdjustMuscle = muscle }
+                        )
 
                         // ── MRV fatigue warnings ──
                         let priorityMuscleNames = (profile?.muscleTiers ?? [:])
@@ -598,6 +617,11 @@ struct HomeView: View {
         .onChange(of: instance?.programId) { _, _ in viewingWeek = instance?.currentWeek ?? 1 }
         .sheet(isPresented: $showWeekHub) {
             if let inst = instance { WeekHubSheet(instance: inst, viewingWeek: $viewingWeek, onDismiss: { showWeekHub = false }) }
+        }
+        .sheet(item: $volumeAdjustMuscle) { muscle in
+            if let inst = instance {
+                VolumeAdjusterSheet(muscle: muscle, instance: inst, profile: profile, week: displayWeek)
+            }
         }
         .sheet(isPresented: $showBlockInfo) {
             BlockInfoSheet(instance: instance, profile: profile)
@@ -1035,7 +1059,7 @@ struct WeekHubSheet: View {
         }
         return result
     }
-    private var exerciseNames: [String: String] { Dictionary(uniqueKeysWithValues: allExercises.map { ($0.exerciseKey, $0.displayName) }) }
+    private var exerciseNames: [String: String] { Dictionary(allExercises.map { ($0.exerciseKey, $0.displayName) }, uniquingKeysWith: { first, _ in first }) }
     private var scheduleMap: [Int: (SessionType, Bool)] {
         var map: [Int: (SessionType, Bool)] = [:]
         // Permanent overrides first
@@ -1520,7 +1544,7 @@ struct SessionDetailEditor: View {
     @State private var deleteTarget: ProgramSessionTemplate? = nil
     @State private var showDeleteConfirm = false
 
-    private var exerciseNames: [String: String] { Dictionary(uniqueKeysWithValues: exercises.map { ($0.exerciseKey, $0.displayName) }) }
+    private var exerciseNames: [String: String] { Dictionary(exercises.map { ($0.exerciseKey, $0.displayName) }, uniquingKeysWith: { first, _ in first }) }
     private func resolvedKey(for t: ProgramSessionTemplate) -> String {
         resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey, overrides: overrides, week: week)
     }
@@ -1853,15 +1877,17 @@ struct MuscleCoverageCard: View {
     let priorityMuscles: [String]
     let muscleTiers: [String: MuscleTier]
     let experience: ExperienceLevel
+    var onAdjustVolume: ((String) -> Void)? = nil
     private let muscles = ExerciseDictionary.trackingMuscles
     @State private var selectedMuscle: String? = nil
 
-    init(weekLogs: [WorkoutLog], exercises: [Exercise], priorityMuscles: [String], muscleTiers: [String: MuscleTier] = [:], experience: ExperienceLevel = .intermediate) {
+    init(weekLogs: [WorkoutLog], exercises: [Exercise], priorityMuscles: [String], muscleTiers: [String: MuscleTier] = [:], experience: ExperienceLevel = .intermediate, onAdjustVolume: ((String) -> Void)? = nil) {
         self.weekLogs = weekLogs
         self.exercises = exercises
         self.priorityMuscles = priorityMuscles
         self.experience = experience
         self.muscleTiers = muscleTiers
+        self.onAdjustVolume = onAdjustVolume
     }
 
     /// Direct sets only (primaryMuscles at 1.0) — used for zone classification and bar display
@@ -2031,7 +2057,10 @@ struct MuscleCoverageCard: View {
                     .background(zone == .optimal ? color.opacity(0.06) : Color.appSurface)
                     .cornerRadius(8)
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(zone == .optimal ? color.opacity(0.3) : Color.appBorder, lineWidth: 1))
-                    .onTapGesture { selectedMuscle = muscle }
+                    .onTapGesture {
+                        if let cb = onAdjustVolume { cb(muscle) }
+                        else { selectedMuscle = muscle }
+                    }
                 }
             }
 

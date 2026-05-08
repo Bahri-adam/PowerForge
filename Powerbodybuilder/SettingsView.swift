@@ -32,6 +32,8 @@ struct SettingsView: View {
     @State private var showExportShare = false
     @State private var exportFileURL: URL? = nil
     @State private var showDayTemplates = false
+    @State private var showResetProgram = false
+    @State private var iCloudStatus: (signedIn: Bool, message: String) = (false, "Checking…")
 
     private func programDef(for programId: Int) -> ProgramDef? {
         if let def = allPrograms.first(where: { $0.id == programId }) { return def }
@@ -391,6 +393,9 @@ struct SettingsView: View {
                                 Divider().background(Color.appBorder).padding(.leading, 46)
                                 displayToggle(icon: "timer", label: "Rest Timer", detail: "Countdown between sets",
                                               isOn: Binding(get: { profile.showRestTimer }, set: { profile.showRestTimer = $0; try? modelContext.save() }))
+                                Divider().background(Color.appBorder).padding(.leading, 46)
+                                displayToggle(icon: "moon.zzz.fill", label: "Skip Deload Weeks", detail: "Replace recovery weeks with normal training",
+                                              isOn: Binding(get: { profile.skipDeloads }, set: { profile.skipDeloads = $0; try? modelContext.save() }))
                             }
                             .appCard()
                         }
@@ -476,8 +481,41 @@ struct SettingsView: View {
                             .appCard()
                         }
 
+                        // RESET PROGRAM
+                        VStack(spacing: 0) {
+                            SectionHeader(title: "RESET PROGRAM")
+                                .padding(.horizontal, 16).padding(.bottom, 10)
+                            Button { showResetProgram = true } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                                        .font(.system(size: 14)).foregroundColor(.appOrange)
+                                        .frame(width: 20)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Reset to Week 1")
+                                            .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
+                                        Text("Clear workout history, keep PRs and lift data")
+                                            .font(.system(size: 11)).foregroundColor(.appTextDim)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12)).foregroundColor(.appTextDim)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 14)
+                            }
+                            .buttonStyle(.plain)
+                            .appCard()
+                        }
+
                         // HOW IT WORKS
                         AlgorithmExplainerSection()
+
+                        // ICLOUD STATUS
+                        VStack(spacing: 0) {
+                            SectionHeader(title: "ICLOUD SYNC")
+                                .padding(.horizontal, 16).padding(.bottom, 10)
+                            iCloudStatusRow
+                                .appCard()
+                        }
 
                         // APP INFO
                         VStack(spacing: 0) {
@@ -543,6 +581,9 @@ struct SettingsView: View {
         .sheet(isPresented: $showLearn) {
             NavigationStack { LearnView() }
         }
+        .sheet(isPresented: $showResetProgram) {
+            ResetProgramSheet(onReset: { resetProgramData() })
+        }
         .fileImporter(isPresented: $showImportPicker, allowedContentTypes: [.json]) { result in
             if case .success(let url) = result {
                 importJSONBackup(from: url)
@@ -562,6 +603,44 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    // ── Reset Program ──────────────────────────────────────────────────
+
+    /// Clears workout logs and program state but preserves PRs, ProgressionState, and StrengthGoals
+    /// so the algorithm still has its memory of best lifts.
+    private func resetProgramData() {
+        guard let inst = activeInstance else { return }
+
+        // Delete non-PR workout logs (keeps manual PRs intact)
+        let logsToDelete = inst.logs.filter { !$0.isManualPR }
+        for log in logsToDelete { modelContext.delete(log) }
+
+        // Delete active workout snapshots
+        for w in inst.workouts { modelContext.delete(w) }
+
+        // Delete schedule overrides
+        for s in inst.schedules { modelContext.delete(s) }
+
+        // Delete session overrides (week-scoped exercise swaps)
+        for o in inst.overrides { modelContext.delete(o) }
+
+        // Reset block + week tracking
+        inst.microcycleIndex = 0
+        inst.blockWeek = 1
+        inst.nextRotationIndex = 0
+        inst.blockType = .accumulation
+        inst.totalBlocksCompleted = 0
+        inst.currentWeekSets = [:]
+        inst.nextWeekSetAdjustments = [:]
+        inst.mrvSignalScores = [:]
+        inst.previousBlockExerciseKeys = []
+        inst.startDate = Date()
+
+        // Note: ProgressionState, StrengthGoals, LandmarkCalibration all preserved
+        // so the algorithm keeps its memory of best lifts and adaptive landmarks
+
+        try? modelContext.save()
     }
 
     // ── CSV Export ─────────────────────────────────────────────────────
@@ -729,6 +808,33 @@ struct SettingsView: View {
         }
 
         try? modelContext.save()
+    }
+
+    private var iCloudStatusRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: iCloudStatus.signedIn ? "icloud.fill" : "icloud.slash.fill")
+                .font(.system(size: 14)).foregroundColor(iCloudStatus.signedIn ? .appGreen : .appOrange)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(iCloudStatus.signedIn ? "Synced to iCloud" : "Not Synced")
+                    .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
+                Text(iCloudStatus.message)
+                    .font(.system(size: 11)).foregroundColor(.appTextDim)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .onAppear { checkICloudStatus() }
+    }
+
+    private func checkICloudStatus() {
+        let token = FileManager.default.ubiquityIdentityToken
+        if token == nil {
+            iCloudStatus = (false, "Sign into iCloud in Settings to enable sync.")
+            return
+        }
+        // Token exists — iCloud is signed in. SwiftData+CloudKit handles the rest.
+        iCloudStatus = (true, "Your data syncs across devices using your iCloud account.")
     }
 
     private func displayToggle(icon: String, label: String, detail: String, isOn: Binding<Bool>) -> some View {
@@ -1588,6 +1694,179 @@ struct EditProfileView: View {
         case .priority: return Color.appGold.opacity(0.4)
         case .neutral: return Color.appBorder
         case .maintenance: return Color.appBlue.opacity(0.3)
+        }
+    }
+}
+
+// ═══════════════════════════════════════════
+// RESET PROGRAM SHEET
+// Two-step destructive confirmation requiring typed phrase
+// ═══════════════════════════════════════════
+
+struct ResetProgramSheet: View {
+    let onReset: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var step: Int = 1
+    @State private var typedConfirmation: String = ""
+    private let confirmationPhrase = "RESET"
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBG.ignoresSafeArea()
+                if step == 1 { explainStep } else { confirmStep }
+            }
+            .navigationTitle("Reset Program")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.appTextSecondary)
+                }
+            }
+        }
+    }
+
+    // ── Step 1: Explain what's reset vs preserved ──
+    private var explainStep: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                ZStack {
+                    Circle().fill(Color.appOrange.opacity(0.1)).frame(width: 80, height: 80)
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                        .font(.system(size: 36)).foregroundColor(.appOrange)
+                }
+                .padding(.top, 16)
+
+                Text("Start Over From Week 1")
+                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .foregroundColor(.appTextPrimary)
+
+                Text("This resets your current program back to a clean slate. Your training history is cleared, but your strength data stays so the algorithm still knows your lifts.")
+                    .font(.system(size: 14)).foregroundColor(.appTextSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+
+                // What's preserved
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.shield.fill").foregroundColor(.appGreen)
+                        Text("PRESERVED").font(.system(size: 11, weight: .black)).foregroundColor(.appGreen).kerning(1)
+                    }
+                    bulletItem(text: "All logged PRs (manually entered)")
+                    bulletItem(text: "Best e1RM and last session weights")
+                    bulletItem(text: "Algorithm's adaptive memory")
+                    bulletItem(text: "Strength goals and targets")
+                    bulletItem(text: "Volume landmark calibration")
+                    bulletItem(text: "Profile and settings")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(Color.appGreen.opacity(0.04)).cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appGreen.opacity(0.2), lineWidth: 1))
+
+                // What's cleared
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "trash.fill").foregroundColor(.appOrange)
+                        Text("CLEARED").font(.system(size: 11, weight: .black)).foregroundColor(.appOrange).kerning(1)
+                    }
+                    bulletItem(text: "All workout logs from sessions", color: .appOrange)
+                    bulletItem(text: "Week and block progress", color: .appOrange)
+                    bulletItem(text: "Schedule customizations", color: .appOrange)
+                    bulletItem(text: "Exercise swaps for the program", color: .appOrange)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(Color.appOrange.opacity(0.04)).cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appOrange.opacity(0.2), lineWidth: 1))
+
+                Button { withAnimation { step = 2 } } label: {
+                    HStack(spacing: 6) {
+                        Text("CONTINUE").font(.system(size: 14, weight: .black)).kerning(1)
+                        Image(systemName: "arrow.right").font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Color.appOrange).cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+            }
+            .padding(20)
+        }
+    }
+
+    // ── Step 2: Type RESET to confirm ──
+    private var confirmStep: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            ZStack {
+                Circle().fill(Color.appRed.opacity(0.1)).frame(width: 80, height: 80)
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 36)).foregroundColor(.appRed)
+            }
+
+            Text("Are You Sure?")
+                .font(.system(size: 22, weight: .black, design: .rounded))
+                .foregroundColor(.appTextPrimary)
+
+            Text("This cannot be undone. All workout logs from your current program will be permanently deleted.")
+                .font(.system(size: 14)).foregroundColor(.appTextSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+
+            VStack(spacing: 8) {
+                Text("Type \(confirmationPhrase) to confirm")
+                    .font(.system(size: 12, weight: .bold)).foregroundColor(.appTextDim)
+                TextField("", text: $typedConfirmation)
+                    .font(.system(size: 18, weight: .black, design: .monospaced))
+                    .foregroundColor(.appTextPrimary)
+                    .multilineTextAlignment(.center)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.characters)
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+                    .background(Color.appSurface2).cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(
+                        typedConfirmation == confirmationPhrase ? Color.appRed : Color.appBorder,
+                        lineWidth: 1.5))
+                    .padding(.horizontal, 20)
+            }
+            .padding(.top, 8)
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                Button {
+                    onReset()
+                    dismiss()
+                } label: {
+                    Text("RESET PROGRAM")
+                        .font(.system(size: 14, weight: .black)).kerning(1)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .background(typedConfirmation == confirmationPhrase ? Color.appRed : Color.appSurface2)
+                        .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+                .disabled(typedConfirmation != confirmationPhrase)
+
+                Button { withAnimation { step = 1; typedConfirmation = "" } } label: {
+                    Text("Go Back")
+                        .font(.system(size: 14, weight: .medium)).foregroundColor(.appTextSecondary)
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20).padding(.bottom, 40)
+        }
+    }
+
+    private func bulletItem(text: String, color: Color = .appGreen) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Circle().fill(color).frame(width: 4, height: 4).padding(.top, 7)
+            Text(text).font(.system(size: 13)).foregroundColor(.appTextSecondary)
         }
     }
 }

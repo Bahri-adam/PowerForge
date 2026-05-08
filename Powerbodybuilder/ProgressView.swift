@@ -37,7 +37,7 @@ struct ProgressView: View {
     }
 
     private var exerciseNames: [String: String] {
-        Dictionary(uniqueKeysWithValues: exercises.map { ($0.exerciseKey, $0.displayName) })
+        Dictionary(exercises.map { ($0.exerciseKey, $0.displayName) }, uniquingKeysWith: { first, _ in first })
     }
 
     private func displayName(for key: String) -> String {

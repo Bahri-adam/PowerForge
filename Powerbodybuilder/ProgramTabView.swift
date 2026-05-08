@@ -31,6 +31,7 @@ struct ProgramTabView: View {
     @State private var showStrengthGoalSheet = false
     @State private var editingGoal: StrengthGoal? = nil
     @State private var editSessionItem: SessionEditorItem? = nil
+    @State private var volumeAdjustMuscle: String? = nil
 
     enum ProgramSection: String, CaseIterable {
         case overview = "Overview"
@@ -98,6 +99,11 @@ struct ProgramTabView: View {
             StrengthGoalCreatorSheet(instance: instance, exercises: allExercises,
                                      allLogs: instance?.logs ?? [])
                 .presentationDetents([.large])
+        }
+        .sheet(item: $volumeAdjustMuscle) { muscle in
+            if let inst = instance {
+                VolumeAdjusterSheet(muscle: muscle, instance: inst, profile: profile, week: inst.currentWeek)
+            }
         }
         .sheet(item: $editingGoal) { goal in
             StrengthGoalEditorSheet(goal: goal)
@@ -281,7 +287,11 @@ struct ProgramTabView: View {
 
             // Volume targets
             VStack(alignment: .leading, spacing: 10) {
-                Text("WEEKLY VOLUME TARGETS").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(2)
+                HStack {
+                    Text("WEEKLY VOLUME TARGETS").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(2)
+                    Spacer()
+                    Text("Tap to adjust").font(.system(size: 9, weight: .bold)).foregroundColor(.appBlue).kerning(0.5)
+                }
 
                 ForEach(ExerciseDictionary.trackingMuscles, id: \.self) { muscle in
                     let tier = profile?.muscleTiers[muscle] ?? .neutral
@@ -293,22 +303,27 @@ struct ProgramTabView: View {
                         muscle: muscle, experience: profile?.experience ?? .intermediate,
                         tier: tier, calorieContext: profile?.calorieContext ?? .surplus)
 
-                    HStack(spacing: 8) {
-                        Text(muscle).font(.system(size: 11, weight: .bold))
-                            .foregroundColor(tier == .priority ? .appGold : (tier == .maintenance ? .appTextDim : .appTextPrimary))
-                            .frame(width: 80, alignment: .leading)
-                        GeometryReader { geo in
-                            let pct = mrv > 0 ? min(CGFloat(target) / CGFloat(mrv), 1.0) : 0
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 3).fill(Color.appSurface2)
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(tier == .priority ? Color.appGold : Color.appGreen)
-                                    .frame(width: geo.size.width * pct)
-                            }
-                        }.frame(height: 8)
-                        Text("\(target)").font(.system(size: 10, weight: .black, design: .rounded))
-                            .foregroundColor(.appTextPrimary).frame(width: 22, alignment: .trailing)
+                    Button { volumeAdjustMuscle = muscle } label: {
+                        HStack(spacing: 8) {
+                            Text(muscle).font(.system(size: 11, weight: .bold))
+                                .foregroundColor(tier == .priority ? .appGold : (tier == .maintenance ? .appTextDim : .appTextPrimary))
+                                .frame(width: 80, alignment: .leading)
+                            GeometryReader { geo in
+                                let pct = mrv > 0 ? min(CGFloat(target) / CGFloat(mrv), 1.0) : 0
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3).fill(Color.appSurface2)
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(tier == .priority ? Color.appGold : Color.appGreen)
+                                        .frame(width: geo.size.width * pct)
+                                }
+                            }.frame(height: 8)
+                            Text("\(target)").font(.system(size: 10, weight: .black, design: .rounded))
+                                .foregroundColor(.appTextPrimary).frame(width: 22, alignment: .trailing)
+                            Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
+                        }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(14).background(Color.appSurface).cornerRadius(12)

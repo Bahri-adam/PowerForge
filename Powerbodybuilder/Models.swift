@@ -562,6 +562,7 @@ class UserProfile {
     var showRPE: Bool = true
     var showRepRange: Bool = true
     var showRestTimer: Bool = true
+    var skipDeloads: Bool = false
 
     var goal: GoalType {
         get { GoalType(rawValue: goalRaw) ?? GoalType.migrate(from: goalRaw) }
@@ -1171,6 +1172,12 @@ class SessionOverride {
     var reason: String
     var isAddition: Bool
     var createdAt: Date
+    // Fields used when isAddition=true to prescribe the added exercise
+    var addedSets: Int = 3
+    var addedRepsLow: Int = 8
+    var addedRepsHigh: Int = 12
+    var addedRPE: Double = 8.0
+    var addedRest: Int = 90
 
     var programInstance: UserProgramInstance?
 
