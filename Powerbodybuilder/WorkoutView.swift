@@ -58,10 +58,12 @@ func sessionRotation(for programId: Int, templates: [ProgramTemplate] = [],
             daysPerWeek: p.daysPerWeek, goal: p.goal, priorityMuscles: p.priorityMuscles)
         return split.filter { $0.sessionType != .rest }.map { $0.sessionType }
     }
-    if programId >= 100 {
-        if let tmpl = templates.first(where: { $0.programId == programId }) {
-            return tmpl.sessionTypes
-        }
+    // For any unrecognized programId, fall back to its ProgramTemplate.sessionTypes
+    // if one exists. Protects custom programs that ended up with non-standard IDs
+    // (e.g., V2 builder used to allocate pid in the 8..<100 range when only built-in
+    // templates existed).
+    if let tmpl = templates.first(where: { $0.programId == programId }) {
+        return tmpl.sessionTypes
     }
     return [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]
 }

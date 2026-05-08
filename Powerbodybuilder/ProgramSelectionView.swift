@@ -20,6 +20,7 @@ struct ProgramSelectionView: View {
     @State private var selectedId: Int
     @State private var showDetail: ProgramDef? = nil
     @State private var showGeneratedPreview = false
+    @State private var pendingDelete: ProgramDef? = nil
 
     init(recommendedId: Int, onComplete: (() -> Void)? = nil) {
         self.recommendedId = recommendedId
@@ -82,8 +83,10 @@ struct ProgramSelectionView: View {
                                 program: program,
                                 isRecommended: program.id == recommendedId,
                                 isSelected: program.id == selectedId,
+                                isDeletable: program.id >= 100,
                                 onSelect: { selectedId = program.id },
-                                onDetail: { showDetail = program }
+                                onDetail: { showDetail = program },
+                                onDelete: { pendingDelete = program }
                             )
                         }
                         
@@ -112,6 +115,18 @@ struct ProgramSelectionView: View {
         }
         .sheet(item: $showDetail) { program in
             ProgramDetailView(program: program)
+        }
+        .alert("Delete \(pendingDelete?.name ?? "Program")?",
+               isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } })) {
+            Button("Cancel", role: .cancel) { pendingDelete = nil }
+            Button("Delete", role: .destructive) {
+                if let p = pendingDelete { deleteCustomProgram(p) }
+                pendingDelete = nil
+            }
+        } message: {
+            Text("This permanently removes the program template, exercises, and any logged workouts under it. This cannot be undone.")
         }
         .fullScreenCover(isPresented: $showGeneratedPreview) {
             NavigationStack {
@@ -261,16 +276,49 @@ struct ProgramSelectionView: View {
         dismiss()
     }
 
+    /// Cascade-delete a custom program: ProgramTemplate, ProgramSessionTemplates,
+    /// UserProgramInstances (with their cascaded children — logs, schedules,
+    /// overrides, progression states, strength goals), and UserPrograms for the
+    /// matching pid. Updates the runtime customPrograms list. Won't accept
+    /// built-in pids (< 100).
+    func deleteCustomProgram(_ program: ProgramDef) {
+        guard program.id >= 100 else { return }
+        let pid = program.id
+
+        for tmpl in allProgramTemplates where tmpl.programId == pid {
+            modelContext.delete(tmpl)
+        }
+        for st in allSessionTemplates where st.programId == pid {
+            modelContext.delete(st)
+        }
+        for inst in allInstances where inst.programId == pid {
+            modelContext.delete(inst)
+        }
+        for up in allUserPrograms where up.programId == pid {
+            modelContext.delete(up)
+        }
+
+        try? modelContext.save()
+        customPrograms.removeAll { $0.id == pid }
+
+        // If the deleted program was the active selection, fall back to a built-in
+        if selectedId == pid {
+            selectedId = recommendedId
+        }
+    }
+
     // ═══════════════════════════════════════════
     // PROGRAM CARD
     // ═══════════════════════════════════════════
-    
+
     struct ProgramCard: View {
         let program: ProgramDef
         let isRecommended: Bool
         let isSelected: Bool
+        var isDeletable: Bool = false
         let onSelect: () -> Void
         let onDetail: () -> Void
+        var onDelete: (() -> Void)? = nil
         
         var body: some View {
             Button(action: onSelect) {
@@ -353,9 +401,22 @@ struct ProgramSelectionView: View {
                                 .background(program.accentColor.opacity(0.1))
                                 .cornerRadius(6)
                         }
-                        
+
                         Spacer()
-                        
+
+                        if isDeletable, let onDelete {
+                            Button(action: onDelete) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.appRed)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color.appRed.opacity(0.08))
+                                    .cornerRadius(6)
+                                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.appRed.opacity(0.2), lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                        }
+
                         Button(action: onDetail) {
                             HStack(spacing: 4) {
                                 Text("Details")

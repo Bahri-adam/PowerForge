@@ -31,7 +31,9 @@ struct ProgramConfiguratorSheet: View {
         case importSession = "Import"
     }
 
-    /// Base rotation for the program (no overrides)
+    /// Base rotation for the program (no overrides). Honors custom programs by
+    /// reading from ProgramTemplate.sessionTypes when the programId isn't a
+    /// hardcoded built-in.
     private var baseRotation: [SessionType] {
         switch instance.programId {
         case 2: return [.pushA, .pullA, .legsA, .pushB, .pullB, .legsB]
@@ -42,8 +44,10 @@ struct ProgramConfiguratorSheet: View {
                     daysPerWeek: p.daysPerWeek, goal: p.goal, priorityMuscles: p.priorityMuscles)
                     .filter { $0.sessionType != .rest }.map { $0.sessionType }
             }
-            if instance.programId <= 10 {
-                return [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]
+            // Custom programs (and any pid with a matching template) read their
+            // own session types from the persisted ProgramTemplate.
+            if let tmpl = programTemplates.first(where: { $0.programId == instance.programId }) {
+                return tmpl.sessionTypes
             }
             return [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]
         }

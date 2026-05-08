@@ -76,10 +76,10 @@ struct HomeView: View {
             return split.filter { $0.sessionType != .rest }.map { $0.sessionType }
         }
 
-        if programId >= 100 {
-            if let tmpl = programTemplates.first(where: { $0.programId == programId }) {
-                return tmpl.sessionTypes
-            }
+        // Any unrecognized programId: try the matching ProgramTemplate first.
+        // Catches custom programs created with non-standard IDs.
+        if let tmpl = programTemplates.first(where: { $0.programId == programId }) {
+            return tmpl.sessionTypes
         }
         return [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]
     }
@@ -1042,7 +1042,7 @@ struct WeekHubSheet: View {
         if pid == 0 { return [.freeform] }
         if pid == 2 { return [.pushA, .pullA, .legsA, .pushB, .pullB, .legsB] }
         if pid == 7 { return [.legQuadFocus, .chestBack, .armsDelts, .legsPosterior, .chestArms, .legsVolume] }
-        if pid >= 100, let tmpl = programTemplates.first(where: { $0.programId == pid }) { return tmpl.sessionTypes }
+        if let tmpl = programTemplates.first(where: { $0.programId == pid }) { return tmpl.sessionTypes }
         return [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]
     }
     private var sessionsForWeek: [(SessionType, [ProgramSessionTemplate])] {
@@ -1886,6 +1886,7 @@ struct MuscleCoverageCard: View {
     var displayWeek: Int = 1
     var targetOverrides: [String: Int] = [:]
     var onAdjustVolume: ((String) -> Void)? = nil
+    @Query private var programTemplates: [ProgramTemplate]
     private let muscles = ExerciseDictionary.trackingMuscles
     @State private var selectedMuscle: String? = nil
 
@@ -1909,7 +1910,8 @@ struct MuscleCoverageCard: View {
         guard let inst = instance else { return [:] }
         var result: [String: Int] = [:]
         let activeSessions = activeSessionsForWeek(
-            programId: inst.programId, instance: inst, profile: nil, week: displayWeek)
+            programId: inst.programId, instance: inst, profile: nil, week: displayWeek,
+            templates: programTemplates)
         // Templates for this week, restricted to sessions still on the schedule
         let weekTemplates = allTemplates.filter {
             $0.programId == inst.programId && $0.week == displayWeek &&

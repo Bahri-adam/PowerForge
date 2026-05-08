@@ -42,8 +42,48 @@ struct ContentView: View {
             StrengthSeeder.seedIfNeeded(context: modelContext)
             BeginnerSeeder.seedIfNeeded(context: modelContext)
             MinimalistSeeder.seedIfNeeded(context: modelContext)
+            migrateBrokenCustomProgramsIfNeeded(context: modelContext)
             loadCustomPrograms()
         }
+    }
+
+    /// One-time migration: an earlier V2 builder bug allocated custom-program IDs
+    /// in the 8..<100 range when only built-in templates existed. Those IDs fall
+    /// through sessionRotation's switch and get rendered as heavyUpper/Lower with
+    /// 0 templates. Rewrites them to fresh pids >= 100 across ProgramTemplate,
+    /// ProgramSessionTemplate, UserProgramInstance, and UserProgram.
+    private func migrateBrokenCustomProgramsIfNeeded(context: ModelContext) {
+        let flag = "ProgramMigrations.brokenCustomPrograms.v1"
+        if UserDefaults.standard.bool(forKey: flag) { return }
+
+        let knownBuiltIn: Set<Int> = [0, 1, 2, 3, 4, 5, 6, 7]
+        let allTemplates = (try? context.fetch(FetchDescriptor<ProgramTemplate>())) ?? []
+        let broken = allTemplates.filter { !knownBuiltIn.contains($0.programId) && $0.programId < 100 }
+        guard !broken.isEmpty else {
+            UserDefaults.standard.set(true, forKey: flag)
+            return
+        }
+
+        let sessionTemplates = (try? context.fetch(FetchDescriptor<ProgramSessionTemplate>())) ?? []
+        let instances = (try? context.fetch(FetchDescriptor<UserProgramInstance>())) ?? []
+        let userPrograms = (try? context.fetch(FetchDescriptor<UserProgram>())) ?? []
+
+        var nextId = max(100, (allTemplates.map { $0.programId }.max() ?? 99) + 1)
+
+        for tmpl in broken {
+            let oldId = tmpl.programId
+            let newId = nextId
+            nextId += 1
+
+            tmpl.programId = newId
+            for st in sessionTemplates where st.programId == oldId { st.programId = newId }
+            for inst in instances where inst.programId == oldId { inst.programId = newId }
+            for up in userPrograms where up.programId == oldId { up.programId = newId }
+        }
+
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: flag)
+        print("[ProgramMigrations] Migrated \(broken.count) broken custom program(s) to pid >= 100")
     }
 
     private func loadCustomPrograms() {

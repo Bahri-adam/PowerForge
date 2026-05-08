@@ -19,6 +19,7 @@ struct ProgramBuilderV2View: View {
     @State private var didSeed = false
     @State private var showExercisePicker = false
     @State private var addingToSessionIndex: Int = 0
+    @State private var editingExerciseLocation: ExerciseLocation? = nil
 
     private var profile: UserProfile? { profiles.first }
 
@@ -51,6 +52,15 @@ struct ProgramBuilderV2View: View {
         .onAppear { seedIfNeeded() }
         .sheet(isPresented: $showExercisePicker) {
             exercisePickerSheet
+        }
+        .sheet(item: $editingExerciseLocation) { loc in
+            if loc.sessionIdx < state.sessions.count,
+               loc.exIdx < state.sessions[loc.sessionIdx].exercises.count {
+                EditExerciseV2Sheet(
+                    exercise: $state.sessions[loc.sessionIdx].exercises[loc.exIdx],
+                    onMarkModified: { state.sessions[loc.sessionIdx].isUserModified = true }
+                )
+            }
         }
     }
 
@@ -310,35 +320,51 @@ struct ProgramBuilderV2View: View {
     private func exerciseCard(_ ex: BuilderExerciseV2, sessionIdx: Int, exIdx: Int) -> some View {
         let tierColor: Color = ex.tier == .tier1 ? .appRed : (ex.tier == .tier2 ? .appBlue : .appGreen)
         let tierLabel = ex.tier == .tier1 ? "T1" : (ex.tier == .tier2 ? "T2" : "T3")
+        let restLabel = ex.restSeconds >= 60
+            ? "\(ex.restSeconds/60):\(String(format: "%02d", ex.restSeconds%60))"
+            : "\(ex.restSeconds)s"
+        let rpeLabel = ex.targetRPE > 0 ? " · RPE \(String(format: "%.1f", ex.targetRPE))" : ""
 
-        return VStack(spacing: 0) {
+        return Button {
+            editingExerciseLocation = ExerciseLocation(sessionIdx: sessionIdx, exIdx: exIdx)
+        } label: {
             HStack(spacing: 8) {
                 Text(tierLabel).font(.system(size: 9, weight: .black)).foregroundColor(tierColor).frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(ex.displayName).font(.system(size: 13, weight: .bold)).foregroundColor(.appTextPrimary).lineLimit(1)
-                    Text("\(ex.targetSets) × \(ex.targetRepsLow)-\(ex.targetRepsHigh) · Rest \(ex.restSeconds/60):\(String(format: "%02d", ex.restSeconds%60))")
+                    Text("\(ex.targetSets) × \(ex.targetRepsLow)-\(ex.targetRepsHigh) · Rest \(restLabel)\(rpeLabel)")
                         .font(.system(size: 10)).foregroundColor(.appTextDim)
+                        .lineLimit(1)
                 }
                 Spacer()
-                // Edit params inline
-                Menu {
-                    ForEach([2,3,4,5], id: \.self) { s in
-                        Button("\(s) sets") { state.sessions[sessionIdx].exercises[exIdx].targetSets = s; state.sessions[sessionIdx].isUserModified = true }
-                    }
-                    Divider()
-                    Button("Remove", role: .destructive) {
-                        state.sessions[sessionIdx].exercises.remove(at: exIdx)
-                        state.sessions[sessionIdx].isUserModified = true
-                    }
+                Image(systemName: "pencil.circle")
+                    .font(.system(size: 16)).foregroundColor(.appBlue)
+                Button {
+                    state.sessions[sessionIdx].exercises.remove(at: exIdx)
+                    state.sessions[sessionIdx].isUserModified = true
                 } label: {
-                    Image(systemName: "ellipsis").font(.system(size: 14)).foregroundColor(.appTextDim)
-                        .frame(width: 36, height: 36).contentShape(Rectangle()).background(Color.appSurface2).cornerRadius(8)
+                    Image(systemName: "trash")
+                        .font(.system(size: 12)).foregroundColor(.appRed)
+                        .frame(width: 30, height: 30)
+                        .contentShape(Rectangle())
+                        .background(Color.appSurface2).cornerRadius(7)
                 }
+                .buttonStyle(.plain)
             }
             .padding(10)
+            .background(Color.appSurface).cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
+            .contentShape(Rectangle())
         }
-        .background(Color.appSurface).cornerRadius(8)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
+        .buttonStyle(.plain)
+    }
+
+    /// Identifies a single exercise within the program builder state.
+    /// Used to drive the edit sheet's binding.
+    struct ExerciseLocation: Identifiable, Hashable {
+        let sessionIdx: Int
+        let exIdx: Int
+        var id: String { "\(sessionIdx)-\(exIdx)" }
     }
 
     // ═══════════════════════════════════════
@@ -660,7 +686,10 @@ struct ProgramBuilderV2View: View {
     private func createProgram() {
         guard !state.sessions.isEmpty else { return }
 
-        let pid = (existingTemplates.map { $0.programId }.max() ?? 99) + 1
+        // Custom programs MUST be >= 100 — sessionRotation treats lower IDs as
+        // built-in slots and falls back to heavyUpper/Lower if no built-in matches,
+        // hiding the user's actual session types. Floor at 100.
+        let pid = max(100, (existingTemplates.map { $0.programId }.max() ?? 99) + 1)
         let name = state.programName.isEmpty ? "Custom Program" : state.programName
 
         // Create ProgramTemplate
@@ -721,6 +750,29 @@ struct ProgramBuilderV2View: View {
         modelContext.insert(up)
 
         try? modelContext.save()
+
+        // Add to runtime customPrograms list so it appears in ProgramSelectionView
+        // immediately, without needing to relaunch the app.
+        let def = ProgramDef(
+            id: pid,
+            name: name.uppercased(),
+            subtitle: "Custom \(state.sessions.count)-Day Program",
+            description: "Custom \(state.sessions.count)-day program with auto-periodized progression.",
+            days: "\(state.sessions.count) days/week",
+            sessionLength: "60–90 min",
+            split: state.sessions.map { $0.sessionType.shortLabel }.joined(separator: " / "),
+            difficulty: "Custom",
+            icon: "hammer.fill",
+            accentColor: .appRed,
+            tags: ["Custom", "\(state.sessions.count)-Day"],
+            repRanges: "Varies",
+            volumePerMuscle: "Varies",
+            whoItsFor: "Custom built.",
+            days_per_week_range: state.sessions.count...state.sessions.count
+        )
+        if !customPrograms.contains(where: { $0.id == pid }) {
+            customPrograms.append(def)
+        }
         dismiss()
     }
 
@@ -745,5 +797,220 @@ struct ProgramBuilderV2View: View {
                 .background(Color.appBlue.opacity(0.06)).cornerRadius(6)
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.appBlue.opacity(0.15), lineWidth: 1))
         }.buttonStyle(.plain)
+    }
+}
+
+// ═══════════════════════════════════════════
+// EDIT EXERCISE SHEET
+// Allows full editing of an exercise's training params: sets, rep range,
+// RPE, and rest time. Bound directly to the BuilderExerciseV2 in builder state.
+// ═══════════════════════════════════════════
+
+struct EditExerciseV2Sheet: View {
+    @Binding var exercise: BuilderExerciseV2
+    let onMarkModified: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBG.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 14) {
+                        // Header card with name + tier
+                        VStack(spacing: 6) {
+                            Text(exercise.displayName)
+                                .font(.system(size: 17, weight: .black, design: .rounded))
+                                .foregroundColor(.appTextPrimary)
+                                .multilineTextAlignment(.center)
+                            Text(tierLabel)
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(tierColor)
+                                .kerning(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(16)
+                        .background(Color.appSurface).cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+
+                        // Sets
+                        editorRow(label: "SETS", value: "\(exercise.targetSets)", color: .appRed) {
+                            HStack(spacing: 8) {
+                                stepperButton(symbol: "minus") {
+                                    if exercise.targetSets > 1 {
+                                        exercise.targetSets -= 1; onMarkModified()
+                                    }
+                                }
+                                stepperButton(symbol: "plus") {
+                                    if exercise.targetSets < 10 {
+                                        exercise.targetSets += 1; onMarkModified()
+                                    }
+                                }
+                            }
+                        }
+
+                        // Rep range
+                        VStack(spacing: 8) {
+                            HStack {
+                                Text("REP RANGE").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
+                                Spacer()
+                                Text("\(exercise.targetRepsLow)–\(exercise.targetRepsHigh)")
+                                    .font(.system(size: 16, weight: .black, design: .rounded))
+                                    .foregroundColor(.appTextPrimary)
+                            }
+                            HStack(spacing: 8) {
+                                Text("Low").font(.system(size: 11, weight: .medium)).foregroundColor(.appTextDim).frame(width: 32, alignment: .leading)
+                                stepperButton(symbol: "minus") {
+                                    if exercise.targetRepsLow > 1 {
+                                        exercise.targetRepsLow -= 1
+                                        if exercise.targetRepsHigh < exercise.targetRepsLow {
+                                            exercise.targetRepsHigh = exercise.targetRepsLow
+                                        }
+                                        onMarkModified()
+                                    }
+                                }
+                                Text("\(exercise.targetRepsLow)")
+                                    .font(.system(size: 14, weight: .black, design: .rounded))
+                                    .foregroundColor(.appTextPrimary)
+                                    .frame(minWidth: 28)
+                                stepperButton(symbol: "plus") {
+                                    if exercise.targetRepsLow < 30 {
+                                        exercise.targetRepsLow += 1
+                                        if exercise.targetRepsHigh < exercise.targetRepsLow {
+                                            exercise.targetRepsHigh = exercise.targetRepsLow
+                                        }
+                                        onMarkModified()
+                                    }
+                                }
+                                Spacer()
+                            }
+                            HStack(spacing: 8) {
+                                Text("High").font(.system(size: 11, weight: .medium)).foregroundColor(.appTextDim).frame(width: 32, alignment: .leading)
+                                stepperButton(symbol: "minus") {
+                                    if exercise.targetRepsHigh > exercise.targetRepsLow {
+                                        exercise.targetRepsHigh -= 1; onMarkModified()
+                                    }
+                                }
+                                Text("\(exercise.targetRepsHigh)")
+                                    .font(.system(size: 14, weight: .black, design: .rounded))
+                                    .foregroundColor(.appTextPrimary)
+                                    .frame(minWidth: 28)
+                                stepperButton(symbol: "plus") {
+                                    if exercise.targetRepsHigh < 30 {
+                                        exercise.targetRepsHigh += 1; onMarkModified()
+                                    }
+                                }
+                                Spacer()
+                            }
+                        }
+                        .padding(14)
+                        .background(Color.appSurface).cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+
+                        // RPE
+                        editorRow(label: "TARGET RPE",
+                                  value: String(format: "%.1f", exercise.targetRPE),
+                                  color: .appBlue) {
+                            HStack(spacing: 8) {
+                                stepperButton(symbol: "minus") {
+                                    if exercise.targetRPE > 5.0 {
+                                        exercise.targetRPE = max(5.0, exercise.targetRPE - 0.5)
+                                        onMarkModified()
+                                    }
+                                }
+                                stepperButton(symbol: "plus") {
+                                    if exercise.targetRPE < 10.0 {
+                                        exercise.targetRPE = min(10.0, exercise.targetRPE + 0.5)
+                                        onMarkModified()
+                                    }
+                                }
+                            }
+                        }
+
+                        // Rest
+                        editorRow(label: "REST",
+                                  value: restDisplay,
+                                  color: .appGreen) {
+                            HStack(spacing: 8) {
+                                stepperButton(symbol: "minus") {
+                                    if exercise.restSeconds > 30 {
+                                        exercise.restSeconds = max(30, exercise.restSeconds - 15)
+                                        onMarkModified()
+                                    }
+                                }
+                                stepperButton(symbol: "plus") {
+                                    if exercise.restSeconds < 600 {
+                                        exercise.restSeconds = min(600, exercise.restSeconds + 15)
+                                        onMarkModified()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Edit Exercise")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.appRed)
+                }
+            }
+        }
+    }
+
+    private var tierColor: Color {
+        switch exercise.tier {
+        case .tier1: return .appRed
+        case .tier2: return .appBlue
+        case .tier3: return .appGreen
+        }
+    }
+
+    private var tierLabel: String {
+        switch exercise.tier {
+        case .tier1: return "TIER 1 · MAIN LIFT"
+        case .tier2: return "TIER 2 · SUPPLEMENTAL"
+        case .tier3: return "TIER 3 · ACCESSORY"
+        }
+    }
+
+    private var restDisplay: String {
+        if exercise.restSeconds >= 60 {
+            let m = exercise.restSeconds / 60
+            let s = exercise.restSeconds % 60
+            return s == 0 ? "\(m):00" : "\(m):\(String(format: "%02d", s))"
+        }
+        return "\(exercise.restSeconds)s"
+    }
+
+    @ViewBuilder
+    private func editorRow<Content: View>(label: String, value: String, color: Color, @ViewBuilder controls: () -> Content) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label).font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
+                Text(value)
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundColor(color)
+            }
+            Spacer()
+            controls()
+        }
+        .padding(14)
+        .background(Color.appSurface).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+    }
+
+    private func stepperButton(symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "\(symbol).circle.fill")
+                .font(.system(size: 30))
+                .foregroundColor(symbol == "minus" ? .appRed : .appGreen)
+        }
+        .buttonStyle(.plain)
     }
 }
