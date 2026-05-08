@@ -37,6 +37,7 @@ struct ContentView: View {
             ProgramSeeder.seedPowerbuildingProgram(context: modelContext)
             PPLSeeder.seedPPLProgram(context: modelContext)
             BahriSplitSeeder.seedIfNeeded(context: modelContext)
+            BahriSplitSeeder.migrateLegacyKeysIfNeeded(context: modelContext)
             AthleticSeeder.seedIfNeeded(context: modelContext)
             StrengthSeeder.seedIfNeeded(context: modelContext)
             BeginnerSeeder.seedIfNeeded(context: modelContext)

@@ -563,6 +563,9 @@ class UserProfile {
     var showRepRange: Bool = true
     var showRestTimer: Bool = true
     var skipDeloads: Bool = false
+    /// JSON [String: Int] — custom per-muscle weekly target sets that override
+    /// the tier-derived default. Empty/missing = use the tier-derived default.
+    var muscleTargetOverridesData: Data = Data()
 
     var goal: GoalType {
         get { GoalType(rawValue: goalRaw) ?? GoalType.migrate(from: goalRaw) }
@@ -622,6 +625,32 @@ class UserProfile {
 
     func tier(for muscle: String) -> MuscleTier {
         muscleTiers[muscle] ?? .neutral
+    }
+
+    /// Custom per-muscle weekly set targets. Stored as JSON [muscle: sets].
+    /// nil/missing entry means "use tier-derived default."
+    var muscleTargetOverrides: [String: Int] {
+        get {
+            guard !muscleTargetOverridesData.isEmpty,
+                  let raw = try? JSONDecoder().decode([String: Int].self,
+                                                      from: muscleTargetOverridesData) else {
+                return [:]
+            }
+            return raw
+        }
+        set {
+            muscleTargetOverridesData = (try? JSONEncoder().encode(newValue)) ?? Data()
+        }
+    }
+
+    /// The user's effective weekly target for a muscle: custom override if set,
+    /// otherwise the tier-derived MAVHigh default. Used as the "target" line
+    /// in volume bars and as the optimal-zone ceiling in zone classification.
+    func effectiveTarget(for muscle: String) -> Int {
+        if let custom = muscleTargetOverrides[muscle], custom > 0 { return custom }
+        let t = tier(for: muscle)
+        let base = VolumeLandmark.defaults[muscle] ?? VolumeLandmark(mev: 4, mavLow: 8, mavHigh: 12, mrv: 18)
+        return Int(round(Double(base.mavHigh) * t.multiplier))
     }
 
     init(
@@ -1178,6 +1207,12 @@ class SessionOverride {
     var addedRepsHigh: Int = 12
     var addedRPE: Double = 8.0
     var addedRest: Int = 90
+
+    /// Adjusts the targetSets of an existing template slot for the scoped weeks.
+    /// Negative reduces, positive augments. Zero = no adjustment (default).
+    /// Used by VolumeAdjusterSheet for per-slot decrease/increase without
+    /// replacing the exercise.
+    var setCountDelta: Int = 0
 
     var programInstance: UserProgramInstance?
 

@@ -66,6 +66,49 @@ func sessionRotation(for programId: Int, templates: [ProgramTemplate] = [],
     return [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]
 }
 
+/// Returns the set of session types actually active in the given week, honoring
+/// schedule overrides (removed sessions, replaced sessions, added sessions).
+/// Mirrors ProgramConfiguratorSheet.currentRotation logic so volume math agrees
+/// with what the user sees in Configure Program.
+func activeSessionsForWeek(programId: Int,
+                           instance: UserProgramInstance,
+                           profile: UserProfile?,
+                           week: Int,
+                           templates: [ProgramTemplate] = []) -> Set<SessionType> {
+    let base = sessionRotation(for: programId, templates: templates,
+                               instance: instance, profile: profile)
+    let workDays: [Int] = base.count >= 6 ? [1,2,3,4,6,7] :
+        base.count == 5 ? [1,2,3,5,6] :
+        base.count == 4 ? [1,2,4,5] :
+        base.count == 3 ? [1,3,5] : [1,4]
+
+    var active: Set<SessionType> = []
+    for (i, st) in base.enumerated() {
+        guard i < workDays.count else { continue }
+        let dow = workDays[i] == 7 ? 0 : workDays[i]
+
+        let weekOverride = instance.schedules.first(where: { s in
+            s.dayOfWeek == dow && !s.isPermanent && s.week == week
+        })
+        let permOverride = instance.schedules.first(where: { s in
+            s.dayOfWeek == dow && s.isPermanent
+        })
+        if let override = weekOverride ?? permOverride {
+            if override.isRestDay { continue }
+            active.insert(override.sessionType)
+        } else {
+            active.insert(st)
+        }
+    }
+
+    let usedDows = Set(workDays.prefix(base.count).map { $0 == 7 ? 0 : $0 })
+    for s in instance.schedules where !s.isRestDay && (s.isPermanent || s.week == week) && !usedDows.contains(s.dayOfWeek) {
+        active.insert(s.sessionType)
+    }
+
+    return active
+}
+
 // ═══════════════════════════════════════════
 // WORKOUT COMPLETION SUMMARY
 // ═══════════════════════════════════════════

@@ -199,23 +199,38 @@ struct ProgramTabView: View {
     }
 
     /// Programmed sets for a given muscle in the current week (matches VolumeAdjusterSheet).
+    /// Filters out templates whose session has been removed via Configure Program.
     private func programmedSetsForMuscle(_ muscle: String) -> Int {
         guard let inst = instance else { return 0 }
         let week = inst.currentWeek
         var total = 0
-        let templates = allSessionTemplates.filter { $0.programId == inst.programId && $0.week == week }
+        let activeSessions = activeSessionsForWeek(
+            programId: inst.programId, instance: inst, profile: profile, week: week,
+            templates: programTemplates)
+        let templates = allSessionTemplates.filter {
+            $0.programId == inst.programId && $0.week == week &&
+            activeSessions.contains($0.sessionType)
+        }
         for t in templates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
                                          overrides: inst.overrides, week: week)
-            if let def = ExerciseDictionary.all[key] {
-                if def.primaryMuscles.contains(where: { ExerciseDictionary.normalizeMuscle($0) == muscle }) {
-                    total += t.targetSets
+            let targets: Bool = {
+                if let def = ExerciseDictionary.all[key] {
+                    return def.primaryMuscles.contains { ExerciseDictionary.normalizeMuscle($0) == muscle }
                 }
-            } else if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
-                if ex.musclesPrimary.contains(where: { ExerciseDictionary.normalizeMuscle($0) == muscle }) {
-                    total += t.targetSets
+                if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
+                    return ex.musclesPrimary.contains { ExerciseDictionary.normalizeMuscle($0) == muscle }
                 }
-            }
+                return false
+            }()
+            guard targets else { continue }
+            let delta = inst.overrides
+                .filter { ov in
+                    ov.targetSlotId == t.slotId && ov.sessionType == t.sessionType &&
+                    ov.setCountDelta != 0 && !ov.isAddition && ov.appliesTo(week: week)
+                }
+                .reduce(0) { $0 + $1.setCountDelta }
+            total += max(0, t.targetSets + delta)
         }
         for ov in inst.overrides where ov.isAddition && ov.appliesTo(week: week) {
             let key = ov.replacementExerciseKey
@@ -329,10 +344,12 @@ struct ProgramTabView: View {
 
                 ForEach(ExerciseDictionary.trackingMuscles, id: \.self) { muscle in
                     let tier = profile?.muscleTiers[muscle] ?? .neutral
-                    let target = ProgramGenerator.resolveWeeklySetTarget(
+                    let autoTarget = ProgramGenerator.resolveWeeklySetTarget(
                         muscle: muscle, week: instance?.currentWeek ?? 1, blockType: instance?.blockType ?? .accumulation,
                         muscleTier: tier, experience: profile?.experience ?? .intermediate,
                         calorieContext: profile?.calorieContext ?? .surplus, calibration: nil)
+                    // Honor user's custom target override, fallback to auto-computed
+                    let target = profile?.muscleTargetOverrides[muscle].flatMap { $0 > 0 ? $0 : nil } ?? autoTarget
                     let mrv = VolumeLandmark.effectiveMRV(
                         muscle: muscle, experience: profile?.experience ?? .intermediate,
                         tier: tier, calorieContext: profile?.calorieContext ?? .surplus)

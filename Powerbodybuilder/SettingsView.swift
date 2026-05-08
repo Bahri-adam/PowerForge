@@ -1363,6 +1363,8 @@ struct EditProfileView: View {
     @State private var daysPerWeek: Int = 4
     @State private var priorityMuscles: Set<String> = []
     @State private var muscleTierSelections: [String: MuscleTier] = [:]
+    @State private var muscleTargetOverrides: [String: Int] = [:]
+    @State private var editingTargetMuscle: String? = nil
 
     let goals = GoalType.allCases
     let experiences = ["Beginner", "Intermediate", "Advanced"]
@@ -1547,44 +1549,11 @@ struct EditProfileView: View {
                             .padding(.horizontal, 4)
 
                             ForEach(muscles, id: \.self) { muscle in
-                                let currentTier = muscleTierSelections[muscle] ?? .neutral
-                                Button(action: {
-                                    let next = cycleTier(muscle, current: currentTier,
-                                                         priorityCount: priorityCount,
-                                                         priorityCap: priorityCap)
-                                    if next == .neutral {
-                                        muscleTierSelections.removeValue(forKey: muscle)
-                                    } else {
-                                        muscleTierSelections[muscle] = next
-                                    }
-                                }) {
-                                    HStack(spacing: 10) {
-                                        tierBadge(currentTier)
-                                        VStack(alignment: .leading, spacing: 1) {
-                                            Text(muscle)
-                                                .font(.system(size: 14, weight: .bold))
-                                                .foregroundColor(tierTextColor(currentTier))
-                                            if currentTier == .maintenance {
-                                                Text("Frees recovery for priorities")
-                                                    .font(.system(size: 10))
-                                                    .foregroundColor(.appTextDim)
-                                            }
-                                        }
-                                        Spacer()
-                                        Text(tierLabel(currentTier))
-                                            .font(.system(size: 9, weight: .black))
-                                            .foregroundColor(tierTextColor(currentTier).opacity(0.7))
-                                            .kerning(0.5)
-                                    }
-                                    .padding(14)
-                                    .background(tierBGColor(currentTier))
-                                    .cornerRadius(10)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(tierBorderColor(currentTier), lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
+                                muscleRow(
+                                    muscle: muscle,
+                                    priorityCount: priorityCount,
+                                    priorityCap: priorityCap
+                                )
                             }
 
                             if priorityCount >= priorityCap {
@@ -1603,8 +1572,31 @@ struct EditProfileView: View {
         .onAppear {
             loadCurrentValues()
         }
+        .sheet(item: Binding(
+            get: { editingTargetMuscle.map(MuscleEdit.init) },
+            set: { editingTargetMuscle = $0?.name }
+        )) { edit in
+            NumericInputSheet(
+                title: edit.name,
+                subtitle: "Set your weekly target sets for \(edit.name).",
+                initialValue: muscleTargetOverrides[edit.name] ?? autoDefaultTarget(for: edit.name),
+                suggestionLow: suggestedLowerLimit(for: edit.name),
+                suggestionHigh: suggestedUpperLimit(for: edit.name),
+                onSave: { value in
+                    setTargetOverride(muscle: edit.name, value: value,
+                                      autoDefault: autoDefaultTarget(for: edit.name))
+                }
+            )
+            .presentationDetents([.medium])
+        }
     }
-    
+
+    /// Identifiable wrapper so sheet(item:) can drive the muscle target editor.
+    private struct MuscleEdit: Identifiable {
+        let name: String
+        var id: String { name }
+    }
+
     func loadCurrentValues() {
         guard let profile = profile else { return }
         name = profile.name
@@ -1616,6 +1608,7 @@ struct EditProfileView: View {
         daysPerWeek = profile.daysPerWeek
         priorityMuscles = Set(profile.priorityMuscles)
         muscleTierSelections = profile.muscleTiers
+        muscleTargetOverrides = profile.muscleTargetOverrides
     }
 
     func saveChanges() {
@@ -1628,7 +1621,171 @@ struct EditProfileView: View {
         profile.experienceRaw = experience
         profile.daysPerWeek = daysPerWeek
         profile.muscleTiers = muscleTierSelections
+        profile.muscleTargetOverrides = muscleTargetOverrides
         dismiss()
+    }
+
+    /// Auto-computed default target for a muscle (tier-derived MAVHigh, scaled).
+    private func autoDefaultTarget(for muscle: String) -> Int {
+        let tier = muscleTierSelections[muscle] ?? .neutral
+        let base = VolumeLandmark.defaults[muscle] ?? VolumeLandmark(mev: 4, mavLow: 8, mavHigh: 12, mrv: 18)
+        return Int(round(Double(base.mavHigh) * tier.multiplier))
+    }
+
+    /// Suggested upper limit (effective MRV) given tier + experience.
+    private func suggestedUpperLimit(for muscle: String) -> Int {
+        let tier = muscleTierSelections[muscle] ?? .neutral
+        let exp = ExperienceLevel(rawValue: experience) ?? .intermediate
+        return VolumeLandmark.effectiveMRV(muscle: muscle, experience: exp, tier: tier)
+    }
+
+    /// MEV (effective floor) for the suggestion text range.
+    private func suggestedLowerLimit(for muscle: String) -> Int {
+        let tier = muscleTierSelections[muscle] ?? .neutral
+        let exp = ExperienceLevel(rawValue: experience) ?? .intermediate
+        return VolumeLandmark.effectiveMEV(muscle: muscle, experience: exp, tier: tier)
+    }
+
+    /// One muscle row: tier-cycle button on top, target stepper + suggestion below.
+    @ViewBuilder
+    private func muscleRow(muscle: String, priorityCount: Int, priorityCap: Int) -> some View {
+        let currentTier = muscleTierSelections[muscle] ?? .neutral
+        let mev = suggestedLowerLimit(for: muscle)
+        let mrv = suggestedUpperLimit(for: muscle)
+        let autoDefault = autoDefaultTarget(for: muscle)
+        let custom = muscleTargetOverrides[muscle]
+        let effectiveTarget = custom.flatMap { $0 > 0 ? $0 : nil } ?? autoDefault
+
+        VStack(spacing: 8) {
+            // Tier-cycle row
+            Button(action: {
+                let next = cycleTier(muscle, current: currentTier,
+                                     priorityCount: priorityCount,
+                                     priorityCap: priorityCap)
+                if next == .neutral {
+                    muscleTierSelections.removeValue(forKey: muscle)
+                } else {
+                    muscleTierSelections[muscle] = next
+                }
+            }) {
+                HStack(spacing: 10) {
+                    tierBadge(currentTier)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(muscle)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(tierTextColor(currentTier))
+                        if currentTier == .maintenance {
+                            Text("Frees recovery for priorities")
+                                .font(.system(size: 10))
+                                .foregroundColor(.appTextDim)
+                        }
+                    }
+                    Spacer()
+                    Text(tierLabel(currentTier))
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(tierTextColor(currentTier).opacity(0.7))
+                        .kerning(0.5)
+                }
+            }
+            .buttonStyle(.plain)
+
+            // Target stepper row
+            HStack(spacing: 10) {
+                Text("Target")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.appTextDim)
+
+                Button {
+                    let cur = effectiveTarget
+                    let next = max(0, cur - 1)
+                    setTargetOverride(muscle: muscle, value: next, autoDefault: autoDefault)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(.appRed)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    editingTargetMuscle = muscle
+                } label: {
+                    Text("\(effectiveTarget)")
+                        .font(.system(size: 17, weight: .black, design: .rounded))
+                        .foregroundColor(custom != nil && custom! > 0 ? .appBlue : .appTextPrimary)
+                        .frame(minWidth: 36)
+                        .padding(.horizontal, 4).padding(.vertical, 2)
+                        .background(Color.appBG.opacity(0.6))
+                        .cornerRadius(6)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.appBorder, lineWidth: 0.5))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    let cur = effectiveTarget
+                    setTargetOverride(muscle: muscle, value: cur + 1, autoDefault: autoDefault)
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(.appGreen)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Suggested \(mev)–\(mrv)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.appTextDim)
+                    if effectiveTarget > mrv {
+                        Text("Above MRV — recovery risk")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.appOrange)
+                    } else if effectiveTarget < mev && effectiveTarget > 0 {
+                        Text("Below MEV — minimal growth")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.appRed)
+                    } else if custom != nil && custom! > 0 {
+                        Text("Custom · tap auto to reset")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.appBlue)
+                    }
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color.appBG.opacity(0.4))
+            .cornerRadius(8)
+
+            if custom != nil && custom! > 0 {
+                Button {
+                    muscleTargetOverrides.removeValue(forKey: muscle)
+                } label: {
+                    Text("Reset to auto (\(autoDefault))")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.appBlue)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(14)
+        .background(tierBGColor(currentTier))
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(tierBorderColor(currentTier), lineWidth: 1)
+        )
+    }
+
+    /// Set a custom override only when value differs from the auto-default;
+    /// otherwise clear the override so the row reverts to auto-tracking.
+    private func setTargetOverride(muscle: String, value: Int, autoDefault: Int) {
+        if value == autoDefault {
+            muscleTargetOverrides.removeValue(forKey: muscle)
+        } else {
+            muscleTargetOverrides[muscle] = value
+        }
     }
 
     private func tierCap(for exp: ExperienceLevel) -> Int {

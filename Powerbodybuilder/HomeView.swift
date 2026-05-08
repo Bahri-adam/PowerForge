@@ -544,6 +544,7 @@ struct HomeView: View {
                             instance: instance,
                             allTemplates: allSessionTemplates,
                             displayWeek: displayWeek,
+                            targetOverrides: profile?.muscleTargetOverrides ?? [:],
                             onAdjustVolume: { muscle in volumeAdjustMuscle = muscle }
                         )
 
@@ -1883,11 +1884,12 @@ struct MuscleCoverageCard: View {
     var instance: UserProgramInstance? = nil
     var allTemplates: [ProgramSessionTemplate] = []
     var displayWeek: Int = 1
+    var targetOverrides: [String: Int] = [:]
     var onAdjustVolume: ((String) -> Void)? = nil
     private let muscles = ExerciseDictionary.trackingMuscles
     @State private var selectedMuscle: String? = nil
 
-    init(weekLogs: [WorkoutLog], exercises: [Exercise], priorityMuscles: [String], muscleTiers: [String: MuscleTier] = [:], experience: ExperienceLevel = .intermediate, instance: UserProgramInstance? = nil, allTemplates: [ProgramSessionTemplate] = [], displayWeek: Int = 1, onAdjustVolume: ((String) -> Void)? = nil) {
+    init(weekLogs: [WorkoutLog], exercises: [Exercise], priorityMuscles: [String], muscleTiers: [String: MuscleTier] = [:], experience: ExperienceLevel = .intermediate, instance: UserProgramInstance? = nil, allTemplates: [ProgramSessionTemplate] = [], displayWeek: Int = 1, targetOverrides: [String: Int] = [:], onAdjustVolume: ((String) -> Void)? = nil) {
         self.weekLogs = weekLogs
         self.exercises = exercises
         self.priorityMuscles = priorityMuscles
@@ -1896,29 +1898,43 @@ struct MuscleCoverageCard: View {
         self.instance = instance
         self.allTemplates = allTemplates
         self.displayWeek = displayWeek
+        self.targetOverrides = targetOverrides
         self.onAdjustVolume = onAdjustVolume
     }
 
-    /// Programmed sets per muscle for the current week from templates + additions.
+    /// Programmed sets per muscle for the current week from templates + additions + deltas.
     /// This is the PLANNED volume — same metric used by VolumeAdjusterSheet.
+    /// Filters out templates whose session has been removed via Configure Program.
     private var programmedSetsByMuscle: [String: Int] {
         guard let inst = instance else { return [:] }
         var result: [String: Int] = [:]
-        // Templates for this week
-        let weekTemplates = allTemplates.filter { $0.programId == inst.programId && $0.week == displayWeek }
+        let activeSessions = activeSessionsForWeek(
+            programId: inst.programId, instance: inst, profile: nil, week: displayWeek)
+        // Templates for this week, restricted to sessions still on the schedule
+        let weekTemplates = allTemplates.filter {
+            $0.programId == inst.programId && $0.week == displayWeek &&
+            activeSessions.contains($0.sessionType)
+        }
         for t in weekTemplates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
                                          overrides: inst.overrides, week: displayWeek)
+            let delta = inst.overrides
+                .filter { ov in
+                    ov.targetSlotId == t.slotId && ov.sessionType == t.sessionType &&
+                    ov.setCountDelta != 0 && !ov.isAddition && ov.appliesTo(week: displayWeek)
+                }
+                .reduce(0) { $0 + $1.setCountDelta }
+            let effectiveSets = max(0, t.targetSets + delta)
             if let def = ExerciseDictionary.all[key] {
                 for pm in def.primaryMuscles {
                     if let n = ExerciseDictionary.normalizeMuscle(pm) {
-                        result[n, default: 0] += t.targetSets
+                        result[n, default: 0] += effectiveSets
                     }
                 }
             } else if let ex = exercises.first(where: { $0.exerciseKey == key }) {
                 for pm in ex.musclesPrimary {
                     if let n = ExerciseDictionary.normalizeMuscle(pm) {
-                        result[n, default: 0] += t.targetSets
+                        result[n, default: 0] += effectiveSets
                     }
                 }
             }
@@ -2006,6 +2022,11 @@ struct MuscleCoverageCard: View {
         let mrv = VolumeLandmark.effectiveMRV(muscle: muscle, experience: experience, tier: t)
         let base = VolumeLandmark.defaults[muscle] ?? VolumeLandmark(mev: 4, mavLow: 8, mavHigh: 12, mrv: 18)
         let scaled = base.scaled(by: t)
+        // User's custom target replaces mavHigh if set; mavLow shifts to keep range coherent
+        if let custom = targetOverrides[muscle], custom > 0 {
+            let mavLow = max(mev, min(scaled.mavLow, custom - 4))
+            return VolumeLandmark(mev: mev, mavLow: mavLow, mavHigh: custom, mrv: max(mrv, custom))
+        }
         return VolumeLandmark(mev: mev, mavLow: scaled.mavLow, mavHigh: scaled.mavHigh, mrv: mrv)
     }
 

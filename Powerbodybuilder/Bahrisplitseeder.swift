@@ -9,7 +9,23 @@ import SwiftData
 struct BahriSplitSeeder {
 
     static let programId = 7
-    static let currentSeedVersion = 2
+    static let currentSeedVersion = 3
+
+    /// Legacy keys that were referenced in earlier seed versions but never existed in
+    /// ExerciseDictionary. Volume counting silently dropped these because dictionary
+    /// lookup returned nil. Mapped to their canonical replacements.
+    static let legacyKeyMap: [String: String] = [
+        "cable_fly":              "cable_fly_neutral",
+        "incline_press_barbell":  "bench_press_incline_barbell",
+        "incline_press_dumbbell": "bench_press_incline_dumbbell",
+        "pullup_weighted":        "pullup",
+        "machine_row_plate":      "row_machine",
+        "lat_pullover_cable":     "pullover_cable",
+        "curl_hammer_cable":      "curl_hammer",
+        "spider_curl":            "curl_spider",
+        "hip_abductor_machine":   "abduction_machine",
+        "leg_press_single":       "single_leg_leg_press"
+    ]
 
     static func seedIfNeeded(context: ModelContext) {
         let descriptor = FetchDescriptor<ProgramTemplate>(
@@ -45,6 +61,57 @@ struct BahriSplitSeeder {
         for week in 1...24 { insertWeek(week: week, context: context) }
         try? context.save()
         print("[BahriSplitSeeder] Seeded v\(currentSeedVersion) — 24 weeks")
+    }
+
+    // ── Legacy key migration ─────────────────────────────────────────────────
+    // Rewrites WorkoutLog/ProgressionState/StrengthGoal/SessionOverride records
+    // that reference the 10 phantom keys to their canonical replacements so
+    // historical sets count toward volume and progression tracking continues.
+    static func migrateLegacyKeysIfNeeded(context: ModelContext) {
+        let flag = "BahriSplitSeeder.legacyKeyMigration.v1"
+        if UserDefaults.standard.bool(forKey: flag) { return }
+
+        var migrated = 0
+
+        let logs = (try? context.fetch(FetchDescriptor<WorkoutLog>())) ?? []
+        for log in logs {
+            if let canonical = legacyKeyMap[log.exerciseKey] {
+                log.exerciseKey = canonical
+                migrated += 1
+            }
+        }
+
+        let states = (try? context.fetch(FetchDescriptor<ProgressionState>())) ?? []
+        for state in states {
+            if let canonical = legacyKeyMap[state.exerciseKey] {
+                state.exerciseKey = canonical
+                migrated += 1
+            }
+        }
+
+        let goals = (try? context.fetch(FetchDescriptor<StrengthGoal>())) ?? []
+        for goal in goals {
+            if let canonical = legacyKeyMap[goal.exerciseKey] {
+                goal.exerciseKey = canonical
+                migrated += 1
+            }
+        }
+
+        let overrides = (try? context.fetch(FetchDescriptor<SessionOverride>())) ?? []
+        for ov in overrides {
+            if let canonical = legacyKeyMap[ov.targetExerciseKey] {
+                ov.targetExerciseKey = canonical
+                migrated += 1
+            }
+            if let canonical = legacyKeyMap[ov.replacementExerciseKey] {
+                ov.replacementExerciseKey = canonical
+                migrated += 1
+            }
+        }
+
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: flag)
+        print("[BahriSplitSeeder] Migrated \(migrated) legacy-key records to canonical exercise keys")
     }
 
     // ── Block params ─────────────────────────────────────────────────────────
@@ -168,7 +235,7 @@ struct BahriSplitSeeder {
 
         let slots: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
             ("hack_squat",          "A1", 0, s(5, p.setsMult), rl5,  rh5,  p.rpe,       180, true,  "True depth. 3-sec eccentric. Drive knees out. Rep 8 must be a grind."),
-            ("leg_press_single",    "A2", 1, s(3, p.setsMult), rl10, rh10, p.rpe - 0.5, 90,  false, "Loaded stretch — hold bottom 20-30 sec after final set."),
+            ("single_leg_leg_press",    "A2", 1, s(3, p.setsMult), rl10, rh10, p.rpe - 0.5, 90,  false, "Loaded stretch — hold bottom 20-30 sec after final set."),
             ("leg_extension",       "A3", 2, s(3, p.setsMult), rl12, rh12, p.rpe - 0.5, 60,  false, "3-sec eccentric. Loaded stretch every set. Drop set final set."),
             ("leg_curl_seated",     "A4", 3, s(3, p.setsMult), rl10, rh10, p.rpe - 0.5, 60,  false, "3-sec eccentric. Hold fully extended 20 sec after final set."),
             ("calf_raise_standing", "A5", 4, s(4, p.setsMult), rl12, rh12, p.rpe - 1.0, 60,  false, "Loaded interset stretch every set — 30 sec at bottom."),
@@ -189,11 +256,11 @@ struct BahriSplitSeeder {
 
         let slots: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
             ("bench_press_barbell",    "B1", 0, s(4, p.setsMult), rl3,  rh3,  p.rpe,       180, true,  "Tight arch, lat engagement. 2-sec eccentric + pause."),
-            ("incline_press_dumbbell", "B2", 1, s(3, p.setsMult), rl8,  rh8,  p.rpe - 0.5, 120, false, "Full ROM — stretch at bottom. 30-45° incline."),
-            ("cable_fly",              "B3", 2, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 90,  false, "3-sec eccentric. Pec stretch and contraction."),
-            ("pullup_weighted",        "B4", 3, s(4, p.setsMult), rl3,  rh8,  p.rpe,       180, true,  "Pronated grip. Full stretch at top. Drive elbows to hips."),
-            ("machine_row_plate",      "B5", 4, s(3, p.setsMult), rl8,  rh8,  p.rpe - 0.5, 120, false, "Neutral grip. Row to lower chest. No kipping."),
-            ("lat_pullover_cable",     "B6", 5, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 90,  false, "Full stretch at start. Slow eccentric on stretch phase."),
+            ("bench_press_incline_dumbbell", "B2", 1, s(3, p.setsMult), rl8,  rh8,  p.rpe - 0.5, 120, false, "Full ROM — stretch at bottom. 30-45° incline."),
+            ("cable_fly_neutral",              "B3", 2, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 90,  false, "3-sec eccentric. Pec stretch and contraction."),
+            ("pullup",        "B4", 3, s(4, p.setsMult), rl3,  rh8,  p.rpe,       180, true,  "Pronated grip. Full stretch at top. Drive elbows to hips."),
+            ("row_machine",      "B5", 4, s(3, p.setsMult), rl8,  rh8,  p.rpe - 0.5, 120, false, "Neutral grip. Row to lower chest. No kipping."),
+            ("pullover_cable",     "B6", 5, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 90,  false, "Full stretch at start. Slow eccentric on stretch phase."),
             ("face_pull_cable",        "B7", 6, s(3, p.setsMult), rl15, rh15, p.rpe - 1.5, 60,  false, "Pull to face, external rotation at end. NEVER skip.")
         ]
         for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in slots {
@@ -212,7 +279,7 @@ struct BahriSplitSeeder {
         let slots: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
             ("curl_barbell",          "C1", 0, s(4, p.setsMult), rl6,  rh6,  p.rpe,       120, false, "No cheat. Long head early range. Full extension at bottom."),
             ("curl_incline_dumbbell", "C2", 1, s(3, p.setsMult), rl10, rh10, p.rpe - 0.5, 90,  false, "Humerus BEHIND body = long head maximally stretched. 3-sec eccentric."),
-            ("curl_hammer_cable",     "C3", 2, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 60,  false, "Constant tension. Squeeze hard at top."),
+            ("curl_hammer",     "C3", 2, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 60,  false, "Constant tension. Squeeze hard at top."),
             ("close_grip_bench",      "C4", 3, s(4, p.setsMult), rl6,  rh6,  p.rpe,       120, false, "Elbows tucked. Full lockout. Control eccentric."),
             ("tricep_overhead_cable", "C5", 4, s(3, p.setsMult), rl10, rh10, p.rpe - 0.5, 90,  false, "Shoulder at 180° = long head optimal. 3-sec eccentric."),
             ("tricep_pushdown_cable", "C6", 5, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 60,  false, "Drop set final set. Lateral/medial dominant."),
@@ -239,7 +306,7 @@ struct BahriSplitSeeder {
             ("nordic_hamstring_curl", "D3", 2, s(3, p.setsMult), rl8,  rh8,  p.rpe - 0.5, 90,  false, "Slowest eccentric — 4-5 sec down. Biceps femoris."),
             ("leg_press",             "D4", 3, s(3, p.setsMult), rl15, rh15, p.rpe - 1.0, 90,  false, "Loaded stretch: hold bottom 20 sec after every set."),
             ("leg_extension",         "D5", 4, s(2, p.setsMult), rl12, rh12, p.rpe - 1.5, 60,  false, "Slow eccentric. Loaded stretch at bottom."),
-            ("hip_abductor_machine",  "D6", 5, s(3, p.setsMult), rl15, rh15, p.rpe - 1.5, 60,  false, "Controlled. Feel glute med and min."),
+            ("abduction_machine",  "D6", 5, s(3, p.setsMult), rl15, rh15, p.rpe - 1.5, 60,  false, "Controlled. Feel glute med and min."),
             ("calf_raise_standing",   "D7", 6, s(4, p.setsMult), rl10, rh10, p.rpe - 1.5, 60,  false, "Loaded interset stretch every set — 30 sec at bottom."),
             ("calf_raise_seated",     "D8", 7, s(3, p.setsMult), rl15, rh15, p.rpe - 1.5, 60,  false, "Full range. Soleus emphasis.")
         ]
@@ -258,12 +325,12 @@ struct BahriSplitSeeder {
         let (rl15, rh15) = r(15, 20, 0)
 
         let slots: [(String, String, Int, Int, Int, Int, Double, Int, Bool, String)] = [
-            ("incline_press_barbell",    "E1", 0, s(3, p.setsMult), rl6,  rh6,  p.rpe,       180, true,  "Different angle to Tuesday flat. Upper chest growth."),
-            ("cable_fly",                "E2", 1, s(3, p.setsMult), rl15, rh15, p.rpe - 1.0, 90,  false, "3-sec eccentric. Full chest stretch."),
+            ("bench_press_incline_barbell",    "E1", 0, s(3, p.setsMult), rl6,  rh6,  p.rpe,       180, true,  "Different angle to Tuesday flat. Upper chest growth."),
+            ("cable_fly_neutral",                "E2", 1, s(3, p.setsMult), rl15, rh15, p.rpe - 1.0, 90,  false, "3-sec eccentric. Full chest stretch."),
             ("curl_hammer",              "E3", 2, s(4, p.setsMult), rl6,  rh6,  p.rpe,       120, false, "Neutral grip = brachialis. 3-sec eccentric."),
             ("curl_cable",               "E4", 3, s(3, p.setsMult), rl10, rh10, p.rpe - 0.5, 90,  false, "Different angle to Wednesday. Constant tension."),
             ("curl_incline_dumbbell",    "E5", 4, s(3, p.setsMult), rl12, rh12, p.rpe - 0.5, 90,  false, "Long head — humerus behind body. 3-sec eccentric."),
-            ("spider_curl",              "E6", 5, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 60,  false, "Short head dominant. Full contraction."),
+            ("curl_spider",              "E6", 5, s(3, p.setsMult), rl12, rh12, p.rpe - 1.0, 60,  false, "Short head dominant. Full contraction."),
             ("skullcrusher_barbell",     "E7", 6, s(4, p.setsMult), rl8,  rh8,  p.rpe,       120, false, "3-sec eccentric to forehead. Long head stretch at bottom."),
             ("tricep_overhead_dumbbell", "E8", 7, s(3, p.setsMult), rl10, rh10, p.rpe - 0.5, 90,  false, "Shoulder flexed overhead = long head. 3-sec eccentric.")
         ]
@@ -285,7 +352,7 @@ struct BahriSplitSeeder {
             ("leg_extension",        "F3", 2, s(4, p.setsMult), rl15, rh15, p.rpe - 1.0, 60,  false, "Loaded stretch every set. Drop set on final set."),
             ("stiff_leg_deadlift",   "F4", 3, s(3, p.setsMult), rl12, rh12, p.rpe - 0.5, 90,  false, "Feel hamstring stretch. Slight knee bend. Higher rep than RDL."),
             ("leg_curl_lying",       "F5", 4, s(4, p.setsMult), rl12, rh12, p.rpe - 1.0, 60,  false, "3-sec eccentric. Hold fully extended 20 sec after final set."),
-            ("hip_abductor_machine", "F6", 5, s(3, p.setsMult), rl15, rh15, p.rpe - 1.5, 60,  false, "Second weekly gluteus medius session."),
+            ("abduction_machine", "F6", 5, s(3, p.setsMult), rl15, rh15, p.rpe - 1.5, 60,  false, "Second weekly gluteus medius session."),
             ("calf_raise_standing",  "F7", 6, s(4, p.setsMult), rl15, rh15, p.rpe - 1.5, 60,  false, "Loaded interset stretch every set — 30 sec at bottom. Every set.")
         ]
         for (key, sl, idx, sets, lo, hi, rpe, rest, main, note) in slots {
