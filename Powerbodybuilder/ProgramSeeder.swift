@@ -39,7 +39,7 @@ import Foundation
 enum ProgramSeeder {
 
     static let programId          = 1
-    static let currentSeedVersion = 2   // ← bump to trigger re-seed for existing users
+    static let currentSeedVersion = 3   // ← bump to trigger re-seed for existing users
 
     // ── Public entry point ──────────────────────────────────────────────────
 
@@ -413,7 +413,7 @@ enum ProgramSeeder {
                  sets: p.mainSets, repsLow: p.mainRepsLow, repsHigh: p.mainRepsHigh,
                  rpe: p.mainRPE, rest: p.mainRest, notes: mainNotes),
             slot(week: week, session: s, slotId: "C2", index: 1,
-                 key: "chest_fly_cable", role: .accessory,
+                 key: "cable_fly_neutral", role: .accessory,
                  sets: p.accSets, repsLow: p.accRepsLow, repsHigh: p.accRepsHigh,
                  rpe: p.accRPE, rest: p.accRest,
                  notes: "Deep stretch at bottom. Hard squeeze at top. Cable maintains constant tension throughout — more effective than dumbbell fly here."),

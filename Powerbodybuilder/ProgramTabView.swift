@@ -198,6 +198,40 @@ struct ProgramTabView: View {
         .padding(.top, 8)
     }
 
+    /// Programmed sets for a given muscle in the current week (matches VolumeAdjusterSheet).
+    private func programmedSetsForMuscle(_ muscle: String) -> Int {
+        guard let inst = instance else { return 0 }
+        let week = inst.currentWeek
+        var total = 0
+        let templates = allSessionTemplates.filter { $0.programId == inst.programId && $0.week == week }
+        for t in templates {
+            let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
+                                         overrides: inst.overrides, week: week)
+            if let def = ExerciseDictionary.all[key] {
+                if def.primaryMuscles.contains(where: { ExerciseDictionary.normalizeMuscle($0) == muscle }) {
+                    total += t.targetSets
+                }
+            } else if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
+                if ex.musclesPrimary.contains(where: { ExerciseDictionary.normalizeMuscle($0) == muscle }) {
+                    total += t.targetSets
+                }
+            }
+        }
+        for ov in inst.overrides where ov.isAddition && ov.appliesTo(week: week) {
+            let key = ov.replacementExerciseKey
+            if let def = ExerciseDictionary.all[key] {
+                if def.primaryMuscles.contains(where: { ExerciseDictionary.normalizeMuscle($0) == muscle }) {
+                    total += ov.addedSets
+                }
+            } else if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
+                if ex.musclesPrimary.contains(where: { ExerciseDictionary.normalizeMuscle($0) == muscle }) {
+                    total += ov.addedSets
+                }
+            }
+        }
+        return total
+    }
+
     private func programActionButton(title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 4) {
@@ -285,46 +319,68 @@ struct ProgramTabView: View {
                 strengthGoalsManagement(inst: inst)
             }
 
-            // Volume targets
+            // Volume — programmed vs target
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("WEEKLY VOLUME TARGETS").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(2)
+                    Text("WEEKLY VOLUME").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(2)
                     Spacer()
-                    Text("Tap to adjust").font(.system(size: 9, weight: .bold)).foregroundColor(.appBlue).kerning(0.5)
+                    Text("Programmed / Target").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim).kerning(0.5)
                 }
 
                 ForEach(ExerciseDictionary.trackingMuscles, id: \.self) { muscle in
                     let tier = profile?.muscleTiers[muscle] ?? .neutral
                     let target = ProgramGenerator.resolveWeeklySetTarget(
-                        muscle: muscle, week: 1, blockType: instance?.blockType ?? .accumulation,
+                        muscle: muscle, week: instance?.currentWeek ?? 1, blockType: instance?.blockType ?? .accumulation,
                         muscleTier: tier, experience: profile?.experience ?? .intermediate,
                         calorieContext: profile?.calorieContext ?? .surplus, calibration: nil)
                     let mrv = VolumeLandmark.effectiveMRV(
                         muscle: muscle, experience: profile?.experience ?? .intermediate,
                         tier: tier, calorieContext: profile?.calorieContext ?? .surplus)
+                    let programmed = programmedSetsForMuscle(muscle)
+                    let underTarget = programmed < target
 
                     Button { volumeAdjustMuscle = muscle } label: {
                         HStack(spacing: 8) {
                             Text(muscle).font(.system(size: 11, weight: .bold))
                                 .foregroundColor(tier == .priority ? .appGold : (tier == .maintenance ? .appTextDim : .appTextPrimary))
-                                .frame(width: 80, alignment: .leading)
+                                .frame(width: 70, alignment: .leading)
+                            if tier == .priority { Text("★").font(.system(size: 9)).foregroundColor(.appGold) }
                             GeometryReader { geo in
-                                let pct = mrv > 0 ? min(CGFloat(target) / CGFloat(mrv), 1.0) : 0
+                                let progPct = mrv > 0 ? min(CGFloat(programmed) / CGFloat(mrv), 1.0) : 0
+                                let targPct = mrv > 0 ? min(CGFloat(target) / CGFloat(mrv), 1.0) : 0
                                 ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 3).fill(Color.appSurface2)
+                                    RoundedRectangle(cornerRadius: 3).fill(Color.appSurface2).frame(height: 8)
+                                    // Programmed fill (solid)
                                     RoundedRectangle(cornerRadius: 3)
-                                        .fill(tier == .priority ? Color.appGold : Color.appGreen)
-                                        .frame(width: geo.size.width * pct)
+                                        .fill(tier == .priority ? Color.appGold : (underTarget ? Color.appOrange : Color.appGreen))
+                                        .frame(width: geo.size.width * progPct, height: 8)
+                                    // Target marker (vertical line)
+                                    Rectangle().fill(Color.appTextPrimary).frame(width: 1.5, height: 12)
+                                        .offset(x: geo.size.width * targPct - 1, y: -2)
                                 }
-                            }.frame(height: 8)
-                            Text("\(target)").font(.system(size: 10, weight: .black, design: .rounded))
-                                .foregroundColor(.appTextPrimary).frame(width: 22, alignment: .trailing)
+                            }.frame(height: 12)
+                            Text("\(programmed)/\(target)").font(.system(size: 10, weight: .black, design: .rounded))
+                                .foregroundColor(underTarget ? .appOrange : .appTextPrimary).frame(width: 42, alignment: .trailing)
                             Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
                         }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
+
+                // Legend
+                HStack(spacing: 12) {
+                    HStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 1).fill(Color.appGreen).frame(width: 8, height: 4)
+                        Text("Programmed").font(.system(size: 9)).foregroundColor(.appTextDim)
+                    }
+                    HStack(spacing: 4) {
+                        Rectangle().fill(Color.appTextPrimary).frame(width: 1.5, height: 8)
+                        Text("Target").font(.system(size: 9)).foregroundColor(.appTextDim)
+                    }
+                    Spacer()
+                }
+                .padding(.top, 4)
             }
             .padding(14).background(Color.appSurface).cornerRadius(12)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))

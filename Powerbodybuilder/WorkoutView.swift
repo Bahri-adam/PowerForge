@@ -3446,14 +3446,22 @@ struct SetLogRow: View {
 
             setContent
                 .offset(x: swipeOffset)
-                .gesture(
-                    DragGesture(minimumDistance: onRemove != nil ? 30 : .infinity)
+                .highPriorityGesture(
+                    DragGesture(minimumDistance: 20)
                         .onChanged { value in
-                            if value.translation.width < 0 {
-                                swipeOffset = max(value.translation.width, -80)
+                            // Only respond if motion is primarily horizontal AND leftward
+                            guard onRemove != nil else { return }
+                            let dx = value.translation.width
+                            let dy = value.translation.height
+                            if dx < 0 && abs(dx) > abs(dy) * 1.5 {
+                                swipeOffset = max(dx, -80)
                             }
                         }
                         .onEnded { value in
+                            guard onRemove != nil else {
+                                withAnimation(.easeOut(duration: 0.2)) { swipeOffset = 0 }
+                                return
+                            }
                             withAnimation(.easeOut(duration: 0.2)) {
                                 if value.translation.width < -60 {
                                     onRemove?()
@@ -3462,6 +3470,13 @@ struct SetLogRow: View {
                             }
                         }
                 )
+                .onLongPressGesture(minimumDuration: 0.6) {
+                    if onRemove != nil {
+                        let gen = UIImpactFeedbackGenerator(style: .medium)
+                        gen.impactOccurred()
+                        onRemove?()
+                    }
+                }
         }
         .clipped()
     }

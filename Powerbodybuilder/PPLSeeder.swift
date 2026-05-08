@@ -26,7 +26,7 @@ import Foundation
 enum PPLSeeder {
 
     static let programId          = 2
-    static let currentSeedVersion = 1
+    static let currentSeedVersion = 2
 
     // ── Public entry point ──
 
@@ -198,7 +198,7 @@ enum PPLSeeder {
             slot(w: week, st: .pushA, id: "A2", idx: 1, key: "bench_press_incline_dumbbell",
                  role: .supplemental, sets: p.suppSets, lo: p.suppLow, hi: p.suppHigh,
                  rpe: p.suppRPE, rest: p.suppRest, note: note),
-            slot(w: week, st: .pushA, id: "A3", idx: 2, key: "chest_fly_cable",
+            slot(w: week, st: .pushA, id: "A3", idx: 2, key: "cable_fly_neutral",
                  role: .accessory, sets: p.accSets, lo: p.accLow, hi: p.accHigh,
                  rpe: p.accRPE, rest: p.accRest, note: note),
             slot(w: week, st: .pushA, id: "A4", idx: 3, key: "ohp_barbell",
@@ -273,7 +273,7 @@ enum PPLSeeder {
             slot(w: week, st: .pushB, id: "D2", idx: 1, key: "bench_press_incline_dumbbell",
                  role: .supplemental, sets: p.suppSets, lo: p.suppLow, hi: p.suppHigh,
                  rpe: p.suppRPE, rest: p.suppRest, note: note),
-            slot(w: week, st: .pushB, id: "D3", idx: 2, key: "chest_fly_cable",
+            slot(w: week, st: .pushB, id: "D3", idx: 2, key: "cable_fly_neutral",
                  role: .accessory, sets: p.accSets, lo: p.accLow, hi: p.accHigh,
                  rpe: p.accRPE, rest: p.accRest, note: note),
             slot(w: week, st: .pushB, id: "D4", idx: 3, key: "lateral_raise_dumbbell",

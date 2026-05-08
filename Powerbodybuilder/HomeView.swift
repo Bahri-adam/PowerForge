@@ -541,6 +541,9 @@ struct HomeView: View {
                             priorityMuscles: profile?.priorityMuscles ?? [],
                             muscleTiers: profile?.muscleTiers ?? [:],
                             experience: profile?.experience ?? .intermediate,
+                            instance: instance,
+                            allTemplates: allSessionTemplates,
+                            displayWeek: displayWeek,
                             onAdjustVolume: { muscle in volumeAdjustMuscle = muscle }
                         )
 
@@ -1877,17 +1880,67 @@ struct MuscleCoverageCard: View {
     let priorityMuscles: [String]
     let muscleTiers: [String: MuscleTier]
     let experience: ExperienceLevel
+    var instance: UserProgramInstance? = nil
+    var allTemplates: [ProgramSessionTemplate] = []
+    var displayWeek: Int = 1
     var onAdjustVolume: ((String) -> Void)? = nil
     private let muscles = ExerciseDictionary.trackingMuscles
     @State private var selectedMuscle: String? = nil
 
-    init(weekLogs: [WorkoutLog], exercises: [Exercise], priorityMuscles: [String], muscleTiers: [String: MuscleTier] = [:], experience: ExperienceLevel = .intermediate, onAdjustVolume: ((String) -> Void)? = nil) {
+    init(weekLogs: [WorkoutLog], exercises: [Exercise], priorityMuscles: [String], muscleTiers: [String: MuscleTier] = [:], experience: ExperienceLevel = .intermediate, instance: UserProgramInstance? = nil, allTemplates: [ProgramSessionTemplate] = [], displayWeek: Int = 1, onAdjustVolume: ((String) -> Void)? = nil) {
         self.weekLogs = weekLogs
         self.exercises = exercises
         self.priorityMuscles = priorityMuscles
         self.experience = experience
         self.muscleTiers = muscleTiers
+        self.instance = instance
+        self.allTemplates = allTemplates
+        self.displayWeek = displayWeek
         self.onAdjustVolume = onAdjustVolume
+    }
+
+    /// Programmed sets per muscle for the current week from templates + additions.
+    /// This is the PLANNED volume — same metric used by VolumeAdjusterSheet.
+    private var programmedSetsByMuscle: [String: Int] {
+        guard let inst = instance else { return [:] }
+        var result: [String: Int] = [:]
+        // Templates for this week
+        let weekTemplates = allTemplates.filter { $0.programId == inst.programId && $0.week == displayWeek }
+        for t in weekTemplates {
+            let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
+                                         overrides: inst.overrides, week: displayWeek)
+            if let def = ExerciseDictionary.all[key] {
+                for pm in def.primaryMuscles {
+                    if let n = ExerciseDictionary.normalizeMuscle(pm) {
+                        result[n, default: 0] += t.targetSets
+                    }
+                }
+            } else if let ex = exercises.first(where: { $0.exerciseKey == key }) {
+                for pm in ex.musclesPrimary {
+                    if let n = ExerciseDictionary.normalizeMuscle(pm) {
+                        result[n, default: 0] += t.targetSets
+                    }
+                }
+            }
+        }
+        // Add isAddition overrides
+        for ov in inst.overrides where ov.isAddition && ov.appliesTo(week: displayWeek) {
+            let key = ov.replacementExerciseKey
+            if let def = ExerciseDictionary.all[key] {
+                for pm in def.primaryMuscles {
+                    if let n = ExerciseDictionary.normalizeMuscle(pm) {
+                        result[n, default: 0] += ov.addedSets
+                    }
+                }
+            } else if let ex = exercises.first(where: { $0.exerciseKey == key }) {
+                for pm in ex.musclesPrimary {
+                    if let n = ExerciseDictionary.normalizeMuscle(pm) {
+                        result[n, default: 0] += ov.addedSets
+                    }
+                }
+            }
+        }
+        return result
     }
 
     /// Direct sets only (primaryMuscles at 1.0) — used for zone classification and bar display
@@ -1982,7 +2035,11 @@ struct MuscleCoverageCard: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            SectionHeader(title: "WEEKLY MUSCLE COVERAGE")
+            HStack {
+                SectionHeader(title: "WEEKLY MUSCLE COVERAGE")
+                Spacer()
+                Text("Logged this week").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim).kerning(0.5)
+            }
 
             let counts = zoneCounts
             HStack(spacing: 6) {
@@ -2004,6 +2061,7 @@ struct MuscleCoverageCard: View {
 
             LazyVGrid(columns: [GridItem(.flexible()),GridItem(.flexible()),GridItem(.flexible())], spacing: 8) {
                 ForEach(muscles, id: \.self) { muscle in
+                    // Coverage = sets logged this week (progress tracker)
                     let sets = directSetsByMuscle[muscle] ?? 0
                     let lm = landmark(for: muscle)
                     let zone = VolumeZone.classify(sets: sets, landmark: lm)

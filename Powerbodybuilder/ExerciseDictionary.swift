@@ -1659,10 +1659,9 @@ struct ExerciseDictionary {
             rank: 3, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
 
         // ═══════════════════════════════════════
-        // MISSING EXERCISES (referenced by swap lists)
+        // ADDITIONAL EXERCISES (machine variants & smith variants)
         // ═══════════════════════════════════════
 
-        // ── Chest ──
         ExerciseDefinition(
             key: "machine_chest_press", displayName: "Machine Chest Press",
             movementPattern: .horizontalPush, swapPattern: "horizontal_push",
@@ -1707,32 +1706,6 @@ struct ExerciseDictionary {
             swapWarning: nil, variationOfKey: "bench_press_barbell",
             head: "lower", generatorPattern: "decline_press"),
 
-        // ── Shoulders ──
-        ExerciseDefinition(
-            key: "ohp_barbell", displayName: "Barbell Overhead Press",
-            movementPattern: .verticalPush, swapPattern: "overhead_press",
-            primaryMuscles: ["Front Delts", "Mid Delts"],
-            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.5), .init(muscle: "Upper Chest", weight: 0.2)],
-            equipment: .barbell, isCompound: true, stretchPosition: .mid,
-            jointStressTags: ["shoulder"],
-            swapKeys: ["ohp_dumbbell", "shoulder_press_machine", "shoulder_press_seated_dumbbell", "arnold_press"],
-            swapWarning: nil, variationOfKey: nil,
-            isAnchorableAsTier1: true,
-            rank: 1, head: "anterior", generatorPattern: "overhead_press"),
-
-        // ── Quads ──
-        ExerciseDefinition(
-            key: "squat_barbell", displayName: "Barbell Back Squat",
-            movementPattern: .squat, swapPattern: "squat",
-            primaryMuscles: ["Quads"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7), .init(muscle: "Hamstrings", weight: 0.3)],
-            equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
-            jointStressTags: ["knee", "low_back"],
-            swapKeys: ["squat_front", "squat_smith", "hack_squat", "belt_squat", "leg_press"],
-            swapWarning: nil, variationOfKey: nil,
-            isAnchorableAsTier1: true,
-            rank: 1, head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
-
         ExerciseDefinition(
             key: "single_leg_leg_press", displayName: "Single-Leg Leg Press",
             movementPattern: .squat, swapPattern: "single_leg",
@@ -1743,66 +1716,6 @@ struct ExerciseDictionary {
             swapKeys: ["bulgarian_split_squat", "lunge_dumbbell", "step_up"],
             swapWarning: nil, variationOfKey: nil,
             head: "compound", generatorPattern: "single_leg", sessionRestriction: .lowerOnly),
-
-        // ── Hamstrings ──
-        ExerciseDefinition(
-            key: "rdl_barbell", displayName: "Romanian Deadlift (Barbell)",
-            movementPattern: .hinge, swapPattern: "hip_hinge",
-            primaryMuscles: ["Hamstrings"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7), .init(muscle: "Lower Back", weight: 0.4)],
-            equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
-            jointStressTags: ["low_back"],
-            swapKeys: ["rdl_dumbbell", "stiff_leg_deadlift", "rdl_single_leg", "cable_pull_through"],
-            swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
-
-        // ── Glutes ──
-        ExerciseDefinition(
-            key: "hip_thrust_barbell", displayName: "Barbell Hip Thrust",
-            movementPattern: .hipThrust, swapPattern: "hip_thrust",
-            primaryMuscles: ["Glutes"],
-            secondaryMuscles: [.init(muscle: "Hamstrings", weight: 0.3)],
-            equipment: .barbell, isCompound: true, stretchPosition: .shortened,
-            jointStressTags: [],
-            swapKeys: ["hip_thrust_machine", "glute_bridge", "cable_kickback"],
-            swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly),
-
-        // ── Calves ──
-        ExerciseDefinition(
-            key: "calf_raise_standing", displayName: "Standing Calf Raise (Machine)",
-            movementPattern: .isolation, swapPattern: "calf_gastro",
-            primaryMuscles: ["Gastrocnemius"],
-            secondaryMuscles: [.init(muscle: "Soleus", weight: 0.3)],
-            equipment: .machine, isCompound: false, stretchPosition: .lengthened,
-            jointStressTags: [],
-            swapKeys: ["calf_raise_smith", "calf_raise_leg_press", "calf_raise_donkey", "calf_raise_single_leg"],
-            swapWarning: nil, variationOfKey: nil,
-            head: "gastro", generatorPattern: "calf"),
-
-        // ── Biceps ──
-        ExerciseDefinition(
-            key: "curl_barbell", displayName: "Barbell Curl",
-            movementPattern: .isolation, swapPattern: "curl",
-            primaryMuscles: ["Biceps"],
-            secondaryMuscles: [.init(muscle: "Brachialis", weight: 0.3)],
-            equipment: .barbell, isCompound: false, stretchPosition: .mid,
-            jointStressTags: [],
-            swapKeys: ["curl_dumbbell", "curl_cable", "curl_machine"],
-            swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "both", generatorPattern: "curl"),
-
-        // ── Triceps ──
-        ExerciseDefinition(
-            key: "close_grip_bench", displayName: "Close-Grip Bench Press",
-            movementPattern: .horizontalPush, swapPattern: "tricep_compound",
-            primaryMuscles: ["Triceps"],
-            secondaryMuscles: [.init(muscle: "Chest", weight: 0.5), .init(muscle: "Front Delts", weight: 0.3)],
-            equipment: .barbell, isCompound: true, stretchPosition: .mid,
-            jointStressTags: ["shoulder"],
-            swapKeys: ["dips_tricep", "jm_press", "diamond_pushup"],
-            swapWarning: nil, variationOfKey: nil,
-            head: "lateral", generatorPattern: "tricep_compound"),
 
         ExerciseDefinition(
             key: "machine_dip", displayName: "Machine Dip",
@@ -1825,19 +1738,6 @@ struct ExerciseDictionary {
             swapKeys: ["tricep_pushdown_cable", "tricep_pushdown_rope", "kickback_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
             head: "lateral", generatorPattern: "tricep_push"),
-
-        // ── Back ──
-        ExerciseDefinition(
-            key: "row_barbell", displayName: "Barbell Row (Overhand)",
-            movementPattern: .horizontalPull, swapPattern: "horizontal_pull",
-            primaryMuscles: ["Lats", "Mid Back"],
-            secondaryMuscles: [.init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.4), .init(muscle: "Traps", weight: 0.3)],
-            equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
-            jointStressTags: ["low_back"],
-            swapKeys: ["row_barbell_underhand", "row_tbar", "row_dumbbell", "row_cable_wide"],
-            swapWarning: nil, variationOfKey: nil,
-            isAnchorableAsTier1: true,
-            rank: 1, head: "thickness", generatorPattern: "horizontal_row"),
 
         // ═══════════════════════════════════════
         // FUNDAMENTAL ADDITIONS
