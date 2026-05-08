@@ -961,6 +961,17 @@ struct ProgramTabView: View {
             }
         }
 
+        // Cross-program fallback: any session type still missing (e.g., user
+        // imported a session type that isn't in their program at all) gets
+        // borrowed from another program that defines it.
+        let typesAfterInProgram = Set(templates.map { $0.sessionType })
+        let stillMissing = rotation.filter { !typesAfterInProgram.contains($0) }
+        for st in stillMissing {
+            let foreign = lookupTemplates(programId: inst.programId, week: week,
+                                          sessionType: st, allTemplates: allSessionTemplates)
+            templates.append(contentsOf: foreign)
+        }
+
         // Deduplicate: keep latest version per slotId
         var best: [String: ProgramSessionTemplate] = [:]
         for t in templates {

@@ -111,6 +111,37 @@ func activeSessionsForWeek(programId: Int,
     return active
 }
 
+/// Returns templates for (programId, week, sessionType), with cross-program
+/// fallback. If the user's program has no templates for the given session type
+/// — common after importing a session from another program in Configure
+/// Program — borrows from any program that defines it (matching the same week
+/// if possible, otherwise week 1). Centralizes the foreign-fallback logic
+/// previously duplicated in buildPreview, so home/program-tab schedule cards
+/// also show real exercise counts for imported sessions.
+func lookupTemplates(programId: Int,
+                     week: Int,
+                     sessionType: SessionType,
+                     allTemplates: [ProgramSessionTemplate]) -> [ProgramSessionTemplate] {
+    let primary = allTemplates
+        .filter { $0.programId == programId && $0.week == week && $0.sessionType == sessionType }
+        .sorted { $0.exerciseIndex < $1.exerciseIndex }
+    if !primary.isEmpty { return primary }
+
+    let foreignSameWeek = allTemplates.filter { $0.sessionType == sessionType && $0.week == week }
+    if let fpid = foreignSameWeek.first?.programId {
+        return foreignSameWeek
+            .filter { $0.programId == fpid }
+            .sorted { $0.exerciseIndex < $1.exerciseIndex }
+    }
+    let foreignWeek1 = allTemplates.filter { $0.sessionType == sessionType && $0.week == 1 }
+    if let fpid = foreignWeek1.first?.programId {
+        return foreignWeek1
+            .filter { $0.programId == fpid }
+            .sorted { $0.exerciseIndex < $1.exerciseIndex }
+    }
+    return []
+}
+
 // ═══════════════════════════════════════════
 // WORKOUT COMPLETION SUMMARY
 // ═══════════════════════════════════════════
@@ -434,32 +465,11 @@ struct WorkoutView: View {
                 }
             }
         }
-        var templates = allTemplates
-            .filter { $0.programId == pid && $0.week == effectiveWeek && $0.sessionType == sessionType }
-            .sorted { $0.exerciseIndex < $1.exerciseIndex }
-
-        // Imported session fallback: if the current program has no templates for this
-        // session type (e.g., user imported legsPosterior from Bahri into Powerbuilding),
-        // borrow templates from whichever program defines this session type.
-        if templates.isEmpty {
-            let foreignAtCurrentWeek = allTemplates
-                .filter { $0.sessionType == sessionType && $0.week == effectiveWeek }
-            if !foreignAtCurrentWeek.isEmpty,
-               let foreignPid = foreignAtCurrentWeek.first?.programId {
-                templates = foreignAtCurrentWeek
-                    .filter { $0.programId == foreignPid }
-                    .sorted { $0.exerciseIndex < $1.exerciseIndex }
-            } else {
-                // Fall back to week 1 of any program with this session type
-                let foreignWeek1 = allTemplates
-                    .filter { $0.sessionType == sessionType && $0.week == 1 }
-                if let foreignPid = foreignWeek1.first?.programId {
-                    templates = foreignWeek1
-                        .filter { $0.programId == foreignPid }
-                        .sorted { $0.exerciseIndex < $1.exerciseIndex }
-                }
-            }
-        }
+        // lookupTemplates handles the user's program first, then falls back to
+        // any program that defines this session type (matching the same week
+        // when possible) so imported sessions render their exercises.
+        let templates = lookupTemplates(programId: pid, week: effectiveWeek,
+                                        sessionType: sessionType, allTemplates: allTemplates)
 
         var priorExercisesForPML: [(key: String, sets: Int)] = []
         var liveExercises: [LiveExercise] = []
@@ -1078,6 +1088,7 @@ struct WorkoutView: View {
             duration: duration, sessionType: session.sessionType.rawValue)
 
         try? modelContext.save()
+        BackupManager.shared.scheduleBackup(context: modelContext)
         activeWorkout = nil
     }
 

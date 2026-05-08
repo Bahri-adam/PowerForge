@@ -1048,7 +1048,8 @@ struct WeekHubSheet: View {
     private var sessionsForWeek: [(SessionType, [ProgramSessionTemplate])] {
         let rotation = splitOrder(for: instance.programId)
         var result: [(SessionType, [ProgramSessionTemplate])] = rotation.compactMap { st in
-            let t = allTemplates.filter { $0.programId == instance.programId && $0.week == localWeek && $0.sessionType == st }.sorted { $0.exerciseIndex < $1.exerciseIndex }
+            let t = lookupTemplates(programId: instance.programId, week: localWeek,
+                                    sessionType: st, allTemplates: allTemplates)
             return t.isEmpty ? nil : (st, t)
         }
         // Include session types assigned via schedule overrides that aren't in the rotation
@@ -1058,7 +1059,9 @@ struct WeekHubSheet: View {
             .map { $0.0 }
         let uniqueExtras = Array(Set(scheduledExtras))
         for st in uniqueExtras {
-            let t = allTemplates.filter { $0.programId == instance.programId && $0.week == localWeek && $0.sessionType == st }.sorted { $0.exerciseIndex < $1.exerciseIndex }
+            // Cross-program fallback so imported sessions show their real exercise counts
+            let t = lookupTemplates(programId: instance.programId, week: localWeek,
+                                    sessionType: st, allTemplates: allTemplates)
             if !t.isEmpty { result.append((st, t)) }
         }
         return result
@@ -1265,9 +1268,10 @@ struct WeekHubSheet: View {
                     HubSessionCard(sessionType: st, templates: templates, exerciseNames: exerciseNames,
                                    overrides: instance.overrides, week: localWeek,
                                    onEdit: {
-                                        let t = allTemplates
-                                            .filter { $0.programId == instance.programId && $0.week == localWeek && $0.sessionType == st }
-                                            .sorted { $0.exerciseIndex < $1.exerciseIndex }
+                                        let t = lookupTemplates(programId: instance.programId,
+                                                                week: localWeek,
+                                                                sessionType: st,
+                                                                allTemplates: allTemplates)
                                         editorItem = SessionEditorItem(sessionType: st, templates: t)
                                    })
                 }

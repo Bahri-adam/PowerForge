@@ -6,14 +6,14 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var selectedTab: Int = 0
+    @State private var showRestorePrompt = false
+    @State private var didCheckBackup = false
     @Query private var profiles: [UserProfile]
     @Query private var programs: [UserProgram]
     @Query private var programTemplates: [ProgramTemplate]
 
     var body: some View {
         Group {
-            // TODO: This gates on legacy UserProgram model. Migrate to UserProgramInstance check
-            // without breaking the onboarding → program selection → main flow.
             if profiles.isEmpty || programs.isEmpty {
                 OnboardingView()
             } else {
@@ -44,6 +44,34 @@ struct ContentView: View {
             MinimalistSeeder.seedIfNeeded(context: modelContext)
             migrateBrokenCustomProgramsIfNeeded(context: modelContext)
             loadCustomPrograms()
+
+            // Check for backup on first launch (no profile yet) — show restore prompt
+            if !didCheckBackup {
+                didCheckBackup = true
+                if profiles.isEmpty && BackupManager.shared.backupExists() {
+                    showRestorePrompt = true
+                }
+            }
+        }
+        .onChange(of: profiles.count) { _, _ in
+            // Schedule a backup whenever data changes meaningfully
+            BackupManager.shared.scheduleBackup(context: modelContext)
+        }
+        .alert("Restore from iCloud Backup?", isPresented: $showRestorePrompt) {
+            Button("Restore") {
+                Task {
+                    let count = await BackupManager.shared.restoreFromBackup(context: modelContext)
+                    print("📦 Restored \(count ?? 0) records from backup")
+                }
+            }
+            Button("Start Fresh", role: .cancel) {}
+        } message: {
+            if let meta = BackupManager.shared.backupMetadata() {
+                let dateStr = DateFormatter.localizedString(from: meta.date, dateStyle: .medium, timeStyle: .short)
+                Text("Found a backup from \(dateStr). Restore your workouts, custom programs, and PRs?")
+            } else {
+                Text("Found a backup in your iCloud. Restore your data?")
+            }
         }
     }
 

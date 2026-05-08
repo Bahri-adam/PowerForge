@@ -627,17 +627,19 @@ struct ProgramConfiguratorSheet: View {
             }
 
             // ── Program Catalog ──
-            if importSelectedDow != nil {
-                importCatalog
-            } else {
+            // Always shown: "Import all days" buttons don't require a day selection.
+            // Per-session "+ Add" buttons still require a selected day below.
+            if importSelectedDow == nil {
                 HStack(spacing: 8) {
-                    Image(systemName: "hand.tap").font(.system(size: 16)).foregroundColor(.appTextDim)
-                    Text("Select a day above to see available sessions")
-                        .font(.system(size: 12)).foregroundColor(.appTextDim)
+                    Image(systemName: "info.circle").font(.system(size: 13)).foregroundColor(.appBlue)
+                    Text("Tap “Import all days” for a full-week import, or pick a day above to add a single session.")
+                        .font(.system(size: 11)).foregroundColor(.appTextSecondary)
+                        .multilineTextAlignment(.leading)
                 }
-                .frame(maxWidth: .infinity).padding(20)
-                .background(Color.appSurface).cornerRadius(10)
+                .padding(10).background(Color.appBlue.opacity(0.06)).cornerRadius(8)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBlue.opacity(0.2), lineWidth: 1))
             }
+            importCatalog
         }
     }
 
@@ -646,7 +648,7 @@ struct ProgramConfiguratorSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("CHOOSE A SESSION").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
 
-            // Built-in programs
+            // Built-in + custom programs
             ForEach(programCatalog, id: \.name) { prog in
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
@@ -656,19 +658,39 @@ struct ProgramConfiguratorSheet: View {
                         Spacer()
                     }
 
-                    ForEach(prog.sessions, id: \.self) { st in
-                        Button {
-                            assignToSelectedDay(st)
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus.circle").font(.system(size: 12)).foregroundColor(.appGreen)
-                                Text(st.shortLabel).font(.system(size: 12, weight: .bold)).foregroundColor(.appTextPrimary)
-                                Text(st.muscleSubtitle).font(.system(size: 10)).foregroundColor(.appTextDim)
-                                Spacer()
-                                Image(systemName: "chevron.right").font(.system(size: 8)).foregroundColor(.appTextDim)
-                            }
-                            .padding(8).background(Color.appSurface2).cornerRadius(6)
-                        }.buttonStyle(.plain)
+                    // Import the entire program's week schedule in one tap.
+                    // Replaces all schedule entries for the active scope
+                    // (this week or permanent rotation) with the source's
+                    // session-per-day layout.
+                    Button {
+                        importEntireWeek(from: prog)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "calendar.badge.plus").font(.system(size: 12)).foregroundColor(.appBlue)
+                            Text("IMPORT ALL \(prog.sessions.count) DAYS")
+                                .font(.system(size: 10, weight: .black)).foregroundColor(.appBlue).kerning(0.5)
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.system(size: 8)).foregroundColor(.appBlue)
+                        }
+                        .padding(8).background(Color.appBlue.opacity(0.06)).cornerRadius(6)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.appBlue.opacity(0.25), lineWidth: 1))
+                    }.buttonStyle(.plain)
+
+                    if importSelectedDow != nil {
+                        ForEach(prog.sessions, id: \.self) { st in
+                            Button {
+                                assignToSelectedDay(st)
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "plus.circle").font(.system(size: 12)).foregroundColor(.appGreen)
+                                    Text(st.shortLabel).font(.system(size: 12, weight: .bold)).foregroundColor(.appTextPrimary)
+                                    Text(st.muscleSubtitle).font(.system(size: 10)).foregroundColor(.appTextDim)
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 8)).foregroundColor(.appTextDim)
+                                }
+                                .padding(8).background(Color.appSurface2).cornerRadius(6)
+                            }.buttonStyle(.plain)
+                        }
                     }
                 }
                 .padding(10).background(Color.appSurface).cornerRadius(10)
@@ -717,7 +739,7 @@ struct ProgramConfiguratorSheet: View {
     }
 
     private var programCatalog: [ProgramCatalogEntry] {
-        [
+        var entries: [ProgramCatalogEntry] = [
             ProgramCatalogEntry(name: "POWERBUILDING", subtitle: "Upper/Lower DUP",
                                 icon: "bolt.fill", color: .appRed,
                                 sessions: [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]),
@@ -743,6 +765,21 @@ struct ProgramConfiguratorSheet: View {
                                 icon: "sparkles", color: .appTextSecondary,
                                 sessions: [.push, .pull, .legs, .freeform]),
         ]
+        // Append the user's custom programs (pid >= 100). Excludes the active
+        // program — no point importing from yourself.
+        let customs = programTemplates
+            .filter { $0.programId >= 100 && $0.programId != instance.programId }
+            .sorted { $0.name < $1.name }
+        for tmpl in customs {
+            entries.append(ProgramCatalogEntry(
+                name: tmpl.name.uppercased(),
+                subtitle: "Custom · \(tmpl.sessionTypes.count)-day",
+                icon: "hammer.fill",
+                color: .appBlue,
+                sessions: tmpl.sessionTypes
+            ))
+        }
+        return entries
     }
 
     // ── Import actions ──
@@ -762,6 +799,37 @@ struct ProgramConfiguratorSheet: View {
                                      week: importPermanent ? 0 : configWeek,
                                      isPermanent: importPermanent)
         instance.schedules.append(sched)
+        try? modelContext.save()
+    }
+
+    /// Import every session of a source program into the user's week, replacing
+    /// any existing schedule entries for the active scope (permanent rotation
+    /// or week-specific). Maps the source's sessions onto standard work-day
+    /// patterns based on session count (matches baseRotation's day mapping).
+    private func importEntireWeek(from program: ProgramCatalogEntry) {
+        let count = program.sessions.count
+        let workDays: [Int] = count >= 6 ? [1, 2, 3, 4, 6, 7] :
+            count == 5 ? [1, 2, 3, 5, 6] :
+            count == 4 ? [1, 2, 4, 5] :
+            count == 3 ? [1, 3, 5] : [1, 4]
+
+        // Wipe existing schedule for the active scope
+        if importPermanent {
+            instance.schedules.removeAll { $0.isPermanent }
+        } else {
+            instance.schedules.removeAll { !$0.isPermanent && $0.week == configWeek }
+        }
+
+        // Add new schedule entries — mapping session order to work-day pattern
+        for (i, st) in program.sessions.enumerated() {
+            guard i < workDays.count else { break }
+            let dow = workDays[i] == 7 ? 0 : workDays[i]  // Sun = 0
+            let sched = ProgramSchedule(dayOfWeek: dow, sessionType: st,
+                                         isRestDay: false,
+                                         week: importPermanent ? 0 : configWeek,
+                                         isPermanent: importPermanent)
+            instance.schedules.append(sched)
+        }
         try? modelContext.save()
     }
 
