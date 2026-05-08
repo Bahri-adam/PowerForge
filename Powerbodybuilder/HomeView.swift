@@ -1909,17 +1909,23 @@ struct MuscleCoverageCard: View {
 
     /// Programmed sets per muscle for the current week from templates + additions + deltas.
     /// This is the PLANNED volume — same metric used by VolumeAdjusterSheet.
-    /// Filters out templates whose session has been removed via Configure Program.
+    /// Filters out templates whose session has been removed via Configure Program,
+    /// and falls back to cross-program lookup for imported session types so they
+    /// contribute their real exercise counts to the volume metrics.
     private var programmedSetsByMuscle: [String: Int] {
         guard let inst = instance else { return [:] }
         var result: [String: Int] = [:]
         let activeSessions = activeSessionsForWeek(
             programId: inst.programId, instance: inst, profile: nil, week: displayWeek,
             templates: programTemplates)
-        // Templates for this week, restricted to sessions still on the schedule
-        let weekTemplates = allTemplates.filter {
-            $0.programId == inst.programId && $0.week == displayWeek &&
-            activeSessions.contains($0.sessionType)
+        // Resolve templates per active session using cross-program lookup so
+        // imported sessions (whose templates live under another program's pid)
+        // still contribute volume.
+        var weekTemplates: [ProgramSessionTemplate] = []
+        for st in activeSessions {
+            weekTemplates.append(contentsOf: lookupTemplates(
+                programId: inst.programId, week: displayWeek,
+                sessionType: st, allTemplates: allTemplates))
         }
         for t in weekTemplates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,

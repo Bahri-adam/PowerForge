@@ -91,8 +91,17 @@ struct ProgramTabView: View {
         }
         .sheet(isPresented: $showProgramConfigurator) {
             if let inst = instance {
-                ProgramConfiguratorSheet(instance: inst, profile: profile)
-                    .presentationDetents([.large])
+                ProgramConfiguratorSheet(
+                    instance: inst,
+                    profile: profile,
+                    onRequestSequenceEditor: {
+                        // Configurator already dismissed itself; present the
+                        // editor at the parent level so we avoid sheet-within-sheet.
+                        blockEditorFocusIndex = 0
+                        showBlockSequenceEditor = true
+                    }
+                )
+                .presentationDetents([.large])
             }
         }
         .sheet(isPresented: $showStrengthGoalSheet) {
@@ -199,7 +208,9 @@ struct ProgramTabView: View {
     }
 
     /// Programmed sets for a given muscle in the current week (matches VolumeAdjusterSheet).
-    /// Filters out templates whose session has been removed via Configure Program.
+    /// Filters out templates whose session has been removed via Configure Program,
+    /// and falls back to cross-program lookup for imported session types so they
+    /// contribute their real exercise counts to the volume metrics.
     private func programmedSetsForMuscle(_ muscle: String) -> Int {
         guard let inst = instance else { return 0 }
         let week = inst.currentWeek
@@ -207,9 +218,14 @@ struct ProgramTabView: View {
         let activeSessions = activeSessionsForWeek(
             programId: inst.programId, instance: inst, profile: profile, week: week,
             templates: programTemplates)
-        let templates = allSessionTemplates.filter {
-            $0.programId == inst.programId && $0.week == week &&
-            activeSessions.contains($0.sessionType)
+        // Resolve templates per active session using cross-program lookup so
+        // imported sessions (whose templates live under another program's pid)
+        // still contribute volume.
+        var templates: [ProgramSessionTemplate] = []
+        for st in activeSessions {
+            templates.append(contentsOf: lookupTemplates(
+                programId: inst.programId, week: week,
+                sessionType: st, allTemplates: allSessionTemplates))
         }
         for t in templates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
@@ -704,8 +720,10 @@ struct ProgramTabView: View {
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBlue.opacity(0.15), lineWidth: 1))
             }
 
-            // Sessions for this week — use program rotation as source of truth
-            let rotation = programRotation()
+            // Sessions for this week — base program rotation, plus any sessions
+            // imported via Configure Program for this specific week. Order: base
+            // first (preserves the user's program order), extras appended.
+            let rotation = displayRotation(forWeek: editingWeek)
             let templatesBySession = sessionsForWeek(editingWeek)
 
             if rotation.isEmpty {
@@ -902,6 +920,25 @@ struct ProgramTabView: View {
     }
 
     /// The program's actual session rotation — source of truth for what sessions exist
+    /// Display order for the Weeks tab: base rotation first, then any sessions
+    /// imported via Configure Program for this week. Skips sessions that have
+    /// been removed via permanent or week-specific rest-day overrides.
+    private func displayRotation(forWeek week: Int) -> [SessionType] {
+        let base = programRotation()
+        guard let inst = instance else { return base }
+        let active = activeSessionsForWeek(
+            programId: inst.programId, instance: inst, profile: profile,
+            week: week, templates: programTemplates)
+        var ordered: [SessionType] = []
+        for st in base where active.contains(st) && !ordered.contains(st) {
+            ordered.append(st)
+        }
+        for st in active where !ordered.contains(st) {
+            ordered.append(st)
+        }
+        return ordered
+    }
+
     private func programRotation() -> [SessionType] {
         guard let inst = instance else { return [] }
         // Seeded programs
@@ -961,12 +998,16 @@ struct ProgramTabView: View {
             }
         }
 
-        // Cross-program fallback: any session type still missing (e.g., user
-        // imported a session type that isn't in their program at all) gets
-        // borrowed from another program that defines it.
+        // Cross-program fallback: any session type that's active for this week
+        // (base rotation + imported sessions via schedule overrides) but still
+        // missing from templates gets borrowed from another program that defines
+        // it. Iterating active sessions instead of just base rotation ensures
+        // imported sessions show their exercises in the Weeks tab.
+        let active = activeSessionsForWeek(
+            programId: inst.programId, instance: inst, profile: profile,
+            week: week, templates: programTemplates)
         let typesAfterInProgram = Set(templates.map { $0.sessionType })
-        let stillMissing = rotation.filter { !typesAfterInProgram.contains($0) }
-        for st in stillMissing {
+        for st in active where !typesAfterInProgram.contains(st) {
             let foreign = lookupTemplates(programId: inst.programId, week: week,
                                           sessionType: st, allTemplates: allSessionTemplates)
             templates.append(contentsOf: foreign)

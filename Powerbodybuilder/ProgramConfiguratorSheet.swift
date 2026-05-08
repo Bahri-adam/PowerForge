@@ -13,6 +13,10 @@ struct ProgramConfiguratorSheet: View {
     @Environment(\.dismiss) private var dismiss
     let instance: UserProgramInstance
     let profile: UserProfile?
+    /// Optional callback the parent uses to present the BlockSequenceEditor.
+    /// Sheet-within-a-sheet presentations are unreliable on iOS — the parent
+    /// dismisses this sheet and then presents BlockSequenceEditor itself.
+    var onRequestSequenceEditor: (() -> Void)? = nil
 
     @Query private var allExercises: [Exercise]
     @Query private var programTemplates: [ProgramTemplate]
@@ -22,13 +26,25 @@ struct ProgramConfiguratorSheet: View {
 
     @State private var activeTab: ConfigTab = .sessions
     @State private var showImportPicker = false
-    @State private var weekOverrideWeek: Int = 1
     @State private var configWeek: Int = 1
 
     enum ConfigTab: String, CaseIterable {
         case sessions = "Sessions"
-        case weekOverride = "Week Override"
+        case schedule = "Schedule"
+        case blocks = "Blocks"
         case importSession = "Import"
+    }
+
+    @State private var activeChildSheet: ChildSheet? = nil
+    @State private var scheduleSelectedDow: Int? = nil
+
+    /// Single source of truth for sheet presentation. Multiple `.sheet(isPresented:)`
+    /// modifiers on the same view can conflict and silently swallow taps; this enum
+    /// + `.sheet(item:)` keeps presentation reliable.
+    enum ChildSheet: Identifiable {
+        case sessionPicker
+        case blockSequenceEditor
+        var id: Int { hashValue }
     }
 
     /// Base rotation for the program (no overrides). Honors custom programs by
@@ -115,7 +131,8 @@ struct ProgramConfiguratorSheet: View {
 
                 switch activeTab {
                 case .sessions: sessionsTab
-                case .weekOverride: weekOverrideTab
+                case .schedule: scheduleTab
+                case .blocks: blocksTab
                 case .importSession: importTab
                 }
             }
@@ -123,7 +140,6 @@ struct ProgramConfiguratorSheet: View {
         }
         .background(Color.appBG)
         .onAppear {
-            weekOverrideWeek = instance.currentWeek
             configWeek = instance.currentWeek
         }
     }
@@ -132,7 +148,6 @@ struct ProgramConfiguratorSheet: View {
     // SESSIONS TAB — rename, add, remove
     // ═══════════════════════════════════════
 
-    @State private var showSessionPicker = false
     @State private var sessionPickerPermanent = false
     @State private var replacingSessionIndex: Int? = nil
     @State private var actionSessionIndex: Int? = nil
@@ -223,14 +238,14 @@ struct ProgramConfiguratorSheet: View {
                     if let idx = actionSessionIndex {
                         replacingSessionIndex = idx
                         sessionPickerPermanent = false
-                        showSessionPicker = true
+                        activeChildSheet = .sessionPicker
                     }
                 }
                 Button("Permanently") {
                     if let idx = actionSessionIndex {
                         replacingSessionIndex = idx
                         sessionPickerPermanent = true
-                        showSessionPicker = true
+                        activeChildSheet = .sessionPicker
                     }
                 }
                 Button("Cancel", role: .cancel) {}
@@ -243,7 +258,7 @@ struct ProgramConfiguratorSheet: View {
                 Button {
                     replacingSessionIndex = nil
                     sessionPickerPermanent = false
-                    showSessionPicker = true
+                    activeChildSheet = .sessionPicker
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "plus.circle.fill").font(.system(size: 13))
@@ -257,7 +272,7 @@ struct ProgramConfiguratorSheet: View {
                 Button {
                     replacingSessionIndex = nil
                     sessionPickerPermanent = true
-                    showSessionPicker = true
+                    activeChildSheet = .sessionPicker
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "pin.circle.fill").font(.system(size: 13))
@@ -289,19 +304,28 @@ struct ProgramConfiguratorSheet: View {
                 }
             }
         }
-        .sheet(isPresented: $showSessionPicker) {
-            SessionTypePickerSheet(
-                onSelect: { st in
-                    if let idx = replacingSessionIndex {
-                        replaceSession(at: idx, with: st)
-                    } else {
-                        addSession(st, permanent: sessionPickerPermanent)
-                    }
-                    showSessionPicker = false
-                },
-                onDismiss: { showSessionPicker = false }
-            )
-            .presentationDetents([.medium])
+        .sheet(item: $activeChildSheet) { sheet in
+            switch sheet {
+            case .sessionPicker:
+                SessionTypePickerSheet(
+                    onSelect: { st in
+                        if let idx = replacingSessionIndex {
+                            replaceSession(at: idx, with: st)
+                        } else {
+                            addSession(st, permanent: sessionPickerPermanent)
+                        }
+                        activeChildSheet = nil
+                    },
+                    onDismiss: { activeChildSheet = nil }
+                )
+                .presentationDetents([.medium])
+            case .blockSequenceEditor:
+                // Fallback path — only used when no parent callback is wired.
+                // Sheet-within-a-sheet works on iOS 14.5+ but is flaky; the
+                // preferred path is dismissing this sheet and letting the
+                // parent present.
+                BlockSequenceEditor(instance: instance, profile: profile)
+            }
         }
     }
 
@@ -369,121 +393,6 @@ struct ProgramConfiguratorSheet: View {
                                         isRestDay: false, week: permanent ? 0 : configWeek,
                                         isPermanent: permanent)
         instance.schedules.append(schedule)
-        try? modelContext.save()
-    }
-
-    // ═══════════════════════════════════════
-    // WEEK OVERRIDE TAB — swap program for a week
-    // ═══════════════════════════════════════
-
-    private var weekOverrideTab: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Try a different program for a specific week. Your original program data is preserved.")
-                .font(.system(size: 12)).foregroundColor(.appTextDim)
-
-            // Week picker
-            VStack(alignment: .leading, spacing: 6) {
-                Text("WHICH WEEK").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
-                HStack(spacing: 6) {
-                    ForEach(max(1, instance.currentWeek - 1)...min(instance.currentWeek + 4, 24), id: \.self) { w in
-                        Button { weekOverrideWeek = w } label: {
-                            Text("\(w)")
-                                .font(.system(size: 12, weight: weekOverrideWeek == w ? .black : .medium))
-                                .foregroundColor(weekOverrideWeek == w ? .white : .appTextSecondary)
-                                .frame(width: 32, height: 32)
-                                .background(weekOverrideWeek == w ? Color.appRed : Color.appSurface2).cornerRadius(8)
-                        }.buttonStyle(.plain)
-                    }
-                }
-            }
-
-            // Program options
-            VStack(alignment: .leading, spacing: 6) {
-                Text("OVERRIDE WITH").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
-
-                // Preset overrides
-                overrideOption("Hypertrophy Focus", detail: "Higher reps, more volume, pump-focused",
-                               sessions: [.pushA, .pullA, .legsA, .pushB, .pullB, .legsB])
-                overrideOption("Strength Focus", detail: "Lower reps, heavier weight, compound-heavy",
-                               sessions: [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower])
-                overrideOption("Full Body", detail: "Hit everything each session, lower frequency",
-                               sessions: [.fullBodyA, .fullBodyB, .fullBodyA])
-                overrideOption("Recovery Week", detail: "Light weights, maintenance volume, active recovery",
-                               sessions: [])  // empty = use current but at deload volume
-            }
-
-            // Active overrides
-            let activeOverrides = instance.schedules.filter { !$0.isPermanent && $0.week == weekOverrideWeek }
-            if !activeOverrides.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("ACTIVE OVERRIDES FOR WEEK \(weekOverrideWeek)").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
-                        Spacer()
-                        Button {
-                            for o in activeOverrides {
-                                if let idx = instance.schedules.firstIndex(where: { $0.id == o.id }) {
-                                    instance.schedules.remove(at: idx)
-                                }
-                            }
-                            try? modelContext.save()
-                        } label: {
-                            Text("Clear All").font(.system(size: 10, weight: .bold)).foregroundColor(.appRed)
-                        }.buttonStyle(.plain)
-                    }
-                    ForEach(activeOverrides) { override_ in
-                        HStack {
-                            Text(override_.sessionType.shortLabel).font(.system(size: 12, weight: .bold)).foregroundColor(.appTextPrimary)
-                            Spacer()
-                            let dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-                            Text(dayNames[override_.dayOfWeek]).font(.system(size: 11)).foregroundColor(.appTextDim)
-                        }
-                        .padding(8).background(Color.appSurface2).cornerRadius(6)
-                    }
-                }
-            }
-        }
-    }
-
-    private func overrideOption(_ title: String, detail: String, sessions: [SessionType]) -> some View {
-        Button {
-            applyWeekOverride(sessions: sessions, week: weekOverrideWeek)
-        } label: {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 13, weight: .bold)).foregroundColor(.appTextPrimary)
-                    Text(detail).font(.system(size: 10)).foregroundColor(.appTextDim)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 10)).foregroundColor(.appTextDim)
-            }
-            .padding(10).background(Color.appSurface).cornerRadius(8)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
-        }.buttonStyle(.plain)
-    }
-
-    private func applyWeekOverride(sessions: [SessionType], week: Int) {
-        // Remove existing overrides for this week
-        instance.schedules.removeAll { !$0.isPermanent && $0.week == week }
-
-        if sessions.isEmpty {
-            // Recovery week — mark block type as deload for this week
-            // (handled by existing deload detection)
-            return
-        }
-
-        // Assign sessions to days
-        let daySlots: [Int] = sessions.count >= 6 ? [1,2,3,4,6,7] :
-            sessions.count == 5 ? [1,2,3,5,6] :
-            sessions.count == 4 ? [1,2,4,5] :
-            sessions.count == 3 ? [1,3,5] : [1,4]
-
-        for (i, st) in sessions.prefix(daySlots.count).enumerated() {
-            let dow = daySlots[i] == 7 ? 0 : daySlots[i]
-            let sched = ProgramSchedule(dayOfWeek: dow, sessionType: st,
-                                         isRestDay: false, week: week, isPermanent: false)
-            instance.schedules.append(sched)
-        }
-
         try? modelContext.save()
     }
 
@@ -820,16 +729,39 @@ struct ProgramConfiguratorSheet: View {
             instance.schedules.removeAll { !$0.isPermanent && $0.week == configWeek }
         }
 
-        // Add new schedule entries — mapping session order to work-day pattern
+        // Days the import will use (in dayOfWeek 0-6 system)
+        let importDows: Set<Int> = Set(workDays.prefix(count).map { $0 == 7 ? 0 : $0 })
+
+        // Compute the base program's work days so we can REST-out uncovered ones
+        let base = baseRotation
+        let baseCount = base.count
+        let baseWorkDays: [Int] = baseCount >= 6 ? [1, 2, 3, 4, 6, 7] :
+            baseCount == 5 ? [1, 2, 3, 5, 6] :
+            baseCount == 4 ? [1, 2, 4, 5] :
+            baseCount == 3 ? [1, 3, 5] : [1, 4]
+        let baseDows: Set<Int> = Set(baseWorkDays.prefix(baseCount).map { $0 == 7 ? 0 : $0 })
+
+        // 1) Add new schedule entries for imported days
         for (i, st) in program.sessions.enumerated() {
             guard i < workDays.count else { break }
-            let dow = workDays[i] == 7 ? 0 : workDays[i]  // Sun = 0
+            let dow = workDays[i] == 7 ? 0 : workDays[i]
             let sched = ProgramSchedule(dayOfWeek: dow, sessionType: st,
                                          isRestDay: false,
                                          week: importPermanent ? 0 : configWeek,
                                          isPermanent: importPermanent)
             instance.schedules.append(sched)
         }
+
+        // 2) For any BASE work day NOT covered by the import, add a rest override
+        //    so the original program's session doesn't keep showing through
+        for baseDow in baseDows where !importDows.contains(baseDow) {
+            let restSched = ProgramSchedule(dayOfWeek: baseDow, sessionType: .rest,
+                                            isRestDay: true,
+                                            week: importPermanent ? 0 : configWeek,
+                                            isPermanent: importPermanent)
+            instance.schedules.append(restSched)
+        }
+
         try? modelContext.save()
     }
 
@@ -846,6 +778,351 @@ struct ProgramConfiguratorSheet: View {
                                      isRestDay: true,
                                      week: permanent ? 0 : configWeek,
                                      isPermanent: permanent)
+        instance.schedules.append(sched)
+        try? modelContext.save()
+    }
+
+    // ═══════════════════════════════════════
+    // BLOCKS TAB — current block params + sequence editor launcher
+    // ═══════════════════════════════════════
+
+    private var blocksTab: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Configure your mesocycle: block type, length, and recovery weeks. Use the Sequence Editor for multi-block periodization.")
+                .font(.system(size: 12))
+                .foregroundColor(.appTextDim)
+
+            currentBlockCard
+
+            // Block type picker
+            VStack(alignment: .leading, spacing: 8) {
+                Text("BLOCK TYPE").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
+
+                let goal = profile?.goal ?? .hypertrophy
+                let isHyp = goal == .hypertrophy || goal == .recomp
+                let types: [BlockType] = isHyp
+                    ? [.accumulation, .reaccumulation, .deload]
+                    : [.accumulation, .intensification, .reaccumulation, .peak, .deload]
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+                    ForEach(types, id: \.self) { bt in
+                        let label = blockTypeLabel(bt, isHyp: isHyp)
+                        let selected = instance.blockType == bt
+                        Button {
+                            instance.blockType = bt
+                            try? modelContext.save()
+                        } label: {
+                            VStack(spacing: 2) {
+                                Text(label).font(.system(size: 12, weight: .black))
+                                    .foregroundColor(selected ? .white : .appTextSecondary)
+                                Text(blockTypeDetail(bt)).font(.system(size: 9))
+                                    .foregroundColor(selected ? .white.opacity(0.8) : .appTextDim)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .background(selected ? Color.appRed : Color.appSurface)
+                            .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(selected ? Color.appRed : Color.appBorder, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
+                }
+            }
+
+            // Block length stepper
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("BLOCK LENGTH").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
+                    Text("Training weeks before deload").font(.system(size: 10)).foregroundColor(.appTextDim)
+                }
+                Spacer()
+                Stepper(value: Binding(
+                    get: { instance.blockLength },
+                    set: { instance.blockLength = max(2, min(12, $0)); try? modelContext.save() }
+                ), in: 2...12) {
+                    Text("\(instance.blockLength) wk")
+                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .foregroundColor(.appRed)
+                        .frame(minWidth: 50, alignment: .trailing)
+                }.labelsHidden()
+                Text("\(instance.blockLength) wk")
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .foregroundColor(.appRed)
+                    .frame(minWidth: 50, alignment: .trailing)
+            }
+            .padding(12).background(Color.appSurface).cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
+
+            // Sequence editor launcher
+            Button {
+                if let onRequestSequenceEditor {
+                    // Dismiss this sheet first; the parent presents the editor
+                    // after a brief delay to let SwiftUI clear the stack.
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        onRequestSequenceEditor()
+                    }
+                } else {
+                    // Fallback: try sheet-within-sheet
+                    activeChildSheet = .blockSequenceEditor
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "rectangle.stack.fill").font(.system(size: 12))
+                    Text("OPEN SEQUENCE EDITOR")
+                        .font(.system(size: 11, weight: .black)).kerning(0.5)
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.system(size: 10))
+                }
+                .foregroundColor(.appBlue)
+                .padding(12).background(Color.appBlue.opacity(0.06)).cornerRadius(8)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBlue.opacity(0.25), lineWidth: 1))
+            }.buttonStyle(.plain)
+
+            Text("Sequence Editor lets you build multi-block plans (e.g., accumulation → intensification → peak) with exercise rotation rules.")
+                .font(.system(size: 10)).foregroundColor(.appTextDim)
+        }
+    }
+
+    private var currentBlockCard: some View {
+        let weekLabel = instance.blockType == .deload
+            ? "DELOAD WEEK"
+            : "WEEK \(instance.blockWeek) OF \(instance.blockLength)"
+        let progress = instance.blockLength > 0
+            ? min(1.0, Double(instance.blockWeek) / Double(instance.blockLength))
+            : 0.0
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("CURRENT BLOCK").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
+                Spacer()
+                Text(weekLabel).font(.system(size: 10, weight: .black)).foregroundColor(.appRed).kerning(0.5)
+            }
+            HStack {
+                Text(blockTypeLabel(instance.blockType, isHyp: profile?.goal == .hypertrophy || profile?.goal == .recomp))
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundColor(.appTextPrimary)
+                Spacer()
+            }
+            // Progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(Color.appSurface2).frame(height: 6)
+                    RoundedRectangle(cornerRadius: 3).fill(Color.appRed)
+                        .frame(width: geo.size.width * CGFloat(progress), height: 6)
+                }
+            }.frame(height: 6)
+        }
+        .padding(14).background(Color.appSurface).cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBorder, lineWidth: 1))
+    }
+
+    private func blockTypeLabel(_ bt: BlockType, isHyp: Bool) -> String {
+        if isHyp {
+            switch bt {
+            case .accumulation:    return "Training Block"
+            case .reaccumulation:  return "Growth Phase"
+            case .deload:          return "Recovery"
+            case .intensification: return "Training Block"
+            case .peak:            return "Training Block"
+            }
+        } else {
+            switch bt {
+            case .accumulation:    return "Accumulation"
+            case .intensification: return "Intensification"
+            case .reaccumulation:  return "Volume Phase"
+            case .peak:            return "Peaking"
+            case .deload:          return "Deload"
+            }
+        }
+    }
+
+    private func blockTypeDetail(_ bt: BlockType) -> String {
+        switch bt {
+        case .accumulation:    return "Build volume"
+        case .intensification: return "Push intensity"
+        case .reaccumulation:  return "Re-build volume"
+        case .peak:            return "Test maxes"
+        case .deload:          return "Recovery"
+        }
+    }
+
+    // ═══════════════════════════════════════
+    // SCHEDULE TAB — visual 7-day calendar with per-day actions
+    // ═══════════════════════════════════════
+
+    private var scheduleTab: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            scheduleWeekPicker
+            Text("Tap a day to swap or clear. Schedule changes apply to this week only.")
+                .font(.system(size: 11)).foregroundColor(.appTextDim)
+            scheduleDayGrid
+            scheduleDayActions
+        }
+    }
+
+    private var scheduleWeekPicker: some View {
+        HStack(spacing: 6) {
+            Text("WEEK").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
+            Button { if configWeek > 1 { configWeek -= 1 } } label: {
+                Image(systemName: "chevron.left").font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
+                    .frame(width: 36, height: 36).contentShape(Rectangle()).background(Color.appSurface2).cornerRadius(8)
+            }.buttonStyle(.plain)
+            Text("\(configWeek)").font(.system(size: 16, weight: .black, design: .rounded)).foregroundColor(.appRed)
+            Button { if configWeek < 24 { configWeek += 1 } } label: {
+                Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
+                    .frame(width: 36, height: 36).contentShape(Rectangle()).background(Color.appSurface2).cornerRadius(8)
+            }.buttonStyle(.plain)
+            Spacer()
+            if configWeek != instance.currentWeek {
+                Button { configWeek = instance.currentWeek } label: {
+                    Text("Current").font(.system(size: 10, weight: .bold)).foregroundColor(.appBlue)
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var scheduleDayGrid: some View {
+        HStack(spacing: 4) {
+            ForEach(weekLayout, id: \.dow) { day in
+                scheduleDayCell(day: day)
+            }
+        }
+    }
+
+    private func scheduleDayCell(day: (dow: Int, session: SessionType?)) -> some View {
+        let isSelected = scheduleSelectedDow == day.dow
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                scheduleSelectedDow = isSelected ? nil : day.dow
+            }
+        } label: {
+            VStack(spacing: 4) {
+                Text(dowLabels[day.dow])
+                    .font(.system(size: 8, weight: .black)).kerning(0.5)
+                    .foregroundColor(isSelected ? .white : .appTextDim)
+                if let st = day.session {
+                    Text(st.shortLabel)
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(isSelected ? .white : .appTextPrimary)
+                        .lineLimit(2).multilineTextAlignment(.center)
+                } else {
+                    Text("REST")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(isSelected ? .white.opacity(0.7) : .appTextDim)
+                }
+            }
+            .frame(maxWidth: .infinity).frame(height: 56)
+            .background(isSelected ? Color.appRed : (day.session != nil ? Color.appSurface : Color.appSurface2))
+            .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                isSelected ? Color.appRed : Color.appBorder, lineWidth: isSelected ? 2 : 1))
+        }.buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var scheduleDayActions: some View {
+        if let dow = scheduleSelectedDow {
+            scheduleSelectedDayCard(dow: dow)
+        } else {
+            HStack(spacing: 8) {
+                Image(systemName: "hand.tap").font(.system(size: 13)).foregroundColor(.appTextDim)
+                Text("Tap a day above to swap, clear, or replace it with another session.")
+                    .font(.system(size: 11)).foregroundColor(.appTextSecondary)
+            }
+            .padding(10).background(Color.appBlue.opacity(0.05)).cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBlue.opacity(0.2), lineWidth: 1))
+        }
+    }
+
+    private func scheduleSelectedDayCard(dow: Int) -> some View {
+        let dayName = dowLabels[dow]
+        let currentSession = weekLayout.first(where: { $0.dow == dow })?.session
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("\(dayName) — WEEK \(configWeek)")
+                    .font(.system(size: 11, weight: .black)).foregroundColor(.appRed).kerning(1)
+                Spacer()
+                if currentSession != nil {
+                    Button {
+                        removeFromDay(dow: dow, permanent: false)
+                        scheduleSelectedDow = nil
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
+                            Text("Clear").font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundColor(.appRed)
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Color.appRed.opacity(0.06)).cornerRadius(6)
+                    }.buttonStyle(.plain)
+                }
+            }
+
+            Text("REPLACE WITH").font(.system(size: 9, weight: .black)).foregroundColor(.appTextDim).kerning(0.5)
+
+            scheduleReplaceGrid(dow: dow)
+
+            Text("Need a session from another program? Use the Import tab.")
+                .font(.system(size: 10)).foregroundColor(.appTextDim).padding(.top, 4)
+        }
+        .padding(12).background(Color.appSurface.opacity(0.5)).cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appRed.opacity(0.3), lineWidth: 1))
+    }
+
+    private func scheduleReplaceGrid(dow: Int) -> some View {
+        let rotation = baseRotation
+        let unique = Array(Set(rotation))
+        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+            ForEach(unique, id: \.self) { st in
+                Button {
+                    replaceScheduleDay(dow: dow, with: st)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: sessionIcon(st)).font(.system(size: 10))
+                            .foregroundColor(.appBlue)
+                        Text(st.shortLabel)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.appTextPrimary)
+                            .lineLimit(1)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 8)
+                    .background(Color.appSurface).cornerRadius(7)
+                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.appBorder, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// Same icon mapping as SessionTypePickerSheet — duplicated locally so the
+    /// Schedule tab's per-session pills can show consistent icons without
+    /// reaching across struct boundaries.
+    private func sessionIcon(_ st: SessionType) -> String {
+        switch st {
+        case .heavyUpper, .hypertrophyUpper: return "figure.arms.open"
+        case .heavyLower, .hypertrophyLower: return "figure.walk"
+        case .push, .pushA, .pushB: return "arrow.up.right"
+        case .pull, .pullA, .pullB: return "arrow.down.left"
+        case .legs, .legsA, .legsB: return "figure.run"
+        case .fullBody, .fullBodyA, .fullBodyB: return "figure.strengthtraining.traditional"
+        case .legQuadFocus: return "bolt.fill"
+        case .legsPosterior: return "arrow.backward"
+        case .chestBack: return "rectangle.split.2x1"
+        case .armsDelts: return "hands.clap"
+        case .chestArms: return "hand.raised.fill"
+        case .legsVolume: return "flame.fill"
+        case .freeform: return "plus.circle"
+        default: return "dumbbell.fill"
+        }
+    }
+
+    /// Replaces the session on `dow` for the current configWeek with `newType`.
+    /// Always week-scoped (not permanent) — the Schedule tab is for current-week
+    /// adjustments. Permanent rotation changes belong in the Sessions tab.
+    private func replaceScheduleDay(dow: Int, with newType: SessionType) {
+        instance.schedules.removeAll { !$0.isPermanent && $0.dayOfWeek == dow && $0.week == configWeek }
+        let sched = ProgramSchedule(dayOfWeek: dow, sessionType: newType,
+                                     isRestDay: false, week: configWeek, isPermanent: false)
         instance.schedules.append(sched)
         try? modelContext.save()
     }
@@ -925,4 +1202,5 @@ struct SessionTypePickerSheet: View {
         default: return "dumbbell.fill"
         }
     }
+
 }

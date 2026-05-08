@@ -1465,11 +1465,11 @@ struct ScheduleView: View {
         let direct = allTemplates
             .filter { $0.programId == pid && $0.week == week && $0.sessionType == session }
             .sorted { $0.exerciseIndex < $1.exerciseIndex }
+        if !direct.isEmpty { return direct }
 
-        // If this week should be a training week (per blockLength) but has no templates
-        // or has deload-level templates, fall back to the nearest training week
-        if !isEffectiveDeloadWeek(week) && direct.isEmpty {
-            // Search nearby weeks for this session's templates
+        // Same-program nearest training week fallback (only useful for training weeks
+        // where the user's program SHOULD have templates but doesn't, e.g., DUP variants).
+        if !isEffectiveDeloadWeek(week) {
             for offset in [1, -1, 2, -2, 3, -3] {
                 let fallbackWeek = week + offset
                 guard fallbackWeek >= 1 && fallbackWeek <= totalWeeks else { continue }
@@ -1481,11 +1481,15 @@ struct ScheduleView: View {
             }
         }
 
-        return direct
+        // Cross-program fallback — runs regardless of deload status so imported
+        // sessions show their real exercise/set counts in the SessionPickerCard.
+        return lookupTemplates(programId: pid, week: week, sessionType: session,
+                               allTemplates: allTemplates)
     }
 
     private func slotCount(_ session: SessionType, week: Int) -> Int {
-        allTemplates.filter { $0.programId == pid && $0.week == week && $0.sessionType == session }.count
+        // Use the same lookup as templatesFor so imported sessions show their real count
+        templatesFor(session, week: week).count
     }
 
     private func sessionMusclePreview(_ type: SessionType) -> String {
@@ -2006,11 +2010,11 @@ struct ActiveWorkoutView: View {
     @State private var currentExerciseIndex: Int = 0
     @State private var layoutMode: WorkoutLayoutMode = .scroll
     @State private var elapsedSeconds: Int = 0
-    @State private var elapsedTimer: Timer? = nil
+    @State private var elapsedStart: Date? = nil
     @State private var restSecondsRemaining: Int = 0
     @State private var restTotal: Int = 0
     @State private var showingRestTimer: Bool = false
-    @State private var restTimer: Timer? = nil
+    @State private var restEndDate: Date? = nil
 
     // Mid-workout swap
     @State private var swapExerciseIndex: Int? = nil
@@ -2096,11 +2100,18 @@ struct ActiveWorkoutView: View {
         }
         .onAppear {
             startElapsed()
+            refreshTimerDisplays()
             if session.isCustom && session.exercises.isEmpty {
                 showAddExercise = true
             }
         }
-        .onDisappear { elapsedTimer?.invalidate(); restTimer?.invalidate() }
+        // Wall-clock based timers: the published tick recomputes display from
+        // elapsedStart/restEndDate. Survives tab switches and backgrounding —
+        // dates persist even if the publisher pauses, so display catches up
+        // when the view re-appears.
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            refreshTimerDisplays()
+        }
         .sheet(isPresented: $showInWorkoutSwap) {
             if let idx = swapExerciseIndex {
                 let ex = session.exercises[idx]
@@ -2758,21 +2769,35 @@ struct ActiveWorkoutView: View {
         String(format: "%d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
     }
     private func startElapsed() {
-        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in elapsedSeconds += 1 }
+        if elapsedStart == nil { elapsedStart = Date() }
     }
     private func startRest(seconds: Int) {
-        restTimer?.invalidate()
         restTotal = seconds
+        restEndDate = Date().addingTimeInterval(TimeInterval(seconds))
         restSecondsRemaining = seconds
         withAnimation { showingRestTimer = true }
-        restTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { t in
-            if restSecondsRemaining > 0 { restSecondsRemaining -= 1 }
-            else { t.invalidate(); withAnimation { showingRestTimer = false } }
-        }
     }
-    private func cancelRest() { restTimer?.invalidate(); withAnimation { showingRestTimer = false } }
+    private func cancelRest() {
+        restEndDate = nil
+        withAnimation { showingRestTimer = false }
+    }
     private func restLabel(_ s: Int) -> String {
         s < 60 ? "\(s)s" : (s % 60 == 0 ? "\(s/60)m" : "\(s/60)m\(s%60)s")
+    }
+    /// Recomputes display values from the stored Date anchors. Wall-clock based,
+    /// so it catches up correctly after tab switches and app backgrounding.
+    private func refreshTimerDisplays() {
+        if let start = elapsedStart {
+            elapsedSeconds = Int(Date().timeIntervalSince(start))
+        }
+        if let end = restEndDate {
+            let r = max(0, Int(end.timeIntervalSinceNow.rounded(.up)))
+            if r != restSecondsRemaining { restSecondsRemaining = r }
+            if r == 0 && showingRestTimer {
+                withAnimation { showingRestTimer = false }
+                restEndDate = nil
+            }
+        }
     }
 
     private func applyMidWorkoutSwap(idx: Int, newKey: String) {
@@ -3546,6 +3571,15 @@ struct SetLogRow: View {
                         .font(.system(size: 10, weight: .black)).kerning(1)
                         .foregroundColor(set.isLogged ? .appGreen : .appTextDim)
                     roleBadge
+                    if let onRemove {
+                        Button(action: onRemove) {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.appRed.opacity(0.7))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Delete set \(setNumber)")
+                    }
                 }
                 Spacer()
                 if !set.isLogged && set.recommendedWeight > 0 {

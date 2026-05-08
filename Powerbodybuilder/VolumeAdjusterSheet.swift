@@ -87,11 +87,12 @@ struct VolumeAdjusterSheet: View {
         return result.sorted { $0.1 > $1.1 }
     }
 
-    /// Effective sets in a session for this muscle, including deltas and additions
+    /// Effective sets in a session for this muscle, including deltas and additions.
+    /// Uses cross-program template lookup so imported sessions (whose templates
+    /// live under another program's pid) still count toward the muscle total.
     private func setsForMuscle(in session: SessionType, week: Int) -> Int {
-        let templates = allTemplates.filter {
-            $0.programId == instance.programId && $0.week == week && $0.sessionType == session
-        }
+        let templates = lookupTemplates(programId: instance.programId, week: week,
+                                        sessionType: session, allTemplates: allTemplates)
         var count = 0
         for t in templates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
@@ -177,9 +178,10 @@ struct VolumeAdjusterSheet: View {
         let inRotation: Set<String> = {
             var keys: Set<String> = []
             for (st, _) in sessionsWithMuscle {
-                let templates = allTemplates.filter {
-                    $0.programId == instance.programId && $0.week == week && $0.sessionType == st
-                }
+                // Cross-program lookup so imported sessions' exercises are
+                // recognized as "in rotation" for suggestion sorting.
+                let templates = lookupTemplates(programId: instance.programId, week: week,
+                                                sessionType: st, allTemplates: allTemplates)
                 for t in templates { keys.insert(t.exerciseKey) }
             }
             return keys
@@ -599,9 +601,9 @@ struct VolumeAdjusterSheet: View {
 
     private var adjustableSlots: [AdjustableRow] {
         guard let session = selectedSession else { return [] }
-        let templates = allTemplates.filter {
-            $0.programId == instance.programId && $0.week == week && $0.sessionType == session
-        }.sorted { $0.exerciseIndex < $1.exerciseIndex }
+        // Cross-program lookup so imported sessions show their adjustable slots.
+        let templates = lookupTemplates(programId: instance.programId, week: week,
+                                        sessionType: session, allTemplates: allTemplates)
 
         return templates.compactMap { t in
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
