@@ -588,7 +588,16 @@ struct HomeView: View {
                             .appCard()
                         }
 
+                        // Fatigue alert needs enough training history to be
+                        // meaningful — without it, signals fire on noise
+                        // (a fresh session's lifts inevitably trail career
+                        // bestE1RM, triggering S1; a hard set triggers S2).
+                        // Require ~10 sessions of data across all exercises
+                        // before showing the deload banner.
+                        let totalExposures = instance?.progressionStates
+                            .reduce(0) { $0 + $1.totalExposures } ?? 0
                         if let inst = instance,
+                           totalExposures >= 10,
                            MRVSignalEngine.requiresFullDeload(
                                scores: inst.mrvSignalScores,
                                priorityMuscles: priorityMuscleNames) {
@@ -602,6 +611,9 @@ struct HomeView: View {
                                     .multilineTextAlignment(.center)
                                 Button("Schedule Deload") {
                                     inst.blockType = .deload
+                                    // Clearing the scores is part of taking a
+                                    // deload — they accumulated under load.
+                                    inst.mrvSignalScores = [:]
                                 }
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.appRed)
@@ -2163,10 +2175,23 @@ struct MuscleCoverageCard: View {
                         }.frame(height: 8)
                         let effective = effectiveSetsByMuscle[muscle] ?? 0
                         let indirect = effective - sets
+                        // Target = profile.effectiveTarget(for: muscle), which is
+                        // unified across all volume views (Home / Program tab /
+                        // Volume Adjuster) — custom override if set, else tier-
+                        // derived MAVHigh. lm.mavHigh already respects this.
+                        let target = lm.mavHigh
                         if indirect >= 1 {
-                            Text("\(sets)+\(indirect)").font(.system(size: 8, weight: .bold, design: .monospaced)).foregroundColor(color)
+                            VStack(spacing: 0) {
+                                Text("\(sets)+\(indirect) / \(target)")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundColor(color)
+                                Text("direct+indirect")
+                                    .font(.system(size: 7, weight: .medium))
+                                    .foregroundColor(.appTextDim)
+                                    .kerning(0.3)
+                            }
                         } else {
-                            Text("\(sets)/\(lm.mav)").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundColor(color)
+                            Text("\(sets) / \(target)").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundColor(color)
                         }
                     }
                     .padding(8)

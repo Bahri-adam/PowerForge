@@ -222,36 +222,6 @@ struct ProgramConfiguratorSheet: View {
                 .padding(10).background(Color.appSurface).cornerRadius(8)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
             }
-            .confirmationDialog("Remove Session", isPresented: $showRemoveConfirm) {
-                Button("This Week Only") {
-                    if let idx = actionSessionIndex { removeSession(at: idx, permanent: false) }
-                }
-                Button("Permanently") {
-                    if let idx = actionSessionIndex { removeSession(at: idx, permanent: true) }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Remove this session for just this week, or permanently from your rotation?")
-            }
-            .confirmationDialog("Replace Session", isPresented: $showReplaceConfirm) {
-                Button("This Week Only") {
-                    if let idx = actionSessionIndex {
-                        replacingSessionIndex = idx
-                        sessionPickerPermanent = false
-                        activeChildSheet = .sessionPicker
-                    }
-                }
-                Button("Permanently") {
-                    if let idx = actionSessionIndex {
-                        replacingSessionIndex = idx
-                        sessionPickerPermanent = true
-                        activeChildSheet = .sessionPicker
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Replace this session for just this week, or permanently change your rotation?")
-            }
 
             // Add session buttons
             HStack(spacing: 8) {
@@ -303,6 +273,40 @@ struct ProgramConfiguratorSheet: View {
                     Text("This will undo all changes you made to week \(configWeek) and restore the original program sessions. Permanent changes are not affected.")
                 }
             }
+        }
+        // Confirmation dialogs MUST live on the outer container — not on the
+        // ForEach above. Attaching them to ForEach gave each session row its
+        // own copy of the dialog, and they fought over the same $isPresented
+        // binding so taps did nothing. Single instances here fire reliably.
+        .confirmationDialog("Remove Session", isPresented: $showRemoveConfirm) {
+            Button("This Week Only") {
+                if let idx = actionSessionIndex { removeSession(at: idx, permanent: false) }
+            }
+            Button("Permanently") {
+                if let idx = actionSessionIndex { removeSession(at: idx, permanent: true) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Remove this session for just this week, or permanently from your rotation?")
+        }
+        .confirmationDialog("Replace Session", isPresented: $showReplaceConfirm) {
+            Button("This Week Only") {
+                if let idx = actionSessionIndex {
+                    replacingSessionIndex = idx
+                    sessionPickerPermanent = false
+                    activeChildSheet = .sessionPicker
+                }
+            }
+            Button("Permanently") {
+                if let idx = actionSessionIndex {
+                    replacingSessionIndex = idx
+                    sessionPickerPermanent = true
+                    activeChildSheet = .sessionPicker
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Replace this session for just this week, or permanently change your rotation?")
         }
         .sheet(item: $activeChildSheet) { sheet in
             switch sheet {

@@ -43,6 +43,7 @@ struct ContentView: View {
             BeginnerSeeder.seedIfNeeded(context: modelContext)
             MinimalistSeeder.seedIfNeeded(context: modelContext)
             migrateBrokenCustomProgramsIfNeeded(context: modelContext)
+            resetStaleMRVSignalScoresIfNeeded(context: modelContext)
             loadCustomPrograms()
 
             // Check for backup on first launch (no profile yet) — show restore prompt
@@ -80,6 +81,22 @@ struct ContentView: View {
     /// through sessionRotation's switch and get rendered as heavyUpper/Lower with
     /// 0 templates. Rewrites them to fresh pids >= 100 across ProgramTemplate,
     /// ProgramSessionTemplate, UserProgramInstance, and UserProgram.
+    /// One-time clear of accumulated MRV signal scores. Earlier versions of
+    /// MRVSignalEngine.computeScore fired S1 (e1RM decline +3) and S2 (high
+    /// IFI +2) without a minimum-exposures guard, so scores accumulated
+    /// rapidly on fresh sessions and triggered false "High fatigue" alerts.
+    /// The engine now guards by totalExposures, but stored scores from the
+    /// old logic stay in place. Clearing them lets the new logic rebuild
+    /// scores correctly from the next session forward.
+    private func resetStaleMRVSignalScoresIfNeeded(context: ModelContext) {
+        let flag = "ProgramMigrations.resetStaleMRVScores.v1"
+        if UserDefaults.standard.bool(forKey: flag) { return }
+        let instances = (try? context.fetch(FetchDescriptor<UserProgramInstance>())) ?? []
+        for inst in instances { inst.mrvSignalScores = [:] }
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: flag)
+    }
+
     private func migrateBrokenCustomProgramsIfNeeded(context: ModelContext) {
         let flag = "ProgramMigrations.brokenCustomPrograms.v1"
         if UserDefaults.standard.bool(forKey: flag) { return }

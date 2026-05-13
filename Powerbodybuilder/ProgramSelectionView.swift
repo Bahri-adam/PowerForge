@@ -90,19 +90,10 @@ struct ProgramSelectionView: View {
                             )
                         }
                         
-                        // START / PREVIEW BUTTON
-                        if profile?.useGeneratedPrograms == true {
-                            PrimaryButton(title: "PREVIEW PROGRAM", icon: "eye.fill") {
-                                showGeneratedPreview = true
-                            }
-                            .padding(.top, 8)
-                        } else {
-                            PrimaryButton(title: "START PROGRAM", icon: "play.fill") {
-                                startProgram()
-                            }
-                            .padding(.top, 8)
+                        PrimaryButton(title: "PREVIEW PROGRAM", icon: "eye.fill") {
+                            showGeneratedPreview = true
                         }
-
+                        .padding(.top, 8)
                         PrimaryButton(title: "START PROGRAM", icon: "play.fill") {
                             startProgram()
                         }
@@ -130,9 +121,9 @@ struct ProgramSelectionView: View {
         }
         .fullScreenCover(isPresented: $showGeneratedPreview) {
             NavigationStack {
-                GeneratedProgramPreviewView(
+                ProgramStructurePreviewView(
                     programId: selectedId,
-                    programName: allAvailablePrograms.first(where: { $0.id == selectedId })?.name ?? "Generated Program"
+                    programName: allAvailablePrograms.first(where: { $0.id == selectedId })?.name ?? "Program"
                 )
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -628,5 +619,187 @@ struct ProgramSelectionView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .appCard()
         }
+    }
+}
+
+// ═══════════════════════════════════════════
+// PROGRAM STRUCTURE PREVIEW
+// Shows the actual sessions and exercises of the program the user is about
+// to start. Replaces the old GeneratedProgramPreviewView (which was a
+// configurable generator that ignored the picked program).
+// ═══════════════════════════════════════════
+
+struct ProgramStructurePreviewView: View {
+    let programId: Int
+    let programName: String
+
+    @Query private var allTemplates: [ProgramSessionTemplate]
+    @Query private var programTemplates: [ProgramTemplate]
+    @Query private var allExercises: [Exercise]
+
+    /// Week 1 templates grouped by session, ordered by exerciseIndex within session.
+    private var sessionsForWeek1: [(session: SessionType, templates: [ProgramSessionTemplate])] {
+        // Try the program's defined session order from its ProgramTemplate; if
+        // missing, derive from week-1 templates' session types in order.
+        let week1 = allTemplates
+            .filter { $0.programId == programId && $0.week == 1 }
+            .sorted { $0.exerciseIndex < $1.exerciseIndex }
+        let order: [SessionType] = programTemplates
+            .first(where: { $0.programId == programId })?
+            .sessionTypes ?? []
+        var seen = Set<SessionType>()
+        var ordered: [SessionType] = []
+        // Use the declared order first
+        for st in order where !seen.contains(st) {
+            if week1.contains(where: { $0.sessionType == st }) {
+                ordered.append(st); seen.insert(st)
+            }
+        }
+        // Append any session types found in templates but missing from order
+        for t in week1 where !seen.contains(t.sessionType) {
+            ordered.append(t.sessionType); seen.insert(t.sessionType)
+        }
+        return ordered.map { st in
+            (session: st,
+             templates: week1.filter { $0.sessionType == st })
+        }
+    }
+
+    private var totalWeeks: Int {
+        programTemplates.first(where: { $0.programId == programId })?.durationWeeks
+            ?? (programId == 2 ? 16 : 24)
+    }
+
+    private var deloadWeeksList: [Int] {
+        Array(deloadWeeks(for: programId, blockLength: 4)).sorted()
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                header
+                summaryCard
+                if sessionsForWeek1.isEmpty {
+                    emptyState
+                } else {
+                    Text("WEEK 1 SESSIONS")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.appTextDim).kerning(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(sessionsForWeek1, id: \.session) { entry in
+                        sessionCard(session: entry.session, templates: entry.templates)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 40)
+        }
+        .background(Color.appBG)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(programName).font(.system(size: 14, weight: .black))
+                    .foregroundColor(.appTextPrimary).kerning(0.5)
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(spacing: 4) {
+            Text("PREVIEW")
+                .font(.system(size: 11, weight: .black)).foregroundColor(.appRed).kerning(2)
+            Text(programName)
+                .font(.system(size: 22, weight: .black, design: .rounded))
+                .foregroundColor(.appTextPrimary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, 12)
+    }
+
+    private var summaryCard: some View {
+        HStack(spacing: 0) {
+            statBox("DAYS / WK", "\(sessionsForWeek1.count)")
+            divider
+            statBox("WEEKS", "\(totalWeeks)")
+            divider
+            statBox("DELOADS", deloadWeeksList.isEmpty ? "—"
+                : deloadWeeksList.map { "W\($0)" }.joined(separator: ", "))
+        }
+        .padding(12).background(Color.appSurface).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+    }
+
+    private func statBox(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(label).font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim).kerning(1)
+            Text(value).font(.system(size: 13, weight: .black, design: .rounded))
+                .foregroundColor(.appTextPrimary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2).minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var divider: some View {
+        Rectangle().fill(Color.appBorder).frame(width: 1, height: 32)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 32)).foregroundColor(.appTextDim)
+            Text("No templates yet for this program.")
+                .font(.system(size: 13)).foregroundColor(.appTextDim)
+            Text("Start the program to generate week 1 sessions.")
+                .font(.system(size: 11)).foregroundColor(.appTextDim)
+                .multilineTextAlignment(.center)
+        }
+        .padding(28).frame(maxWidth: .infinity)
+        .background(Color.appSurface).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+    }
+
+    private func sessionCard(session: SessionType, templates: [ProgramSessionTemplate]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(session.shortLabel)
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundColor(.appTextPrimary)
+                Spacer()
+                Text("\(templates.count) exercises · \(templates.reduce(0) { $0 + $1.targetSets }) sets")
+                    .font(.system(size: 11)).foregroundColor(.appTextDim)
+            }
+            ForEach(templates, id: \.slotId) { t in
+                HStack(spacing: 8) {
+                    Text(t.slotId)
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundColor(.appTextDim)
+                        .frame(width: 28, alignment: .leading)
+                    Text(displayName(for: t.exerciseKey))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.appTextPrimary)
+                        .lineLimit(1)
+                    Spacer()
+                    Text("\(t.targetSets)×\(t.targetRepsLow)–\(t.targetRepsHigh)")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(.appTextSecondary)
+                    Text("RPE \(String(format: "%.1f", t.targetRPE))")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.appBlue)
+                }
+                .padding(.vertical, 4)
+                if t.slotId != templates.last?.slotId {
+                    Divider().background(Color.appBorder)
+                }
+            }
+        }
+        .padding(14).background(Color.appSurface).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+    }
+
+    private func displayName(for key: String) -> String {
+        if let def = ExerciseDictionary.all[key] { return def.displayName }
+        if let ex = allExercises.first(where: { $0.exerciseKey == key }) { return ex.displayName }
+        return key.replacingOccurrences(of: "_", with: " ").capitalized
     }
 }

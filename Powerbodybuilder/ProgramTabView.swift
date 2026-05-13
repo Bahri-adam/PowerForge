@@ -373,12 +373,15 @@ struct ProgramTabView: View {
 
                 ForEach(ExerciseDictionary.trackingMuscles, id: \.self) { muscle in
                     let tier = profile?.muscleTiers[muscle] ?? .neutral
-                    let autoTarget = ProgramGenerator.resolveWeeklySetTarget(
-                        muscle: muscle, week: instance?.currentWeek ?? 1, blockType: instance?.blockType ?? .accumulation,
-                        muscleTier: tier, experience: profile?.experience ?? .intermediate,
-                        calorieContext: profile?.calorieContext ?? .surplus, calibration: nil)
-                    // Honor user's custom target override, fallback to auto-computed
-                    let target = profile?.muscleTargetOverrides[muscle].flatMap { $0 > 0 ? $0 : nil } ?? autoTarget
+                    // Unified target: profile.effectiveTarget(for:) — used by
+                    // Home muscle bars + Volume Adjuster, so all three displays
+                    // show the same "weekly target" denominator.
+                    let target = profile?.effectiveTarget(for: muscle)
+                        ?? ProgramGenerator.resolveWeeklySetTarget(
+                            muscle: muscle, week: instance?.currentWeek ?? 1,
+                            blockType: instance?.blockType ?? .accumulation,
+                            muscleTier: tier, experience: profile?.experience ?? .intermediate,
+                            calorieContext: profile?.calorieContext ?? .surplus, calibration: nil)
                     let mrv = VolumeLandmark.effectiveMRV(
                         muscle: muscle, experience: profile?.experience ?? .intermediate,
                         tier: tier, calorieContext: profile?.calorieContext ?? .surplus)

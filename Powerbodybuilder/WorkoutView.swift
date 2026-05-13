@@ -334,8 +334,12 @@ struct WorkoutView: View {
             Color.appBG.ignoresSafeArea()
             if let workout = activeWorkout {
                 if workout.isComplete {
+                    // Logs are already committed by the time we reach this
+                    // screen — the recap button just dismisses back to the
+                    // schedule. No second save required.
                     WorkoutCompleteView(session: workout, exerciseNames: exerciseNames, useMetric: profile?.useMetric ?? false) {
-                        finalizeWorkout(session: workout)
+                        activeWorkout = nil
+                        WorkoutPersistence.clear()
                     }
                 } else {
                     ActiveWorkoutView(
@@ -380,8 +384,15 @@ struct WorkoutView: View {
         .confirmationDialog("Finish Workout?", isPresented: $showCompleteConfirm, titleVisibility: .visible) {
             Button("Finish & Save") {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                activeWorkout?.isComplete = true
-                persistActiveWorkout()
+                if let workout = activeWorkout {
+                    // Commit logs immediately so the recap that follows is
+                    // just a confirmation, not a second save step. The
+                    // WorkoutCompleteView's "Done" button only clears state.
+                    finalizeWorkout(session: workout)
+                    workout.isComplete = true
+                    // Snapshot no longer needed — data is committed.
+                    WorkoutPersistence.clear()
+                }
             }
             Button("Keep Going") { }
             Button("Discard Workout", role: .destructive) {
@@ -436,17 +447,45 @@ struct WorkoutView: View {
         guard !didRestoreActiveWorkout else { return }
         didRestoreActiveWorkout = true
         guard activeWorkout == nil, let snapshot = WorkoutPersistence.load() else { return }
-        // Only restore if it's still relevant to the current instance/week.
-        // (currentWeek check is loose — the snapshot.startedAt anchors the timer.)
-        let restored = ActiveWorkoutSession(snapshot: snapshot)
-        if !restored.isComplete {
-            activeWorkout = restored
-        } else {
+        if snapshot.isComplete {
             // Session marked complete but never finalized — discard rather than
             // re-show the WorkoutCompleteView, which would double-write logs if
             // the user taps "Finish & Save" again.
             WorkoutPersistence.clear()
+            return
         }
+        let hoursSinceStart = Date().timeIntervalSince(snapshot.startedAt) / 3600
+        if hoursSinceStart > 12 {
+            // User started a workout, forgot to close it out, and came back the
+            // next day (or later). Auto-finalize the stale session so its logged
+            // sets get written with the original startedAt date — Saturday's
+            // workout stays a Saturday workout. The user lands on a clean Train
+            // tab and can start today's session fresh.
+            finalizeStaleSnapshot(snapshot)
+        } else {
+            activeWorkout = ActiveWorkoutSession(snapshot: snapshot)
+        }
+    }
+
+    /// Rebuilds the session from the snapshot, runs the normal finalization
+    /// pipeline (writes WorkoutLogs with the original startedAt as workoutDate,
+    /// updates ProgressionState, advances the rotation), then clears the
+    /// snapshot. Activity from sets the user logged before forgetting still
+    /// counts — it just gets credited to the day it was actually performed.
+    private func finalizeStaleSnapshot(_ snapshot: WorkoutSnapshot) {
+        let session = ActiveWorkoutSession(snapshot: snapshot)
+        let hasLoggedWork = session.exercises.contains { ex in
+            ex.sets.contains { $0.isLogged }
+        }
+        if hasLoggedWork {
+            // finalizeWorkout no longer clears activeWorkout/persistence — the
+            // recap UI is responsible for that. For the auto-finalize-on-launch
+            // path there's no recap, so we clear here.
+            finalizeWorkout(session: session)
+        }
+        // Either way: drop the snapshot so we don't restore again.
+        WorkoutPersistence.clear()
+        activeWorkout = nil
     }
 
     /// Persist the current activeWorkout to disk. No-op if there's no session.
@@ -1192,8 +1231,10 @@ struct WorkoutView: View {
 
         try? modelContext.save()
         BackupManager.shared.scheduleBackup(context: modelContext)
-        activeWorkout = nil
-        WorkoutPersistence.clear()
+        // NOTE: we deliberately do NOT clear activeWorkout here. Callers decide
+        // whether to keep the in-memory session around (so the recap screen
+        // can display its summary) or clear immediately. Persistence is also
+        // not cleared here — the dialog handler does it after marking complete.
     }
 
     private func buildVolumeHistory(
@@ -2106,6 +2147,7 @@ struct ActiveWorkoutView: View {
     @State private var restTotal: Int = 0
     @State private var showingRestTimer: Bool = false
     @State private var restEndDate: Date? = nil
+    @State private var showIFIExplainer: Bool = false
 
     // Mid-workout swap
     @State private var swapExerciseIndex: Int? = nil
@@ -2289,6 +2331,9 @@ struct ActiveWorkoutView: View {
                 .presentationDetents([.medium])
             }
         }
+        .sheet(isPresented: $showIFIExplainer) {
+            IFIExplainerSheet().presentationDetents([.medium, .large])
+        }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -2423,23 +2468,31 @@ struct ActiveWorkoutView: View {
                         // IFI Badge — shown when all sets are logged
                         if ex.allSetsLogged, let ifi = ex.intrasetFatigueIndex, ifi > 0 {
                             let zone = IFIZone.classify(ifi)
-                            HStack(spacing: 6) {
-                                Circle().fill(ifiDotColor(zone)).frame(width: 6, height: 6)
-                                Text("IFI: \(String(format: "%.0f%%", ifi * 100))")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.appTextSecondary)
-                                Text("—")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.appTextDim)
-                                Text(zone.rawValue)
-                                    .font(.system(size: 10, weight: .black))
-                                    .foregroundColor(ifiDotColor(zone))
-                                    .kerning(0.5)
-                                Spacer()
+                            Button {
+                                showIFIExplainer = true
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Circle().fill(ifiDotColor(zone)).frame(width: 6, height: 6)
+                                    Text("IFI: \(String(format: "%.0f%%", ifi * 100))")
+                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                        .foregroundColor(.appTextSecondary)
+                                    Text("—")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.appTextDim)
+                                    Text(zone.rawValue)
+                                        .font(.system(size: 10, weight: .black))
+                                        .foregroundColor(ifiDotColor(zone))
+                                        .kerning(0.5)
+                                    Spacer()
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.appBlue)
+                                }
+                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .background(ifiDotColor(zone).opacity(0.06))
+                                .cornerRadius(8)
                             }
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(ifiDotColor(zone).opacity(0.06))
-                            .cornerRadius(8)
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.bottom, 4)
@@ -3539,6 +3592,8 @@ struct SetLogRow: View {
 
     @State private var weightInput: String = ""
     @State private var repsInput: String = ""
+    @FocusState private var weightFieldFocused: Bool
+    @FocusState private var repsFieldFocused: Bool
     @State private var rpeInput: String = ""
     @State private var showRPE: Bool = false
     @State private var showBackoffInfo: Bool = false
@@ -3743,8 +3798,12 @@ struct SetLogRow: View {
                         TextField("0", text: $weightInput)
                             .font(.system(size: 20, weight: .black, design: .rounded)).foregroundColor(.appTextPrimary)
                             .keyboardType(.decimalPad).multilineTextAlignment(.center)
+                            .focused($weightFieldFocused)
                             .frame(height: 48).background(Color.appSurface2).cornerRadius(10)
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBorder, lineWidth: 1))
+                            .onChange(of: weightFieldFocused) { _, focused in
+                                if focused { selectAllInFocusedField() }
+                            }
                     }
                     .frame(maxWidth: .infinity)
 
@@ -3755,8 +3814,12 @@ struct SetLogRow: View {
                         TextField("0", text: $repsInput)
                             .font(.system(size: 20, weight: .black, design: .rounded)).foregroundColor(.appTextPrimary)
                             .keyboardType(.numberPad).multilineTextAlignment(.center)
+                            .focused($repsFieldFocused)
                             .frame(height: 48).background(Color.appSurface2).cornerRadius(10)
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBorder, lineWidth: 1))
+                            .onChange(of: repsFieldFocused) { _, focused in
+                                if focused { selectAllInFocusedField() }
+                            }
                     }
                     .frame(maxWidth: .infinity)
 
@@ -3816,6 +3879,19 @@ struct SetLogRow: View {
     }
 
     private var canLog: Bool { Double(weightInput) != nil && Int(repsInput) != nil }
+
+    /// Tells UIKit to select all text in the currently first-responder text
+    /// field. Fires after a tiny delay so SwiftUI has time to install the
+    /// UITextField first responder. Result: tapping a pre-filled weight/reps
+    /// field highlights the existing value so the user's first keystroke
+    /// replaces it (instead of inserting before the existing digits).
+    private func selectAllInFocusedField() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.selectAll(_:)),
+                to: nil, from: nil, for: nil)
+        }
+    }
     private func logSet() {
         guard let w = Double(weightInput), let r = Int(repsInput) else { return }
         set.loggedWeight = w; set.loggedReps = r; set.loggedRPE = Double(rpeInput)
@@ -3921,7 +3997,7 @@ struct WorkoutCompleteView: View {
                         }
                     }
 
-                    PrimaryButton(title: "SAVE & FINISH", icon: "checkmark.circle.fill", action: onFinish)
+                    PrimaryButton(title: "DONE", icon: "checkmark.circle.fill", action: onFinish)
                         .padding(.bottom, 40)
                 }
                 .padding(.horizontal, 16)
@@ -4683,6 +4759,100 @@ struct ProgressiveOverloadCard: View {
         case .truePlateau:    return "Try a different exercise variation"
         case .volumeStall:    return "Reduce volume — too many sets are draining recovery"
         case .noStall:        return ""
+        }
+    }
+}
+
+// ═══════════════════════════════════════════
+// IFI EXPLAINER SHEET
+// Tapped from the IFI badge on the workout view to explain what the number
+// means and what each zone implies. Keep this user-facing so people understand
+// the value the algorithm is reading off their performance.
+// ═══════════════════════════════════════════
+
+struct IFIExplainerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                RoundedRectangle(cornerRadius: 3).fill(Color.appBorder).frame(width: 36, height: 4)
+                    .frame(maxWidth: .infinity).padding(.top, 8)
+
+                Text("IFI — Intraset Fatigue Index")
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundColor(.appTextPrimary)
+
+                Text("How much your reps dropped from your first hard set to your last. It tells the algorithm how taxing the workout actually was.")
+                    .font(.system(size: 12)).foregroundColor(.appTextSecondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("HOW IT'S CALCULATED").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
+                    Text("(first set reps − last set reps) ÷ first set reps")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(.appTextPrimary)
+                        .padding(10).background(Color.appSurface2).cornerRadius(8)
+                    Text("Example: 10 reps → 6 reps = 40% IFI. Only sets ≥80% of your top weight count.")
+                        .font(.system(size: 11)).foregroundColor(.appTextDim)
+                }
+                .padding(14).background(Color.appSurface).cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+
+                Text("THE ZONES").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
+
+                ifiZoneRow(color: .appBlue, range: "< 10%", label: "Fresh",
+                           detail: "Reps held steady. Either too easy, plenty of rest, or you're under-recovered with low effort. Adding weight or reps is usually safe.")
+                ifiZoneRow(color: .appGreen, range: "10–25%", label: "Optimal",
+                           detail: "Sweet spot. Sets fatigue you enough to drive growth without cooking your recovery. Keep doing what you're doing.")
+                ifiZoneRow(color: .appYellow, range: "25–40%", label: "Fatigued",
+                           detail: "Pushing hard. Could be too much volume, weight close to your limit, or accumulated fatigue from the week. Stay watchful.")
+                ifiZoneRow(color: .appOrange, range: "≥ 40%", label: "Overreach",
+                           detail: "Reps dropped a lot. Volume or load is too high to recover from — the algorithm will pull back next session.")
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("WHAT THE ALGORITHM DOES").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
+                    bullet("Adjusts next session's rep targets (fresh = +2, optimal = +1, fatigued = 0)")
+                    bullet("Brakes weight increases when IFI is high (won't add load if you're already cooked)")
+                    bullet("Diagnoses stalls: high IFI + flat e1RM = fatigue, low IFI + flat e1RM = intensity stall")
+                    bullet("Decides whether to add or reduce sets next week")
+                }
+                .padding(14).background(Color.appSurface).cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("YOUR TAKEAWAY").font(.system(size: 10, weight: .black)).foregroundColor(.appRed).kerning(1)
+                    Text("Watch the trend, not single sessions. If a muscle sits in the Fatigued or Overreach zone for a couple weeks, you're doing too much for what you can recover. The app handles the adjustment — you mainly notice it as weight not going up for a week.")
+                        .font(.system(size: 12)).foregroundColor(.appTextSecondary)
+                }
+                .padding(14).background(Color.appRed.opacity(0.05)).cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appRed.opacity(0.2), lineWidth: 1))
+            }
+            .padding(.horizontal, 20).padding(.bottom, 30)
+        }
+        .background(Color.appBG)
+    }
+
+    private func ifiZoneRow(color: Color, range: String, label: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(spacing: 2) {
+                Circle().fill(color).frame(width: 10, height: 10)
+                Text(range).font(.system(size: 10, weight: .black, design: .monospaced)).foregroundColor(color)
+            }
+            .frame(width: 56)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(label).font(.system(size: 13, weight: .black)).foregroundColor(.appTextPrimary)
+                Text(detail).font(.system(size: 11)).foregroundColor(.appTextSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12).background(color.opacity(0.05)).cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.25), lineWidth: 1))
+    }
+
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text("•").font(.system(size: 12, weight: .bold)).foregroundColor(.appRed)
+            Text(text).font(.system(size: 11)).foregroundColor(.appTextSecondary)
         }
     }
 }

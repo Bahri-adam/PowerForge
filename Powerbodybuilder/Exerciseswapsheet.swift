@@ -20,7 +20,10 @@ struct ExerciseSwapSheet: View {
 
     @State private var searchText = ""
     @State private var selectedKey: String? = nil
-    @State private var scope: OverrideScope = .future
+    // Default to this-week scope. Users typically swap for a single workout
+    // (subbing equipment that's busy, trying a variation); applying to all
+    // future sessions should be an explicit opt-in, not the default.
+    @State private var scope: OverrideScope = .single
     @State private var showCreateCustom = false
     @State private var selectedMuscleFilter: String? = nil
     @State private var cachedAlternatives: [RankedAlternative]? = nil
