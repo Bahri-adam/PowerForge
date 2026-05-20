@@ -46,6 +46,22 @@ struct BlockSequenceEditor: View {
                         seededWarning
                     }
 
+                    // Empty state — "Continuous Training" (no block structure)
+                    if blocks.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "infinity").font(.system(size: 32)).foregroundColor(.appBlue)
+                            Text("CONTINUOUS TRAINING")
+                                .font(.system(size: 12, weight: .black)).foregroundColor(.appBlue).kerning(1.5)
+                            Text("No block periodization — train through with no scheduled deloads. Tap Add Block below if you change your mind.")
+                                .font(.system(size: 12)).foregroundColor(.appTextSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 12)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 24)
+                        .background(Color.appBlue.opacity(0.04)).cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBlue.opacity(0.2), lineWidth: 1))
+                    }
+
                     // Block list
                     ForEach(Array(blocks.enumerated()), id: \.element.id) { idx, block in
                         blockCard(idx: idx, block: block)
@@ -122,12 +138,16 @@ struct BlockSequenceEditor: View {
                 }
                 Spacer()
                 Text("\(block.totalWeeks) wks").font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
-                if blocks.count > 1 {
-                    Button { blocks.remove(at: idx) } label: {
-                        Image(systemName: "trash").font(.system(size: 11)).foregroundColor(.appRed)
-                            .frame(width: 36, height: 36).contentShape(Rectangle())
-                    }.buttonStyle(.plain)
-                }
+                Button {
+                    // Resolve index by id at delete-time to avoid stale captured idx
+                    if let realIdx = blocks.firstIndex(where: { $0.id == block.id }),
+                       realIdx < blocks.count {
+                        blocks.remove(at: realIdx)
+                    }
+                } label: {
+                    Image(systemName: "trash").font(.system(size: 11)).foregroundColor(.appRed)
+                        .frame(width: 36, height: 36).contentShape(Rectangle())
+                }.buttonStyle(.plain)
             }
 
             // Block type picker
@@ -393,7 +413,22 @@ struct BlockSequenceEditor: View {
     }
 
     private func applyChanges() {
-        guard let first = blocks.first else { return }
+        // No blocks = continuous training (no periodization, no deloads).
+        // Skip all program-default deloads and use a very long block length so
+        // BlockType.next() transitions never trigger.
+        if blocks.isEmpty {
+            let total = max(24, (try? modelContext.fetch(FetchDescriptor<ProgramTemplate>())
+                .first(where: { $0.programId == instance.programId })?.durationWeeks) ?? 24)
+            instance.blockLength = total + 1  // never crosses
+            instance.blockType = .accumulation
+            instance.skippedDeloadWeeks = UserProgramInstance.defaultDeloadWeeks(for: instance.programId)
+            instance.customDeloadWeeks = []
+            try? modelContext.save()
+            dismiss()
+            return
+        }
+
+        let first = blocks[0]
         instance.blockLength = first.weeks
         instance.blockType = first.blockType
 

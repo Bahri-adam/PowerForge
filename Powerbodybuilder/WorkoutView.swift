@@ -2280,27 +2280,12 @@ struct ActiveWorkoutView: View {
         }
         .sheet(isPresented: $showAddExercise) {
             InWorkoutAddSheet(allExercises: allExercises) { exercise in
-                let slotId = "F\(session.exercises.count + 1)"
-                let sets = (0..<3).map { i in LiveSet(setIndex: i, recommendedWeight: 0, recommendedReps: 10) }
-                let addTier: ExerciseTier = {
-                    let def = ExerciseDictionary.all[exercise.exerciseKey]
-                    if def?.isAnchorableAsTier1 == true { return .tier1 }
-                    if def?.isCompound == true { return .tier2 }
-                    return .tier3
-                }()
-                let live = LiveExercise(
-                    exerciseKey: exercise.exerciseKey,
+                let live = makeRecommendedLiveExercise(
+                    forKey: exercise.exerciseKey,
                     displayName: exercise.displayName,
-                    slotId: slotId,
-                    role: .accessory,
-                    exerciseTier: addTier,
-                    targetSets: 3,
-                    targetRepsLow: 8,
-                    targetRepsHigh: 12,
-                    targetRPE: 8.0,
-                    restSeconds: 90,
-                    notes: "",
-                    sets: sets
+                    slotId: "F\(session.exercises.count + 1)",
+                    sets: 3, repsLow: 8, repsHigh: 12, rpe: 8.0, rest: 90,
+                    role: .accessory
                 )
                 if let insertIdx = insertExerciseAtIndex {
                     session.exercises.insert(live, at: min(insertIdx, session.exercises.count))
@@ -2947,31 +2932,86 @@ struct ActiveWorkoutView: View {
     private func applyMidWorkoutSwap(idx: Int, newKey: String) {
         let old = session.exercises[idx]
         let newName = allExercises.first(where: { $0.exerciseKey == newKey })?.displayName ?? newKey
-        let newSets = old.sets.map { s in
-            LiveSet(setIndex: s.setIndex, recommendedWeight: s.recommendedWeight, recommendedReps: s.recommendedReps)
-        }
-        let swapTier: ExerciseTier = {
-            let def = ExerciseDictionary.all[newKey]
+        let live = makeRecommendedLiveExercise(
+            forKey: newKey,
+            displayName: newName,
+            slotId: old.slotId,
+            sets: old.targetSets, repsLow: old.targetRepsLow, repsHigh: old.targetRepsHigh,
+            rpe: old.targetRPE, rest: old.restSeconds,
+            role: old.role
+        )
+        session.exercises[idx] = live
+        showInWorkoutSwap = false
+        swapExerciseIndex = nil
+    }
+
+    /// Builds a LiveExercise for a freshly-added or freshly-swapped exercise,
+    /// pulling a real weight/reps recommendation from the exercise's own history.
+    /// If no history exists, weights come back 0 — user enters the first set
+    /// manually and the algorithm learns from there.
+    private func makeRecommendedLiveExercise(
+        forKey key: String,
+        displayName: String,
+        slotId: String,
+        sets: Int,
+        repsLow: Int,
+        repsHigh: Int,
+        rpe: Double,
+        rest: Int,
+        role: ExerciseRole
+    ) -> LiveExercise {
+        let tier: ExerciseTier = {
+            let def = ExerciseDictionary.all[key]
             if def?.isAnchorableAsTier1 == true { return .tier1 }
             if def?.isCompound == true { return .tier2 }
             return .tier3
         }()
-        session.exercises[idx] = LiveExercise(
-            exerciseKey: newKey,
-            displayName: newName,
-            slotId: old.slotId,
-            role: old.role,
-            exerciseTier: swapTier,
-            targetSets: old.targetSets,
-            targetRepsLow: old.targetRepsLow,
-            targetRepsHigh: old.targetRepsHigh,
-            targetRPE: old.targetRPE,
-            restSeconds: old.restSeconds,
-            notes: "",
-            sets: newSets
+        let prof = profilesForSettings.first
+        let recentLogs = allLogs.filter { $0.exerciseKey == key }.sorted { $0.date > $1.date }
+        let progState = instance?.progressionStates.first(where: { $0.exerciseKey == key })
+
+        let rec = ProgressionEngine.recommend(
+            recentLogs: recentLogs,
+            targetRepsLow: repsLow,
+            targetRepsHigh: repsHigh,
+            targetRPE: rpe,
+            exerciseTier: tier,
+            useMetric: prof?.useMetric ?? false,
+            progressionState: progState,
+            lastSessionIFI: progState?.lastIFI,
+            blockPhase: instance?.blockPhase ?? .earlyAccumulation,
+            progressionRate: prof?.progressionRate ?? .normal,
+            pmlFactor: 1.0
         )
-        showInWorkoutSwap = false
-        swapExerciseIndex = nil
+
+        let algoMode = prof?.algorithmMode ?? .full
+        let topWeight = rec.recommendedWeight > 0 ? rec.recommendedWeight : 0
+        let isTier1 = tier == .tier1
+        let backoff = rec.backoffWeight > 0 ? rec.backoffWeight : topWeight
+        let liveSets = (0..<sets).map { i -> LiveSet in
+            let w = algoMode == .off ? 0 : ((isTier1 && i > 0) ? backoff : topWeight)
+            let r = algoMode == .off ? repsHigh : rec.repsForSet(i)
+            return LiveSet(setIndex: i, recommendedWeight: w, recommendedReps: r)
+        }
+
+        let note = progState != nil
+            ? "Suggested from your history"
+            : "First time logging — pick a starting weight"
+
+        return LiveExercise(
+            exerciseKey: key,
+            displayName: displayName,
+            slotId: slotId,
+            role: role,
+            exerciseTier: tier,
+            targetSets: sets,
+            targetRepsLow: repsLow,
+            targetRepsHigh: repsHigh,
+            targetRPE: rpe,
+            restSeconds: rest,
+            notes: note,
+            sets: liveSets
+        )
     }
 }
 

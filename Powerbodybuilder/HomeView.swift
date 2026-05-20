@@ -27,6 +27,7 @@ struct HomeView: View {
     @State private var bodyweightInput = ""
     @State private var scheduleByDay: Bool = UserDefaults.standard.object(forKey: "scheduleByDay") as? Bool ?? true
     @State private var editSessionItem: SessionEditorItem? = nil
+    @State private var dragHintDismissed: Bool = UserDefaults.standard.bool(forKey: "dragHintDismissed.v1")
     @State private var volumeAdjustMuscle: String? = nil
 
     private var displayWeek: Int { viewingWeek > 0 ? viewingWeek : (instance?.currentWeek ?? 1) }
@@ -489,6 +490,31 @@ struct HomeView: View {
                                     if dow < 7 { Divider().background(Color.appBorder).padding(.leading, 16) }
                                 }
                             } else if scheduleByDay {
+                                // One-time hint that days are draggable. Dismisses persistently.
+                                if !dragHintDismissed {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "hand.draw.fill")
+                                            .font(.system(size: 14)).foregroundColor(.appBlue)
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text("Tip: Hold & drag any day to rearrange your week")
+                                                .font(.system(size: 12, weight: .bold)).foregroundColor(.appTextPrimary)
+                                            Text("Swap rest days with workout days or reorder your split")
+                                                .font(.system(size: 10)).foregroundColor(.appTextDim)
+                                        }
+                                        Spacer()
+                                        Button {
+                                            dragHintDismissed = true
+                                            UserDefaults.standard.set(true, forKey: "dragHintDismissed.v1")
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.system(size: 16)).foregroundColor(.appTextDim)
+                                        }.buttonStyle(.plain)
+                                    }
+                                    .padding(.horizontal, 12).padding(.vertical, 10)
+                                    .background(Color.appBlue.opacity(0.06))
+                                    .overlay(Rectangle().frame(height: 1).foregroundColor(.appBlue.opacity(0.2)), alignment: .bottom)
+                                }
+
                                 // Day-of-week view with drag-and-drop + tap to edit
                                 let days = Array(1...7)
                                 ForEach(days, id: \.self) { dow in
@@ -562,13 +588,17 @@ struct HomeView: View {
                         )
 
                         // ── MRV fatigue warnings ──
+                        // Suppress until total exposures across all states is high
+                        // enough for the EMA-based signals to be statistically meaningful.
+                        let warningExposures = (instance?.progressionStates ?? [])
+                            .reduce(0) { $0 + $1.totalExposures }
                         let priorityMuscleNames = (profile?.muscleTiers ?? [:])
                             .filter { $0.value == .priority }.map { $0.key }
-                        let warningMuscles = priorityMuscleNames
+                        let warningMuscles = warningExposures >= 10 ? priorityMuscleNames
                             .filter {
                                 let s = instance?.mrvSignalScores[$0] ?? 0
                                 return s >= 5 && s < 7
-                            }
+                            } : []
 
                         ForEach(warningMuscles, id: \.self) { muscle in
                             HStack(spacing: 12) {
@@ -795,11 +825,16 @@ struct HomeDayCard: View {
     var body: some View {
         HStack(spacing: 0) {
             Rectangle().fill(stripeColor).frame(width: 3)
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                // Drag affordance — three small dots indicate the row is draggable
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.appTextDim.opacity(0.5))
+                    .padding(.leading, 4)
                 VStack(spacing: 1) {
                     Text(dayName).font(.system(size: 10, weight: .black)).foregroundColor(stripeColor)
                     if isDone { Image(systemName: "checkmark").font(.system(size: 8, weight: .black)).foregroundColor(.appGreen) }
-                }.frame(width: 32)
+                }.frame(width: 30)
                 VStack(alignment: .leading, spacing: 3) {
                     if let st = sessionType, st != .rest {
                         Text(st.shortLabel).font(.system(size: 13, weight: .black)).foregroundColor(isDone ? .appGreen : .appTextPrimary)
@@ -818,7 +853,7 @@ struct HomeDayCard: View {
                     if isDone { Image(systemName: "checkmark.circle.fill").font(.system(size: 20)).foregroundColor(.appGreen) }
                     else { Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextDim) }
                 } else { Image(systemName: "moon.fill").font(.system(size: 14)).foregroundColor(.appTextDim.opacity(0.4)) }
-            }.padding(.horizontal, 14).padding(.vertical, 11)
+            }.padding(.horizontal, 10).padding(.vertical, 11)
         }
     }
     private var stripeColor: Color {
@@ -843,6 +878,8 @@ struct DayDropDelegate: DropDelegate {
             guard let str = reading as? String, let sourceDay = Int(str), sourceDay != targetDay else { return }
             DispatchQueue.main.async {
                 swapDays(source: sourceDay, target: targetDay)
+                // User figured out drag-and-drop — auto-dismiss the hint
+                UserDefaults.standard.set(true, forKey: "dragHintDismissed.v1")
             }
         }
         return true

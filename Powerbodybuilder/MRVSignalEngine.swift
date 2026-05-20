@@ -52,18 +52,20 @@ struct MRVSignalEngine {
             exerciseTargetsMuscle($0.exerciseKey, muscle: muscle)
         }
 
-        // Global minimum-exposures guard. With only 1–2 logged sessions per
+        // Global minimum-exposures guard. With only 1–5 logged sessions per
         // muscle group, signals fire on noise: a fresh session typically lifts
         // less than the career bestE1RM (which survives program resets), which
         // looks like a 10–20% e1RM decline. Hard workouts naturally have a
-        // single high-IFI session that doesn't mean fatigue. Require at least
-        // 3 total exposures across the muscle before letting these signals run.
+        // single high-IFI session that doesn't mean fatigue. Need enough data
+        // for the EMA-based signals to be stable.
         let totalExposures = muscleStates.reduce(0) { $0 + $1.totalExposures }
-        guard totalExposures >= 3 else { return score }
+        guard totalExposures >= 6 else { return score }
 
         // S1: e1RM declining >2.5% (noise floor) on any exercise (+3)
-        // Per-exercise: needs 3+ exposures so we have a stable baseline.
-        for state in muscleStates where state.totalExposures >= 3 {
+        // Per-exercise: 6+ exposures so we have a stable baseline and one
+        // bad session doesn't trip the signal. Bench/squat/deadlift typically
+        // need 4-6 sessions before e1RM trend stabilizes.
+        for state in muscleStates where state.totalExposures >= 6 {
             if state.bestE1RM > 0 && state.lastCompletedWeight > 0 {
                 let current = state.lastCompletedWeight *
                     (1.0 + Double(max(1, state.lastSessionReps)) / 30.0)
@@ -73,9 +75,9 @@ struct MRVSignalEngine {
         }
 
         // S2: IFI > 0.30 or IFI trend worsening (+2 each)
-        // Per-exercise: 2+ exposures so a single hard session doesn't fire.
+        // Per-exercise: 4+ exposures so a single hard session doesn't fire.
         // ifiTrend is an EMA and needs prior sessions to be meaningful.
-        for state in muscleStates where state.totalExposures >= 2 {
+        for state in muscleStates where state.totalExposures >= 4 {
             if state.lastIFI > 0.30 { newPoints += 2 }
             if state.ifiTrend > 0.25 { newPoints += 2 }
         }
