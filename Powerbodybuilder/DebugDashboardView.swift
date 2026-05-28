@@ -465,6 +465,7 @@ private struct LiveStateTab: View {
         case .intensification: return "INTENSIFICATION"
         case .deload: return "DELOAD"
         case .postDeloadReintro: return "POST-DELOAD REINTRO"
+        case .continuous: return "CONTINUOUS"
         }
     }
 
@@ -475,6 +476,7 @@ private struct LiveStateTab: View {
         case .intensification: return .appOrange
         case .deload: return .appBlue
         case .postDeloadReintro: return .appBlue
+        case .continuous: return .appBlue
         }
     }
 

@@ -186,6 +186,22 @@ extension BlockType {
 // stored state, which only advances when finalizeWorkout transitions.
 // ═══════════════════════════════════════════
 
+/// Persisted block-layout entry used by BlockSequenceEditor. Each
+/// SavedBlock is one training block with an optional trailing recovery
+/// week. The full layout is serialized to `UserProgramInstance.blockLayout`.
+/// This is the authoritative source for block boundaries when populated —
+/// preferred over reconstructing from `customDeloadWeeks` / `skippedDeloadWeeks`
+/// because two different layouts can produce the same deload schedule.
+struct SavedBlock: Codable, Hashable {
+    var blockType: BlockType
+    var weeks: Int
+    var includeRecovery: Bool
+    var recoveryWeeks: Int
+
+    /// Total span this block occupies (training weeks + recovery if attached).
+    var totalSpan: Int { weeks + (includeRecovery ? recoveryWeeks : 0) }
+}
+
 struct ComputedBlockInfo {
     let blockType: BlockType
     let blockNumber: Int           // 1-indexed
@@ -199,34 +215,123 @@ struct ComputedBlockInfo {
                         blockLength: Int,
                         totalWeeks: Int,
                         goal: GoalType,
-                        instance: UserProgramInstance? = nil) -> ComputedBlockInfo {
+                        instance: UserProgramInstance? = nil,
+                        usesPeriodization: Bool = true,
+                        skipDeloads: Bool = false) -> ComputedBlockInfo {
+        // When the user has periodization turned off, the entire program is
+        // one continuous block. No deload weeks, no block transitions, no
+        // phase shifts. Every week is just "Week N" with the user's normal
+        // training intensity. This must override the seeded deload schedule
+        // — otherwise toggling periodization off in Settings has no visible
+        // effect on block/phase displays.
+        if !usesPeriodization {
+            return ComputedBlockInfo(
+                blockType: .accumulation,
+                blockNumber: 1,
+                weekInBlock: week,
+                blockTrainingWeeks: max(1, totalWeeks),
+                isDeloadWeek: false,
+                displayPhaseName: "Continuous Training"
+            )
+        }
+
+        // When the user has saved an explicit blockLayout via the editor,
+        // block boundaries are defined by THE LAYOUT — not by deload
+        // positions. Otherwise two consecutive blocks with no recovery
+        // between them get merged into one training run, so "1 of 3" would
+        // display as "1 of 10" (because the next block's 7 training weeks
+        // got swallowed into the same span).
+        if let saved = instance?.blockLayout, !saved.isEmpty {
+            var cursor = 0
+            var blockNumber = 0
+            for b in saved {
+                blockNumber += 1
+                let blockStart = cursor + 1
+                let trainingEnd = cursor + b.weeks
+                let recoveryStart = trainingEnd + 1
+                let blockEnd = cursor + b.totalSpan
+                if week <= blockEnd {
+                    let inRecovery = b.includeRecovery && week >= recoveryStart
+                    let isDeload = inRecovery && !skipDeloads
+                    let trainingWeeks = b.weeks
+                    let weekInBlock = isDeload
+                        ? 1
+                        : (skipDeloads || !b.includeRecovery
+                            ? max(1, week - blockStart + 1)
+                            : max(1, min(trainingWeeks, week - blockStart + 1)))
+                    let isHyp = goal == .hypertrophy || goal == .recomp
+                    let displayPhaseName: String = {
+                        if isDeload { return isHyp ? "Recovery" : "Deload" }
+                        switch b.blockType {
+                        case .accumulation:    return isHyp ? "Training Block" : "Accumulation"
+                        case .intensification: return "Intensification"
+                        case .reaccumulation:  return isHyp ? "Growth Phase"
+                                                : (goal == .powerbuilding ? "Volume Phase" : "Accumulation")
+                        case .peak:            return "Peaking"
+                        case .deload:          return isHyp ? "Recovery" : "Deload"
+                        }
+                    }()
+                    return ComputedBlockInfo(
+                        blockType: isDeload ? .deload : b.blockType,
+                        blockNumber: blockNumber,
+                        weekInBlock: weekInBlock,
+                        blockTrainingWeeks: trainingWeeks,
+                        isDeloadWeek: isDeload,
+                        displayPhaseName: displayPhaseName)
+                }
+                cursor = blockEnd
+            }
+            // Past the end of the saved layout — fall through to the
+            // generic computation below. This handles the edge case where
+            // the user's layout is shorter than totalWeeks.
+        }
+
         // deloadWeeks(for:blockLength:instance:) lives in WorkoutView.swift —
         // it's the single source of truth, and when instance is provided it
         // honors user-defined overrides (customDeloadWeeks / skippedDeloadWeeks
         // set by BlockSequenceEditor).
         let deloads = deloadWeeks(for: programId, blockLength: blockLength, instance: instance)
-        let isDeload = deloads.contains(week)
+        // isDeload reflects the user's actual experience: when skipDeloads is
+        // on, deload weeks ARE training weeks, so we don't surface "Deload"
+        // or "Recovery" anywhere in the UI. The block boundaries (defined by
+        // the configured deload positions) stay the same.
+        let isDeload = !skipDeloads && deloads.contains(week)
         let priorDeloads = deloads.filter { $0 < week }.sorted()
         let blockNumber = priorDeloads.count + 1
         let blockStart = (priorDeloads.last ?? 0) + 1
         // The deload week that ENDS this block. For the final block of a
         // program with no trailing deload, fall back to totalWeeks + 1.
         let nextDeload = deloads.filter { $0 >= week }.min() ?? (totalWeeks + 1)
-        // Training weeks in the block = weeks between blockStart and the next
-        // deload, exclusive of the deload itself. Bahri block 1: 1..2, week 3
-        // = deload → 2 training weeks.
-        let blockTrainingWeeks = max(1, nextDeload - blockStart)
-        // weekInBlock counts only training weeks. During a deload, the value
-        // matches the position in the block but UI should display "Recovery".
-        let weekInBlock = isDeload
-            ? blockTrainingWeeks + 1
-            : max(1, week - blockStart + 1)
+        // Training weeks in the block. When skipDeloads is on the "deload"
+        // week becomes a training week, so we include it (+1 to span). When
+        // it's off, training weeks exclude the trailing deload.
+        let blockTrainingWeeks: Int
+        if skipDeloads {
+            blockTrainingWeeks = max(1, nextDeload - blockStart + 1)
+        } else {
+            blockTrainingWeeks = max(1, nextDeload - blockStart)
+        }
+        // weekInBlock counts only training weeks. For deload weeks we report
+        // 1 (it IS the recovery week, singular). With skipDeloads on, the
+        // deload week counts as the final training week of the block.
+        let weekInBlock = isDeload ? 1 : max(1, week - blockStart + 1)
 
-        // Block type derived from block number + goal. Direct mapping —
-        // simpler than walking BlockType.next and matches the conventional
-        // periodization patterns users expect.
+        // Block type — if the user saved an explicit blockLayout via the
+        // editor, honor their chosen types. Otherwise fall back to the
+        // canonical sequence derived from goal + blockNumber.
+        let userPickedType: BlockType? = {
+            guard let saved = instance?.blockLayout, !saved.isEmpty else { return nil }
+            // Walk the saved layout to find which block contains `week`.
+            var cursor = 0
+            for b in saved {
+                cursor += b.totalSpan
+                if week <= cursor { return b.blockType }
+            }
+            return nil
+        }()
         let bt: BlockType = {
             if isDeload { return .deload }
+            if let userType = userPickedType { return userType }
             switch goal {
             case .hypertrophy, .recomp:
                 // Alternating accumulation / reaccumulation
@@ -277,6 +382,11 @@ enum BlockPhase: String, Codable {
     case intensification
     case deload
     case postDeloadReintro
+    /// Continuous training mode — periodization is OFF on the user's profile.
+    /// Engine code that branches on phase should treat this as "no block
+    /// context at all": no deload-aware suppression, no volume multipliers,
+    /// no block-phase-specific signal weighting.
+    case continuous
 }
 
 enum StallReason: String, Codable {
@@ -400,6 +510,22 @@ struct IndirectVolumeMap {
         }
         return result
     }
+
+    /// Total per-muscle credit for ONE SET of this exercise — direct (1.0
+    /// per primary muscle) plus indirect (secondary weight per muscle),
+    /// merged via max-over-duplicates so a muscle isn't double-credited
+    /// when it appears in multiple primary/secondary entries that
+    /// normalize to the same tracking group.
+    ///
+    /// When the exercise has populated `headContributions`, that's the
+    /// authoritative source (Phase 1+ segmented data). Otherwise falls
+    /// back to the legacy primary/secondary lists.
+    ///
+    /// Prefer this over iterating primaryMuscles/secondaryMuscles directly.
+    static func volumeCredit(for exerciseKey: String) -> [String: Double] {
+        guard let def = ExerciseDictionary.all[exerciseKey] else { return [:] }
+        return def.musclesCredit()
+    }
 }
 
 enum CalorieContext: String, Codable, CaseIterable {
@@ -453,6 +579,95 @@ enum AlgorithmMode: String, Codable, CaseIterable {
         case .off: return "Pure logger, no recommendations shown"
         }
     }
+}
+
+/// User-controlled UI density level. Hides advanced/jargon UI for casual users
+/// while keeping the engine running unchanged in the background.
+///
+/// Engine code (RPE, MRV signals, PML, etc.) NEVER reads UIDensity — only the
+/// view layer does. Switching levels never breaks state — hidden info is always
+/// recomputed; just not rendered.
+enum UIDensity: String, Codable, CaseIterable {
+    case minimal  = "minimal"   // Strong/Hevy-lite. No jargon. Algorithm still recommends.
+    case standard = "standard"  // Volume zones in plain language. PRs, charts, recovery info.
+    case advanced = "advanced"  // Everything: IFI, PML, MRV, stall diagnoses, balance ratios, etc.
+
+    var displayName: String {
+        switch self {
+        case .minimal:  return "Minimal"
+        case .standard: return "Standard"
+        case .advanced: return "Advanced"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .minimal:  return "Just lift and log. Algorithm runs quietly in the background."
+        case .standard: return "Volume targets, PRs, recovery — without the sports-science jargon."
+        case .advanced: return "Full coaching layer: IFI, PML, MRV signals, stall diagnoses, balance ratios."
+        }
+    }
+
+    // ── Algorithm Mode coupling ───────────────────────────────────
+    // In minimal/standard we force AlgorithmMode = .full so the
+    // engine pre-fills weight/reps. The AlgorithmMode picker itself
+    // only appears in .advanced.
+    var forcesAlgorithmFull: Bool { self != .advanced }
+
+    // ── Home tab gates ────────────────────────────────────────────
+    var showsBlockPhaseName: Bool   { self == .advanced }          // "Accumulation" vs flat week label
+    var showsMRVWarnings: Bool      { self == .advanced }          // per-muscle fatigue alerts
+    var showsDeloadBanner: Bool     { self != .minimal }           // hidden in minimal, plain language in std
+    var showsACWR: Bool             { self == .advanced }
+    var showsMuscleCoverageGrid: Bool { self != .minimal }         // minimal → single tap-to-expand line
+    var showsRecentPRs: Bool        { self != .minimal }
+    var showsWeekStrip: Bool        { true }                       // always — calendar is essential
+
+    // ── Train tab gates ───────────────────────────────────────────
+    var showsRPEField: Bool         { self != .minimal }           // density permits it; view still respects user showRPE pref
+    var showsWarmupSection: Bool    { self != .minimal }
+    var showsRestTimerBanner: Bool  { self != .minimal }
+    var showsIFIBadge: Bool         { self == .advanced }
+    var showsPMLNotes: Bool         { self == .advanced }
+    var showsStallDiagnosisCard: Bool { self == .advanced }        // ProgressiveOverloadCard
+    var showsPerSetRepTargets: Bool { self != .minimal }           // minimal shows one flat target per exercise
+    var showsLayoutToggle: Bool     { self != .minimal }           // paginated vs scroll
+    var showsTargetRPEInline: Bool  { self == .advanced }          // "RPE 8" in target row
+    var showsTargetRestInline: Bool { self != .minimal }           // "90s" in target row
+
+    // ── Progress tab gates ────────────────────────────────────────
+    var showsMostImproved: Bool     { self != .minimal }
+    var showsWeakPoints: Bool       { self == .advanced }
+    var showsBalanceRatios: Bool    { self == .advanced }
+    var showsGeneticPotential: Bool { self == .advanced }
+    var showsPredictive1RM: Bool    { self == .advanced }
+    var showsVolumeChart: Bool      { self != .minimal }
+    var showsFrequencyHeatmap: Bool { self != .minimal }
+    var showsStrengthGoalsSection: Bool { self != .minimal }
+    var showsFullStatsStrip: Bool   { self != .minimal }           // 6 cards vs 3
+
+    // ── Program tab gates ─────────────────────────────────────────
+    var showsBlockConfigCard: Bool  { self == .advanced }
+    var showsProgramStrengthGoals: Bool { self != .minimal }
+    var showsWeeklyVolumeBars: Bool { self != .minimal }
+    var showsMusclePrioritiesCycler: Bool { self == .advanced }    // grid cycler
+    var showsMusclePrioritiesText: Bool { self == .standard }      // flat text summary
+    var showsSessionDuration: Bool  { self != .minimal }
+    var showsAllConfiguratorTabs: Bool { self == .advanced }       // Schedule + Blocks + Import shown
+    var showsConfiguratorSchedule: Bool { self != .minimal }
+    var showsTierLabels: Bool       { self == .advanced }          // T1/T2/T3 badges in week view
+
+    // ── Settings gates ────────────────────────────────────────────
+    var showsAlgorithmModePicker: Bool { self == .advanced }
+    var showsWarmupToggle: Bool     { self != .minimal }
+    var showsAdvancedDisplayToggles: Bool { self == .advanced }    // rep range, RPE, rest, skip deload
+    var showsDayTemplatesLink: Bool { self != .minimal }
+    var showsLearnSection: Bool     { self != .minimal }
+    var showsExportSection: Bool    { self != .minimal }
+    var showsHowItWorksFull: Bool   { self == .advanced }
+    var showsResetInline: Bool      { self != .minimal }           // minimal tucks reset behind "Advanced ▾"
+    var showsBuildProgramButton: Bool { self == .advanced }
+    var showsGenerateProgramButton: Bool { self != .minimal }
 }
 
 enum MuscleTier: String, Codable, CaseIterable {
@@ -577,6 +792,11 @@ class Exercise {
     var stretchPositionRaw: String = "mid"
     var cue: String = ""
     var exerciseTierRaw: String = "tier2"
+    /// JSON [headRawValue: weight] for custom exercises created by users in
+    /// Advanced density. Empty for legacy/inferred exercises — in that case
+    /// `musclesCredit()` falls back to `inferHeadContributions(...)` from
+    /// primary/secondary muscle lists.
+    var headContributionsData: Data = Data()
     var createdAt: Date
     var updatedAt: Date
 
@@ -598,6 +818,85 @@ class Exercise {
     var stretchPosition: StretchPosition {
         get { StretchPosition(rawValue: stretchPositionRaw) ?? .mid }
         set { stretchPositionRaw = newValue.rawValue }
+    }
+
+    /// User-supplied head-level contributions (Advanced-density custom
+    /// exercise creator). Empty when the user didn't set them — in that
+    /// case `musclesCredit()` falls back to inference from primary/secondary.
+    var headContributions: [MuscleHead: Double] {
+        get {
+            guard !headContributionsData.isEmpty,
+                  let raw = try? JSONDecoder().decode([String: Double].self,
+                                                      from: headContributionsData)
+            else { return [:] }
+            var result: [MuscleHead: Double] = [:]
+            for (k, v) in raw {
+                if let head = MuscleHead(rawValue: k) { result[head] = v }
+            }
+            return result
+        }
+        set {
+            let raw = Dictionary(uniqueKeysWithValues: newValue.map { ($0.key.rawValue, $0.value) })
+            headContributionsData = (try? JSONEncoder().encode(raw)) ?? Data()
+        }
+    }
+
+    /// Per-canonical-muscle credit for one set of this (custom) exercise.
+    /// Used by the unified volume math when the exercise isn't in
+    /// `ExerciseDictionary.all` (i.e. custom exercises). When the user
+    /// populated `headContributions` via the Advanced custom-exercise
+    /// creator, we use those values. Otherwise we infer sensible defaults
+    /// from the primary/secondary muscle lists.
+    func musclesCredit() -> [String: Double] {
+        let heads = headContributions.isEmpty
+            ? Exercise.inferHeadContributions(primary: musclesPrimary,
+                                              secondary: musclesSecondary)
+            : headContributions
+        if !heads.isEmpty {
+            var result: [String: Double] = [:]
+            for (head, weight) in heads {
+                let parent = head.parentMuscle
+                result[parent] = max(result[parent] ?? 0, weight)
+            }
+            return result
+        }
+        // Last-resort: legacy primary/secondary aggregation.
+        var result: [String: Double] = [:]
+        for pm in musclesPrimary {
+            if let n = ExerciseDictionary.normalizeMuscle(pm) {
+                result[n] = max(result[n] ?? 0, 1.0)
+            }
+        }
+        for sm in musclesSecondary {
+            if let n = ExerciseDictionary.normalizeMuscle(sm) {
+                result[n] = max(result[n] ?? 0, 0.5)
+            }
+        }
+        return result
+    }
+
+    /// Inference: build a reasonable head-level contribution map from
+    /// primary/secondary muscle group names. Used when the user didn't
+    /// hand-pick heads in the Advanced custom-exercise creator.
+    ///
+    /// Heuristic: each primary muscle's heads get 0.7 (all heads of the
+    /// parent treated as roughly equally trained — better than no data,
+    /// less accurate than hand-tuned). Secondary muscle's heads get 0.4.
+    static func inferHeadContributions(primary: [String], secondary: [String]) -> [MuscleHead: Double] {
+        var result: [MuscleHead: Double] = [:]
+        for raw in primary {
+            guard let normalized = ExerciseDictionary.normalizeMuscle(raw) else { continue }
+            for head in MuscleHead.heads(of: normalized) {
+                result[head] = max(result[head] ?? 0, 0.7)
+            }
+        }
+        for raw in secondary {
+            guard let normalized = ExerciseDictionary.normalizeMuscle(raw) else { continue }
+            for head in MuscleHead.heads(of: normalized) {
+                result[head] = max(result[head] ?? 0, 0.4)
+            }
+        }
+        return result
     }
 
     init(
@@ -651,6 +950,18 @@ class UserProfile {
     var respondsBetterToRaw: String? = nil
     var useGeneratedPrograms: Bool = true
     var algorithmModeRaw: String = "full"
+    /// User-controlled UI density. Defaults to "advanced" so existing users
+    /// (with workout history) keep the full app unchanged on first launch
+    /// after upgrade. New users get prompted in onboarding.
+    var uiDensityRaw: String = "advanced"
+
+    /// Whether to use block periodization (accumulation/intensification/
+    /// peaking/deload cycles). When false, the app presents linear/
+    /// continuous training: no block phases, no deload weeks, no
+    /// mesocycle vocabulary. Engine still runs progression normally.
+    /// Default true preserves existing behavior on migration.
+    var usesPeriodization: Bool = true
+
     var showWarmups: Bool = true
     var showRPE: Bool = true
     var showRepRange: Bool = true
@@ -695,6 +1006,25 @@ class UserProfile {
     var algorithmMode: AlgorithmMode {
         get { AlgorithmMode(rawValue: algorithmModeRaw) ?? .full }
         set { algorithmModeRaw = newValue.rawValue }
+    }
+
+    /// UI density level. Setter also enforces forced algorithm mode for
+    /// minimal/standard (recommendations stay visible — only the why is hidden).
+    var density: UIDensity {
+        get { UIDensity(rawValue: uiDensityRaw) ?? .advanced }
+        set {
+            uiDensityRaw = newValue.rawValue
+            if newValue.forcesAlgorithmFull {
+                algorithmModeRaw = AlgorithmMode.full.rawValue
+            }
+        }
+    }
+
+    /// The effective algorithm mode after density coercion. View code that
+    /// reads algorithm mode should call this, NOT the raw `algorithmMode`,
+    /// so density coupling can't be bypassed.
+    var effectiveAlgorithmMode: AlgorithmMode {
+        density.forcesAlgorithmFull ? .full : algorithmMode
     }
 
     var muscleTiers: [String: MuscleTier] {
@@ -922,6 +1252,20 @@ class UserProgramInstance {
     var customDeloadWeeksData: Data = Data()
     /// JSON-encoded [Int] — program-default deload weeks the user has skipped
     var skippedDeloadWeeksData: Data = Data()
+    /// JSON-encoded [SavedBlock] — explicit block layout from BlockSequenceEditor.
+    /// When non-empty this is the AUTHORITATIVE source for block boundaries:
+    /// the editor reloads from this, and deload-schedule helpers derive
+    /// deload positions from it. Empty = use seeded/program defaults.
+    /// Without this, two different layouts (e.g. "3-week block + 4-week block
+    /// with deload" vs "7-week block with deload") produce the same deload
+    /// schedule and we lose the user's intended boundaries on reload.
+    var blockLayoutData: Data = Data()
+    /// JSON-encoded [String: String] — user-supplied custom labels per
+    /// SessionType.rawValue. Renames apply everywhere a session shows up
+    /// (Home day cards, rotation view, Train picker, Mesocycle browser,
+    /// Recent Sessions, Program tab, the session-editor sheet title).
+    /// Empty value clears the override → default `sessionType.shortLabel`.
+    var customSessionLabelsData: Data = Data()
 
     var customDeloadWeeks: Set<Int> {
         get { (try? JSONDecoder().decode(Set<Int>.self, from: customDeloadWeeksData)) ?? [] }
@@ -931,6 +1275,43 @@ class UserProgramInstance {
     var skippedDeloadWeeks: Set<Int> {
         get { (try? JSONDecoder().decode(Set<Int>.self, from: skippedDeloadWeeksData)) ?? [] }
         set { skippedDeloadWeeksData = (try? JSONEncoder().encode(newValue)) ?? Data() }
+    }
+
+    /// Explicit block layout from BlockSequenceEditor. Empty = no override
+    /// (use program defaults). When populated, `deloadWeeks(...)` derives
+    /// deload positions from this and ComputedBlockInfo + BlockSequenceEditor
+    /// both round-trip through it cleanly.
+    var blockLayout: [SavedBlock] {
+        get { (try? JSONDecoder().decode([SavedBlock].self, from: blockLayoutData)) ?? [] }
+        set { blockLayoutData = (try? JSONEncoder().encode(newValue)) ?? Data() }
+    }
+
+    /// User-supplied display names keyed by SessionType.rawValue.
+    /// Nil/empty values mean "use the default session.shortLabel".
+    /// Renaming Heavy Upper → "Bench Day" applies to every Heavy Upper
+    /// instance in the program, regardless of which day-of-week it lands on.
+    var customSessionLabels: [String: String] {
+        get {
+            guard !customSessionLabelsData.isEmpty,
+                  let raw = try? JSONDecoder().decode([String: String].self, from: customSessionLabelsData)
+            else { return [:] }
+            return raw.filter { !$0.value.trimmingCharacters(in: .whitespaces).isEmpty }
+        }
+        set {
+            let pruned = newValue.compactMapValues { v -> String? in
+                let t = v.trimmingCharacters(in: .whitespaces)
+                return t.isEmpty ? nil : t
+            }
+            customSessionLabelsData = (try? JSONEncoder().encode(pruned)) ?? Data()
+        }
+    }
+
+    /// Lookup helper — returns the custom label for a session type if set,
+    /// otherwise nil. Views that already have a SessionType in scope just
+    /// call this; no need to know about JSON encoding.
+    func customLabel(for sessionType: SessionType) -> String? {
+        let v = customSessionLabels[sessionType.rawValue] ?? ""
+        return v.isEmpty ? nil : v
     }
 
     /// Returns true if a given week is an effective deload (program default + custom - skipped)
@@ -963,6 +1344,16 @@ class UserProgramInstance {
         if blockWeek == 1 && totalBlocksCompleted > 0 { return .postDeloadReintro }
         let midpoint = max(1, blockLength / 2)
         return blockWeek <= midpoint ? .earlyAccumulation : .lateAccumulation
+    }
+
+    /// Profile-aware block phase. Returns `.continuous` when the user has
+    /// turned off block periodization. Engine and view code that wants to
+    /// honor the user's preference should call this instead of `blockPhase`.
+    /// The raw `blockPhase` remains usable for code that explicitly needs
+    /// the underlying block state (e.g., for migrations or auto-derived
+    /// values), but most consumers should use this.
+    func effectiveBlockPhase(usesPeriodization: Bool) -> BlockPhase {
+        usesPeriodization ? blockPhase : .continuous
     }
 
     var currentWeekSets: [String: Int] {

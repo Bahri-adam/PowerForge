@@ -294,3 +294,57 @@ extension View {
         }
     }
 }
+
+// ═══════════════════════════════════════════
+// DETAIL EXPANDER
+// Per-screen "Show details ▾" disclosure for minimal/standard density.
+// State is session-scoped — every fresh launch starts collapsed so the
+// minimal view is always the first thing the user sees.
+// ═══════════════════════════════════════════
+
+struct DetailExpander<Content: View>: View {
+    let label: String
+    @ViewBuilder let content: () -> Content
+
+    @State private var expanded = false
+
+    init(label: String = "Show details", @ViewBuilder content: @escaping () -> Content) {
+        self.label = label
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    expanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(expanded ? "Hide details" : label)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .kerning(1.5)
+                        .foregroundColor(.appTextSecondary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.appTextSecondary)
+                        .rotationEffect(.degrees(expanded ? 180 : 0))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.appSurface2.opacity(0.6))
+                .cornerRadius(20)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.appBorder, lineWidth: 0.5)
+                )
+            }
+            .buttonStyle(.plain)
+
+            if expanded {
+                content()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+}

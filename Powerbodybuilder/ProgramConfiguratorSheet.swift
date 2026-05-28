@@ -35,6 +35,29 @@ struct ProgramConfiguratorSheet: View {
         case importSession = "Import"
     }
 
+    /// User's UI density. Filters which configurator tabs render.
+    private var density: UIDensity { profile?.density ?? .advanced }
+
+    /// Whether the user uses block periodization. When false, the Blocks
+    /// tab is hidden even in advanced density — there are no blocks to
+    /// configure under continuous training.
+    private var usesPeriodization: Bool { profile?.usesPeriodization ?? true }
+
+    /// Tabs visible at the current density level.
+    ///   minimal  → [Sessions]
+    ///   standard → [Sessions, Schedule]
+    ///   advanced → all four (Sessions, Schedule, Blocks, Import)
+    /// The Blocks tab is additionally hidden when periodization is off.
+    private var visibleTabs: [ConfigTab] {
+        let base: [ConfigTab]
+        switch density {
+        case .minimal:  base = [.sessions]
+        case .standard: base = [.sessions, .schedule]
+        case .advanced: base = ConfigTab.allCases
+        }
+        return usesPeriodization ? base : base.filter { $0 != .blocks }
+    }
+
     @State private var activeChildSheet: ChildSheet? = nil
     @State private var scheduleSelectedDow: Int? = nil
 
@@ -114,22 +137,29 @@ struct ProgramConfiguratorSheet: View {
                 RoundedRectangle(cornerRadius: 3).fill(Color.appBorder).frame(width: 36, height: 4).padding(.top, 12)
                 Text("CONFIGURE PROGRAM").font(.system(size: 12, weight: .black)).foregroundColor(.appRed).kerning(2)
 
-                // Tab picker
-                HStack(spacing: 4) {
-                    ForEach(ConfigTab.allCases, id: \.self) { tab in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) { activeTab = tab }
-                        } label: {
-                            Text(tab.rawValue)
-                                .font(.system(size: 11, weight: activeTab == tab ? .black : .medium))
-                                .foregroundColor(activeTab == tab ? .white : .appTextSecondary)
-                                .padding(.horizontal, 12).padding(.vertical, 7)
-                                .background(activeTab == tab ? Color.appRed : Color.appSurface2).cornerRadius(7)
-                        }.buttonStyle(.plain)
+                // Tab picker — minimal hides Schedule/Blocks/Import (those tabs
+                // are about reshaping the program, which casual users don't need).
+                if visibleTabs.count > 1 {
+                    HStack(spacing: 4) {
+                        ForEach(visibleTabs, id: \.self) { tab in
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.15)) { activeTab = tab }
+                            } label: {
+                                Text(tab.rawValue)
+                                    .font(.system(size: 11, weight: activeTab == tab ? .black : .medium))
+                                    .foregroundColor(activeTab == tab ? .white : .appTextSecondary)
+                                    .padding(.horizontal, 12).padding(.vertical, 7)
+                                    .background(activeTab == tab ? Color.appRed : Color.appSurface2).cornerRadius(7)
+                            }.buttonStyle(.plain)
+                        }
                     }
                 }
 
-                switch activeTab {
+                // Render the active tab — but only if density allows it. If a
+                // user toggled density mid-session and their previous tab is now
+                // hidden, fall back to Sessions.
+                let renderedTab = visibleTabs.contains(activeTab) ? activeTab : .sessions
+                switch renderedTab {
                 case .sessions: sessionsTab
                 case .schedule: scheduleTab
                 case .blocks: blocksTab
@@ -185,7 +215,8 @@ struct ProgramConfiguratorSheet: View {
                         .foregroundColor(.appRed).frame(width: 24)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.sessionType.shortLabel).font(.system(size: 14, weight: .bold)).foregroundColor(.appTextPrimary)
+                        Text(instance.customLabel(for: entry.sessionType) ?? entry.sessionType.shortLabel)
+                            .font(.system(size: 14, weight: .bold)).foregroundColor(.appTextPrimary)
                         Text(entry.sessionType.muscleSubtitle).font(.system(size: 11)).foregroundColor(.appTextDim)
                     }
 
@@ -221,6 +252,36 @@ struct ProgramConfiguratorSheet: View {
                 }
                 .padding(10).background(Color.appSurface).cornerRadius(8)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
+            }
+            .confirmationDialog("Remove Session", isPresented: $showRemoveConfirm) {
+                Button("This Week Only") {
+                    if let idx = actionSessionIndex { removeSession(at: idx, permanent: false) }
+                }
+                Button("Permanently") {
+                    if let idx = actionSessionIndex { removeSession(at: idx, permanent: true) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Remove this session for just this week, or permanently from your rotation?")
+            }
+            .confirmationDialog("Replace Session", isPresented: $showReplaceConfirm) {
+                Button("This Week Only") {
+                    if let idx = actionSessionIndex {
+                        replacingSessionIndex = idx
+                        sessionPickerPermanent = false
+                        activeChildSheet = .sessionPicker
+                    }
+                }
+                Button("Permanently") {
+                    if let idx = actionSessionIndex {
+                        replacingSessionIndex = idx
+                        sessionPickerPermanent = true
+                        activeChildSheet = .sessionPicker
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Replace this session for just this week, or permanently change your rotation?")
             }
 
             // Add session buttons
@@ -274,40 +335,6 @@ struct ProgramConfiguratorSheet: View {
                 }
             }
         }
-        // Confirmation dialogs MUST live on the outer container — not on the
-        // ForEach above. Attaching them to ForEach gave each session row its
-        // own copy of the dialog, and they fought over the same $isPresented
-        // binding so taps did nothing. Single instances here fire reliably.
-        .confirmationDialog("Remove Session", isPresented: $showRemoveConfirm) {
-            Button("This Week Only") {
-                if let idx = actionSessionIndex { removeSession(at: idx, permanent: false) }
-            }
-            Button("Permanently") {
-                if let idx = actionSessionIndex { removeSession(at: idx, permanent: true) }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Remove this session for just this week, or permanently from your rotation?")
-        }
-        .confirmationDialog("Replace Session", isPresented: $showReplaceConfirm) {
-            Button("This Week Only") {
-                if let idx = actionSessionIndex {
-                    replacingSessionIndex = idx
-                    sessionPickerPermanent = false
-                    activeChildSheet = .sessionPicker
-                }
-            }
-            Button("Permanently") {
-                if let idx = actionSessionIndex {
-                    replacingSessionIndex = idx
-                    sessionPickerPermanent = true
-                    activeChildSheet = .sessionPicker
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Replace this session for just this week, or permanently change your rotation?")
-        }
         .sheet(item: $activeChildSheet) { sheet in
             switch sheet {
             case .sessionPicker:
@@ -320,7 +347,8 @@ struct ProgramConfiguratorSheet: View {
                         }
                         activeChildSheet = nil
                     },
-                    onDismiss: { activeChildSheet = nil }
+                    onDismiss: { activeChildSheet = nil },
+                    customLabel: { instance.customLabel(for: $0) }
                 )
                 .presentationDetents([.medium])
             case .blockSequenceEditor:
@@ -478,7 +506,7 @@ struct ProgramConfiguratorSheet: View {
                                 .font(.system(size: 8, weight: .black)).kerning(0.5)
                                 .foregroundColor(isSelected ? .white : .appTextDim)
                             if let st = day.session {
-                                Text(st.shortLabel)
+                                Text(instance.customLabel(for: st) ?? st.shortLabel)
                                     .font(.system(size: 8, weight: .bold))
                                     .foregroundColor(isSelected ? .white : .appTextPrimary)
                                     .lineLimit(2).multilineTextAlignment(.center)
@@ -503,7 +531,8 @@ struct ProgramConfiguratorSheet: View {
                 HStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(dowLabels[dow])").font(.system(size: 12, weight: .black)).foregroundColor(.appRed)
-                        Text(daySession?.shortLabel ?? "Rest Day").font(.system(size: 11)).foregroundColor(.appTextSecondary)
+                        Text(daySession.map { instance.customLabel(for: $0) ?? $0.shortLabel } ?? "Rest Day")
+                            .font(.system(size: 11)).foregroundColor(.appTextSecondary)
                     }
                     Spacer()
 
@@ -596,7 +625,7 @@ struct ProgramConfiguratorSheet: View {
                             } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "plus.circle").font(.system(size: 12)).foregroundColor(.appGreen)
-                                    Text(st.shortLabel).font(.system(size: 12, weight: .bold)).foregroundColor(.appTextPrimary)
+                                    Text(instance.customLabel(for: st) ?? st.shortLabel).font(.system(size: 12, weight: .bold)).foregroundColor(.appTextPrimary)
                                     Text(st.muscleSubtitle).font(.system(size: 10)).foregroundColor(.appTextDim)
                                     Spacer()
                                     Image(systemName: "chevron.right").font(.system(size: 8)).foregroundColor(.appTextDim)
@@ -824,12 +853,25 @@ struct ProgramConfiguratorSheet: View {
 
             currentBlockCard
 
-            // Block type picker
+            // Block type picker. Highlight reflects what the engine is
+            // ACTUALLY using right now (ComputedBlockInfo), not the stale
+            // `instance.blockType` field which only advances at finalizeWorkout.
+            // This stops the confusing "current block: deload / block type:
+            // intensification" disagreement.
             VStack(alignment: .leading, spacing: 8) {
                 Text("BLOCK TYPE").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1)
 
                 let goal = profile?.goal ?? .hypertrophy
                 let isHyp = goal == .hypertrophy || goal == .recomp
+                let pickerInfo = ComputedBlockInfo.compute(
+                    forWeek: instance.currentWeek,
+                    programId: instance.programId,
+                    blockLength: instance.blockLength,
+                    totalWeeks: instance.programDurationWeeks ?? 24,
+                    goal: goal,
+                    instance: instance,
+                    usesPeriodization: profile?.usesPeriodization ?? true,
+                    skipDeloads: profile?.skipDeloads ?? false)
                 let types: [BlockType] = isHyp
                     ? [.accumulation, .reaccumulation, .deload]
                     : [.accumulation, .intensification, .reaccumulation, .peak, .deload]
@@ -837,7 +879,7 @@ struct ProgramConfiguratorSheet: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
                     ForEach(types, id: \.self) { bt in
                         let label = blockTypeLabel(bt, isHyp: isHyp)
-                        let selected = instance.blockType == bt
+                        let selected = pickerInfo.blockType == bt
                         Button {
                             instance.blockType = bt
                             try? modelContext.save()
@@ -915,11 +957,27 @@ struct ProgramConfiguratorSheet: View {
     }
 
     private var currentBlockCard: some View {
-        let weekLabel = instance.blockType == .deload
-            ? "DELOAD WEEK"
-            : "WEEK \(instance.blockWeek) OF \(instance.blockLength)"
-        let progress = instance.blockLength > 0
-            ? min(1.0, Double(instance.blockWeek) / Double(instance.blockLength))
+        // Read block state from ComputedBlockInfo so this card stays in sync
+        // with Home / Train / Program tabs. Reading inst.blockType / blockWeek
+        // directly drifts because those only advance at finalizeWorkout,
+        // ignoring the user's deload-toggle or BlockSequenceEditor changes.
+        // Pass BOTH toggles (Continuous Training + Skip Deloads) so the
+        // user sees a single coherent state.
+        let totalWeeks: Int = instance.programDurationWeeks ?? 24
+        let info = ComputedBlockInfo.compute(
+            forWeek: instance.currentWeek,
+            programId: instance.programId,
+            blockLength: instance.blockLength,
+            totalWeeks: totalWeeks,
+            goal: profile?.goal ?? .hypertrophy,
+            instance: instance,
+            usesPeriodization: profile?.usesPeriodization ?? true,
+            skipDeloads: profile?.skipDeloads ?? false)
+        let weekLabel = info.isDeloadWeek
+            ? (profile?.goal == .strength || profile?.goal == .powerbuilding ? "DELOAD WEEK" : "RECOVERY WEEK")
+            : "WEEK \(info.weekInBlock) OF \(info.blockTrainingWeeks)"
+        let progress = info.blockTrainingWeeks > 0
+            ? min(1.0, Double(info.weekInBlock) / Double(info.blockTrainingWeeks))
             : 0.0
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -928,7 +986,7 @@ struct ProgramConfiguratorSheet: View {
                 Text(weekLabel).font(.system(size: 10, weight: .black)).foregroundColor(.appRed).kerning(0.5)
             }
             HStack {
-                Text(blockTypeLabel(instance.blockType, isHyp: profile?.goal == .hypertrophy || profile?.goal == .recomp))
+                Text(info.displayPhaseName)
                     .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundColor(.appTextPrimary)
                 Spacer()
@@ -1031,7 +1089,7 @@ struct ProgramConfiguratorSheet: View {
                     .font(.system(size: 8, weight: .black)).kerning(0.5)
                     .foregroundColor(isSelected ? .white : .appTextDim)
                 if let st = day.session {
-                    Text(st.shortLabel)
+                    Text(instance.customLabel(for: st) ?? st.shortLabel)
                         .font(.system(size: 8, weight: .bold))
                         .foregroundColor(isSelected ? .white : .appTextPrimary)
                         .lineLimit(2).multilineTextAlignment(.center)
@@ -1110,7 +1168,7 @@ struct ProgramConfiguratorSheet: View {
                     HStack(spacing: 6) {
                         Image(systemName: sessionIcon(st)).font(.system(size: 10))
                             .foregroundColor(.appBlue)
-                        Text(st.shortLabel)
+                        Text(instance.customLabel(for: st) ?? st.shortLabel)
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.appTextPrimary)
                             .lineLimit(1)
@@ -1165,6 +1223,17 @@ struct ProgramConfiguratorSheet: View {
 struct SessionTypePickerSheet: View {
     let onSelect: (SessionType) -> Void
     let onDismiss: () -> Void
+    /// Optional rename lookup — when provided, picker shows the user's custom
+    /// label for each type alongside (or in place of) the built-in short label.
+    /// Nil = default to short labels everywhere.
+    let customLabel: ((SessionType) -> String?)?
+
+    init(onSelect: @escaping (SessionType) -> Void, onDismiss: @escaping () -> Void,
+         customLabel: ((SessionType) -> String?)? = nil) {
+        self.onSelect = onSelect
+        self.onDismiss = onDismiss
+        self.customLabel = customLabel
+    }
 
     private let sessionGroups: [(String, [SessionType])] = [
         ("Upper / Lower", [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]),
@@ -1195,7 +1264,7 @@ struct SessionTypePickerSheet: View {
                                         Image(systemName: sessionIcon(st)).font(.system(size: 14)).foregroundColor(.appRed)
                                             .frame(width: 36, height: 36).contentShape(Rectangle()).background(Color.appRed.opacity(0.08)).cornerRadius(8)
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(st.shortLabel).font(.system(size: 14, weight: .bold)).foregroundColor(.appTextPrimary)
+                                            Text(customLabel?(st) ?? st.shortLabel).font(.system(size: 14, weight: .bold)).foregroundColor(.appTextPrimary)
                                             Text(st.muscleSubtitle).font(.system(size: 11)).foregroundColor(.appTextDim)
                                         }
                                         Spacer()

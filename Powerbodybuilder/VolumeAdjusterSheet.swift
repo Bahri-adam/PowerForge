@@ -136,6 +136,74 @@ struct VolumeAdjusterSheet: View {
         sessionsWithMuscle.reduce(0) { $0 + $1.currentSets }
     }
 
+    // ── Head-level breakdown (Advanced density) ───────────────────────────
+    // Read-only insight into which heads of this muscle the user is
+    // currently programming. Helps decide WHICH session to bump if a
+    // specific head is lagging.
+
+    private var density: UIDensity { profile?.density ?? .advanced }
+
+    /// Per-head programmed sets for this muscle across all of the current
+    /// week's sessions. Mirrors `setsForMuscle` but multiplies head
+    /// contributions × effectiveSets instead of just counting sets.
+    private func headCreditsForMuscle() -> [(head: MuscleHead, sets: Double)] {
+        let active = activeSessionsForWeek(
+            programId: instance.programId, instance: instance, profile: profile,
+            week: week, templates: allProgramTemplates)
+        var totals: [MuscleHead: Double] = [:]
+        for session in active {
+            let templates = lookupTemplates(programId: instance.programId, week: week,
+                                            sessionType: session, allTemplates: allTemplates)
+            for t in templates {
+                let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
+                                             overrides: instance.overrides, week: week)
+                let contributions = headContributions(for: key)
+                guard !contributions.isEmpty else { continue }
+                let delta = totalDelta(forSlot: t.slotId, session: session, week: week)
+                let eff = max(0, t.targetSets + delta)
+                for (head, weight) in contributions where head.parentMuscle == muscle {
+                    totals[head, default: 0] += weight * Double(eff)
+                }
+            }
+            for ov in instance.overrides
+                where ov.isAddition && ov.sessionType == session && ov.appliesTo(week: week) {
+                let key = ov.replacementExerciseKey
+                let contributions = headContributions(for: key)
+                for (head, weight) in contributions where head.parentMuscle == muscle {
+                    totals[head, default: 0] += weight * Double(ov.addedSets)
+                }
+            }
+        }
+        return MuscleHead.heads(of: muscle).map { ($0, totals[$0] ?? 0) }
+    }
+
+    private func headContributions(for key: String) -> [MuscleHead: Double] {
+        if let def = ExerciseDictionary.all[key] { return def.headContributions }
+        if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
+            let stored = ex.headContributions
+            return stored.isEmpty
+                ? Exercise.inferHeadContributions(primary: ex.musclesPrimary,
+                                                  secondary: ex.musclesSecondary)
+                : stored
+        }
+        return [:]
+    }
+
+    private func adjusterHeadBarColor(_ v: Double) -> Color {
+        let mrv = Double(targetRange.mrv)
+        guard mrv > 0 else { return .appTextDim }
+        let frac = v / mrv
+        if frac < 0.20 { return .appRed }
+        if frac < 0.40 { return .appYellow }
+        if frac <= 0.85 { return .appGreen }
+        return .appOrange
+    }
+
+    private func adjusterSetsLabel(_ v: Double) -> String {
+        if abs(v - v.rounded()) < 0.05 { return "\(Int(v.rounded()))" }
+        return String(format: "%.1f", v)
+    }
+
     private var targetRange: (mev: Int, mavLow: Int, mavHigh: Int, mrv: Int) {
         let tier = profile?.muscleTiers[muscle] ?? (profile?.priorityMuscles.contains(muscle) == true ? .priority : .neutral)
         let exp = profile?.experience ?? .intermediate
@@ -264,6 +332,14 @@ struct VolumeAdjusterSheet: View {
             VStack(spacing: 16) {
                 volumeHeader
 
+                // Advanced-density head breakdown — read-only insight into
+                // which heads of this muscle the user is programming.
+                // Helps inform which session to bump if a specific head
+                // is lagging. Set targeting still happens at muscle level.
+                if density == .advanced {
+                    adjusterHeadBreakdown
+                }
+
                 if hasActiveWorkout {
                     activeWorkoutWarning
                 }
@@ -334,6 +410,64 @@ struct VolumeAdjusterSheet: View {
         .background(Color.appYellow.opacity(0.08))
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appYellow.opacity(0.3), lineWidth: 1))
+    }
+
+    /// Advanced-density head breakdown panel inside the adjuster. Same look
+    /// as Program tab's panel — shows which heads of `muscle` the user's
+    /// current programming covers. Read-only.
+    private var adjusterHeadBreakdown: some View {
+        let credits = headCreditsForMuscle()
+        let total = credits.reduce(0) { $0 + $1.sets }
+        let mrv = Double(targetRange.mrv)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                Text("HEAD BREAKDOWN").font(.system(size: 9, weight: .black))
+                    .foregroundColor(.appBlue).kerning(1)
+                JargonHelp(termId: "head_credits", size: 10)
+                Spacer()
+                Text(adjusterSetsLabel(total))
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundColor(.appTextDim)
+            }
+            if credits.allSatisfy({ $0.sets < 0.05 }) {
+                Text("No programmed sets target this muscle's heads. Add exercises below or via Configure Program.")
+                    .font(.system(size: 11)).foregroundColor(.appTextSecondary)
+                    .lineSpacing(2)
+            } else {
+                ForEach(credits, id: \.head) { entry in
+                    let v = entry.sets
+                    let frac = mrv > 0 ? min(v / mrv, 1.2) : 0
+                    HStack(spacing: 6) {
+                        Text(entry.head.displayName)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.appTextPrimary)
+                            .frame(width: 110, alignment: .leading)
+                            .lineLimit(1).minimumScaleFactor(0.85)
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 2).fill(Color.appSurface2).frame(height: 5)
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(adjusterHeadBarColor(v))
+                                    .frame(width: geo.size.width * CGFloat(min(frac, 1.0)), height: 5)
+                            }
+                        }.frame(height: 6)
+                        Text(adjusterSetsLabel(v))
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundColor(.appTextPrimary)
+                            .frame(width: 32, alignment: .trailing)
+                    }
+                }
+                Text("Set targeting still happens at the muscle level. Use the per-session adjusters below to bump volume — the head distribution will follow your exercise selection.")
+                    .font(.system(size: 9))
+                    .foregroundColor(.appTextDim)
+                    .lineSpacing(2)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(12)
+        .background(Color.appBlue.opacity(0.05))
+        .cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBlue.opacity(0.2), lineWidth: 1))
     }
 
     private var scopePicker: some View {
@@ -755,6 +889,30 @@ struct VolumeAdjusterSheet: View {
         let r = resolvedScope
         // Don't reduce below zero
         if delta < 0 && row.currentSets <= 0 { return }
+        // Net taps against the SAME (slot, session, scope): if a delta override
+        // already exists for this combination, fold the new delta into it. If
+        // the result is zero, delete the override entirely. Without this,
+        // tapping +1 then -1 leaves two rows in the receipt instead of cleanly
+        // cancelling.
+        if let existing = instance.overrides.first(where: { ov in
+            !ov.isAddition &&
+            ov.targetSlotId == row.slotId &&
+            ov.targetExerciseKey == row.exerciseKey &&
+            ov.sessionType == session &&
+            ov.appliesFromWeek == r.from &&
+            ov.scope == r.scope &&
+            ov.scopeEndWeek == r.end
+        }) {
+            let combined = existing.setCountDelta + delta
+            if combined == 0 {
+                instance.overrides.removeAll { $0 === existing }
+                modelContext.delete(existing)
+            } else {
+                existing.setCountDelta = combined
+            }
+            try? modelContext.save()
+            return
+        }
         let override = SessionOverride(
             sessionType: session,
             targetExerciseKey: row.exerciseKey,

@@ -17,6 +17,14 @@ struct HomeView: View {
     var profile: UserProfile? { profiles.first }
     var instance: UserProgramInstance? { activeInstances.first }
 
+    /// User's UI density. Drives which advanced cards/badges render.
+    /// Engine code never reads this — display layer only.
+    private var density: UIDensity { profile?.density ?? .advanced }
+
+    /// Whether the user has block periodization enabled. When false, hide
+    /// all block/mesocycle/phase UI — the user is on continuous training.
+    private var usesPeriodization: Bool { profile?.usesPeriodization ?? true }
+
     @State private var viewingWeek: Int = 0
     @State private var showWeekHub = false
     @State private var showBodyweightEntry = false
@@ -29,6 +37,12 @@ struct HomeView: View {
     @State private var editSessionItem: SessionEditorItem? = nil
     @State private var dragHintDismissed: Bool = UserDefaults.standard.bool(forKey: "dragHintDismissed.v1")
     @State private var volumeAdjustMuscle: String? = nil
+    /// When non-nil, the rename alert is presented for this SessionType.
+    /// `renameText` holds the in-progress text. Saving writes to
+    /// instance.customSessionLabels[sessionType.rawValue]; empty input clears
+    /// the override so the default `sessionType.shortLabel` shows again.
+    @State private var renameSessionType: SessionType? = nil
+    @State private var renameText: String = ""
 
     private var displayWeek: Int { viewingWeek > 0 ? viewingWeek : (instance?.currentWeek ?? 1) }
 
@@ -125,8 +139,9 @@ struct HomeView: View {
     }
 
     // ── Block info helpers ──
-    /// Computed block info for the displayed week (not the stored inst.blockType,
-    /// which only advances on finalizeWorkout).
+    /// Computed block info for the displayed week. Single source of truth
+    /// for all block-state displays in HomeView. Always passes usesPeriodization
+    /// AND skipDeloads so both toggles propagate.
     private var displayedBlockInfo: ComputedBlockInfo? {
         guard let inst = instance else { return nil }
         return ComputedBlockInfo.compute(
@@ -135,7 +150,9 @@ struct HomeView: View {
             blockLength: inst.blockLength,
             totalWeeks: programTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks ?? 24,
             goal: profile?.goal ?? .hypertrophy,
-            instance: inst
+            instance: inst,
+            usesPeriodization: usesPeriodization,
+            skipDeloads: profile?.skipDeloads ?? false
         )
     }
 
@@ -175,33 +192,15 @@ struct HomeView: View {
         }
     }
 
-    /// For seeded programs, derive block week from display week and program structure
-    /// rather than relying on stored blockWeek which may be stale after program switch
+    /// Week-within-block from ComputedBlockInfo (single source of truth).
+    /// Falls back to displayed week when no info is available (e.g. freestyle).
     private var effectiveBlockWeek: Int {
-        guard let inst = instance else { return 1 }
-        if inst.isGenerated { return inst.blockWeek }
-        // Seeded programs: compute from display week
-        let w = displayWeek
-        if inst.programId == 7 {
-            // Bahri: 3-week blocks with deload every 3rd week
-            return ((w - 1) % 3) + 1
-        }
-        if inst.programId == 2 {
-            // PPL: 8-week blocks
-            if w <= 8 { return w }
-            return w - 8
-        }
-        // Powerbuilding (ID 1) and others: 8-week blocks
-        if w <= 8 { return w }
-        if w <= 16 { return w - 8 }
-        return w - 16
+        displayedBlockInfo?.weekInBlock ?? displayWeek
     }
 
+    /// Training weeks in the current block from ComputedBlockInfo.
     private var effectiveBlockLength: Int {
-        guard let inst = instance else { return 5 }
-        if inst.isGenerated { return inst.blockLength }
-        if inst.programId == 7 { return 3 }
-        return 8
+        displayedBlockInfo?.blockTrainingWeeks ?? 1
     }
 
     private var blockProgressLabel: String {
@@ -231,7 +230,7 @@ struct HomeView: View {
                             Image(systemName: "checkmark.circle.fill").font(.system(size: 28)).foregroundColor(.appGreen)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("TODAY'S SESSION COMPLETE").font(.system(size: 10, weight: .black)).foregroundColor(.appGreen).kerning(1.5)
-                                Text(st.shortLabel).font(.system(size: 16, weight: .black)).foregroundColor(.appTextPrimary)
+                                Text(instance?.customLabel(for: st) ?? st.shortLabel).font(.system(size: 16, weight: .black)).foregroundColor(.appTextPrimary)
                                 let todayLogs = weekLogs.filter { $0.sessionTypeRaw == st.rawValue }
                                 Text("\(todayLogs.count) sets logged").font(.system(size: 12)).foregroundColor(.appTextSecondary)
                             }
@@ -252,7 +251,7 @@ struct HomeView: View {
 
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("TODAY").font(.system(size: 10, weight: .black)).foregroundColor(.appRed).kerning(1.5)
-                                Text(st.shortLabel).font(.system(size: 18, weight: .black)).foregroundColor(.appTextPrimary)
+                                Text(instance?.customLabel(for: st) ?? st.shortLabel).font(.system(size: 18, weight: .black)).foregroundColor(.appTextPrimary)
                                 Text(st.muscleSubtitle).font(.system(size: 12)).foregroundColor(.appTextSecondary)
                             }
                             Spacer()
@@ -314,18 +313,19 @@ struct HomeView: View {
             .sorted { $0.exerciseIndex < $1.exerciseIndex }
 
         // If this is a training week but no templates exist for this session,
-        // fall back to the nearest training week
-        let bl = inst.blockLength > 0 ? inst.blockLength : 5
-        let posInBlock = ((displayWeek - 1) % (bl + 1)) + 1
-        let isTrainingWeek = posInBlock <= bl
+        // fall back to the nearest training week. Use the actual deload
+        // schedule (which honors blockLayout / customDeloadWeeks) rather
+        // than the hardcoded `blockLength + 1` cycle.
+        let deloads = deloadWeeks(for: inst.programId, blockLength: inst.blockLength, instance: inst)
+        let isTrainingWeek = !deloads.contains(displayWeek)
 
         if isTrainingWeek && direct.isEmpty {
             let total = programTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks ?? 24
             for offset in [1, -1, 2, -2, 3, -3] {
                 let fw = displayWeek + offset
                 guard fw >= 1 && fw <= total else { continue }
-                let fwPos = ((fw - 1) % (bl + 1)) + 1
-                guard fwPos <= bl else { continue }
+                // Only borrow from training weeks; skip deload weeks.
+                guard !deloads.contains(fw) else { continue }
                 let fallback = allSessionTemplates
                     .filter { $0.programId == inst.programId && $0.week == fw && $0.sessionType == session }
                     .sorted { $0.exerciseIndex < $1.exerciseIndex }
@@ -357,7 +357,7 @@ struct HomeView: View {
             Circle().fill(Color.appRed.opacity(0.04)).frame(width: 350).blur(radius: 80).offset(x: 130, y: -100)
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    HomeHeroHeader(profile: profile, instance: instance, displayWeek: displayWeek, onTapProgram: { showWeekHub = true })
+                    HomeHeroHeader(profile: profile, instance: instance, displayWeek: displayWeek, onTapProgram: { showWeekHub = true }, blockInfo: displayedBlockInfo)
                     // Stats strip
                     HStack(spacing: 0) {
                         statCell(value: "\(weekSessions)", label: "SESSIONS")
@@ -381,7 +381,9 @@ struct HomeView: View {
                                       programId: instance?.programId ?? 1,
                                       totalWeeks: programTemplates.first(where: { $0.programId == instance?.programId ?? 1 })?.durationWeeks ?? 24,
                                       instance: instance, onSelectWeek: { viewingWeek = $0 },
-                                      onTapHeader: { showWeekOverview = true })
+                                      onTapHeader: { showWeekOverview = true },
+                                      usesPeriodization: usesPeriodization,
+                                      skipDeloads: profile?.skipDeloads ?? false)
 
                             // Set as current week button
                             if displayWeek != (instance?.currentWeek ?? 1) {
@@ -408,20 +410,33 @@ struct HomeView: View {
                         }
 
                         // ── BLOCK INFO (tappable) ──
-                        if instance?.programId != 0 {
+                        // Density-aware: advanced shows phase name ("ACCUMULATION");
+                        // standard/minimal shows just the week-of-program line.
+                        // Hidden entirely when user has block periodization off
+                        // (continuous training mode).
+                        if instance?.programId != 0 && usesPeriodization {
                             Button(action: { showBlockInfo = true }) {
                                 HStack(spacing: 10) {
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text(blockTypeLabel.uppercased())
-                                            .font(.system(size: 10, weight: .black)).foregroundColor(.appRed).kerning(1.5)
-                                        Text("Week \(effectiveBlockWeek) of \(effectiveBlockLength)")
-                                            .font(.system(size: 12, weight: .bold)).foregroundColor(.appTextSecondary)
+                                        if density.showsBlockPhaseName {
+                                            Text(blockTypeLabel.uppercased())
+                                                .font(.system(size: 10, weight: .black)).foregroundColor(.appRed).kerning(1.5)
+                                            Text("Week \(effectiveBlockWeek) of \(effectiveBlockLength)")
+                                                .font(.system(size: 12, weight: .bold)).foregroundColor(.appTextSecondary)
+                                        } else {
+                                            Text("WEEK \(displayWeek)")
+                                                .font(.system(size: 10, weight: .black)).foregroundColor(.appRed).kerning(1.5)
+                                            Text("Week \(effectiveBlockWeek) of \(effectiveBlockLength)")
+                                                .font(.system(size: 12, weight: .bold)).foregroundColor(.appTextSecondary)
+                                        }
                                     }
                                     Spacer()
-                                    Text(blockProgressLabel)
-                                        .font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
-                                        .padding(.horizontal, 8).padding(.vertical, 4)
-                                        .background(Color.appSurface2).cornerRadius(6)
+                                    if density.showsBlockPhaseName {
+                                        Text(blockProgressLabel)
+                                            .font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
+                                            .padding(.horizontal, 8).padding(.vertical, 4)
+                                            .background(Color.appSurface2).cornerRadius(6)
+                                    }
                                     Image(systemName: "info.circle")
                                         .font(.system(size: 14)).foregroundColor(.appBlue)
                                 }
@@ -524,7 +539,14 @@ struct HomeView: View {
                                         return completedSessionTypes.contains(s.rawValue)
                                     }()
                                     HomeDayCard(dayOfWeek: dow, sessionType: st,
-                                                isDone: isDayDone, weekLogs: weekLogs)
+                                                isDone: isDayDone, weekLogs: weekLogs,
+                                                customLabel: st.flatMap { instance?.customLabel(for: $0) },
+                                                onRename: {
+                                                    if let session = st, session != .rest {
+                                                        renameSessionType = session
+                                                        renameText = instance?.customLabel(for: session) ?? ""
+                                                    }
+                                                })
                                         .contentShape(Rectangle())
                                         .onTapGesture {
                                             if let session = st, session != .rest, instance != nil {
@@ -556,7 +578,8 @@ struct HomeView: View {
                                         sessionNumber: idx + 1,
                                         sessionType: st,
                                         isDone: completedSessionTypes.contains(st.rawValue),
-                                        weekLogs: weekLogs.filter { $0.sessionTypeRaw == st.rawValue }
+                                        weekLogs: weekLogs.filter { $0.sessionTypeRaw == st.rawValue },
+                                        customLabel: instance?.customLabel(for: st)
                                     )
                                     .contentShape(Rectangle())
                                     .onTapGesture {
@@ -574,92 +597,91 @@ struct HomeView: View {
                         .background(Color.appSurface).cornerRadius(12)
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
 
-                        MuscleCoverageCard(
-                            weekLogs: weekLogs,
-                            exercises: allExercises,
-                            priorityMuscles: profile?.priorityMuscles ?? [],
-                            muscleTiers: profile?.muscleTiers ?? [:],
-                            experience: profile?.experience ?? .intermediate,
-                            instance: instance,
-                            allTemplates: allSessionTemplates,
-                            displayWeek: displayWeek,
-                            targetOverrides: profile?.muscleTargetOverrides ?? [:],
-                            onAdjustVolume: { muscle in volumeAdjustMuscle = muscle }
-                        )
+                        // Volume tracker. In minimal, tucked behind a "Show volume
+                        // tracker" affordance so the dashboard stays uncluttered
+                        // but the data is still one tap away. Standard+advanced
+                        // show it inline (Standard's deeper "plain language"
+                        // refactor inside MuscleCoverageCard is a later pass).
+                        if density.showsMuscleCoverageGrid {
+                            MuscleCoverageCard(
+                                weekLogs: weekLogs,
+                                exercises: allExercises,
+                                priorityMuscles: profile?.priorityMuscles ?? [],
+                                muscleTiers: profile?.muscleTiers ?? [:],
+                                experience: profile?.experience ?? .intermediate,
+                                instance: instance,
+                                allTemplates: allSessionTemplates,
+                                displayWeek: displayWeek,
+                                targetOverrides: profile?.muscleTargetOverrides ?? [:],
+                                onAdjustVolume: { muscle in volumeAdjustMuscle = muscle }
+                            )
+                        } else {
+                            DetailExpander(label: "Show volume tracker") {
+                                MuscleCoverageCard(
+                                    weekLogs: weekLogs,
+                                    exercises: allExercises,
+                                    priorityMuscles: profile?.priorityMuscles ?? [],
+                                    muscleTiers: profile?.muscleTiers ?? [:],
+                                    experience: profile?.experience ?? .intermediate,
+                                    instance: instance,
+                                    allTemplates: allSessionTemplates,
+                                    displayWeek: displayWeek,
+                                    targetOverrides: profile?.muscleTargetOverrides ?? [:],
+                                    onAdjustVolume: { muscle in volumeAdjustMuscle = muscle }
+                                )
+                            }
+                        }
 
-                        // ── MRV fatigue warnings ──
-                        // Suppress until total exposures across all states is high
-                        // enough for the EMA-based signals to be statistically meaningful.
+                        // ── MRV fatigue warnings (advanced only) ──
+                        // Per-muscle "fatigue building" alerts use jargon and
+                        // depend on signals casual users wouldn't track. Engine
+                        // still scores them; just not surfaced below advanced.
+                        // Also gated on 10+ total exposures so the EMA-based
+                        // signals don't fire on fresh-session noise.
                         let warningExposures = (instance?.progressionStates ?? [])
                             .reduce(0) { $0 + $1.totalExposures }
                         let priorityMuscleNames = (profile?.muscleTiers ?? [:])
                             .filter { $0.value == .priority }.map { $0.key }
-                        let warningMuscles = warningExposures >= 10 ? priorityMuscleNames
-                            .filter {
-                                let s = instance?.mrvSignalScores[$0] ?? 0
-                                return s >= 5 && s < 7
-                            } : []
 
-                        ForEach(warningMuscles, id: \.self) { muscle in
-                            HStack(spacing: 12) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.appGold)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("\(muscle) fatigue building")
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(.appTextPrimary)
-                                    Text("Consider 2–3 fewer sets this week")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.appTextSecondary)
+                        if density.showsMRVWarnings {
+                            let warningMuscles = warningExposures >= 10 ? priorityMuscleNames
+                                .filter {
+                                    let s = instance?.mrvSignalScores[$0] ?? 0
+                                    return s >= 5 && s < 7
+                                } : []
+
+                            ForEach(warningMuscles, id: \.self) { muscle in
+                                HStack(spacing: 12) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.appGold)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack(spacing: 5) {
+                                            Text("\(muscle) fatigue building")
+                                                .font(.system(size: 13, weight: .bold))
+                                                .foregroundColor(.appTextPrimary)
+                                            JargonHelp(termId: "mrv", size: 11)
+                                        }
+                                        Text("Consider 2–3 fewer sets this week")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.appTextSecondary)
+                                    }
+                                    Spacer()
                                 }
-                                Spacer()
+                                .padding(12)
+                                .appCard()
                             }
-                            .padding(12)
-                            .appCard()
                         }
 
-                        // Fatigue alert needs enough training history to be
-                        // meaningful — without it, signals fire on noise
-                        // (a fresh session's lifts inevitably trail career
-                        // bestE1RM, triggering S1; a hard set triggers S2).
-                        // Require ~10 sessions of data across all exercises
-                        // before showing the deload banner.
-                        let totalExposures = instance?.progressionStates
-                            .reduce(0) { $0 + $1.totalExposures } ?? 0
-                        if let inst = instance,
-                           totalExposures >= 10,
-                           MRVSignalEngine.requiresFullDeload(
-                               scores: inst.mrvSignalScores,
-                               priorityMuscles: priorityMuscleNames) {
-                            VStack(spacing: 8) {
-                                Text("High fatigue detected")
-                                    .font(.system(size: 15, weight: .black))
-                                    .foregroundColor(.appTextPrimary)
-                                Text("A deload this week will maximize what you've built.")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.appTextSecondary)
-                                    .multilineTextAlignment(.center)
-                                Button("Schedule Deload") {
-                                    inst.blockType = .deload
-                                    // Clearing the scores is part of taking a
-                                    // deload — they accumulated under load.
-                                    inst.mrvSignalScores = [:]
-                                }
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.appRed)
-                                .padding(.horizontal, 16).padding(.vertical, 8)
-                                .background(Color.appRed.opacity(0.1)).cornerRadius(8)
-                            }
-                            .padding(16)
-                            .background(Color.appRed.opacity(0.08))
-                            .cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.appRed.opacity(0.3), lineWidth: 1))
+                        // High-fatigue deload banner removed — the MRV signal
+                        // model fires on noise too often to be reliable for an
+                        // unobtrusive home-screen alert. Volume zone colors and
+                        // per-muscle warning cards still surface real fatigue.
+
+                        if density.showsACWR {
+                            ACWRCard(logs: instance?.logs ?? [])
                         }
 
-                        ACWRCard(logs: instance?.logs ?? [])
-
-                        if !recentPRs.isEmpty {
+                        if density.showsRecentPRs && !recentPRs.isEmpty {
                             VStack(spacing: 10) {
                                 SectionHeader(title: "RECENT TARGET HITS")
                                 ForEach(recentPRs, id: \.id) { log in RecentPRRow(log: log, useMetric: profile?.useMetric ?? false) }
@@ -712,6 +734,53 @@ struct HomeView: View {
             Button("Save") { if let bw = Double(bodyweightInput), bw > 0 { profile?.bodyweight = bw; try? modelContext.save() }; bodyweightInput = "" }
             Button("Cancel", role: .cancel) { bodyweightInput = "" }
         } message: { Text("Enter your current bodyweight") }
+        // Rename session alert — fires from HomeDayCard's long-press context
+        // menu and from the SessionDetailEditor's rename button. Keyed by
+        // SessionType so renaming "Heavy Upper" applies everywhere it appears:
+        // Home cards, Train picker, Mesocycle browser, Recent Sessions, etc.
+        // Empty input clears the override.
+        .alert("Rename Session", isPresented: Binding(
+            get: { renameSessionType != nil },
+            set: { if !$0 { renameSessionType = nil } }
+        )) {
+            TextField("e.g. Bench Day", text: $renameText)
+                .textInputAutocapitalization(.words)
+            Button("Save") {
+                if let st = renameSessionType, let inst = instance {
+                    var labels = inst.customSessionLabels
+                    let trimmed = renameText.trimmingCharacters(in: .whitespaces)
+                    if trimmed.isEmpty {
+                        labels.removeValue(forKey: st.rawValue)
+                    } else {
+                        labels[st.rawValue] = trimmed
+                    }
+                    inst.customSessionLabels = labels
+                    try? modelContext.save()
+                }
+                renameSessionType = nil
+                renameText = ""
+            }
+            Button("Reset to Default", role: .destructive) {
+                if let st = renameSessionType, let inst = instance {
+                    var labels = inst.customSessionLabels
+                    labels.removeValue(forKey: st.rawValue)
+                    inst.customSessionLabels = labels
+                    try? modelContext.save()
+                }
+                renameSessionType = nil
+                renameText = ""
+            }
+            Button("Cancel", role: .cancel) {
+                renameSessionType = nil
+                renameText = ""
+            }
+        } message: {
+            if let st = renameSessionType {
+                Text("Give '\(st.shortLabel)' a custom name (e.g. 'Bench Day'). The new name shows up everywhere this session appears. Leave blank to restore the default.")
+            } else {
+                Text("Give this session a custom name.")
+            }
+        }
     }
 
     @ViewBuilder private func statCell(value: String, label: String) -> some View {
@@ -736,12 +805,17 @@ extension Calendar {
 struct WeekStrip: View {
     let displayWeek: Int; let currentWeek: Int; let programId: Int; let totalWeeks: Int; let instance: UserProgramInstance?; let onSelectWeek: (Int) -> Void
     var onTapHeader: (() -> Void)? = nil
+    /// Periodization toggles passed from the parent so the week strip's
+    /// deload markers honor the same settings as the rest of the app.
+    /// When either is off, no week gets the deload pill / ↺ glyph.
+    var usesPeriodization: Bool = true
+    var skipDeloads: Bool = false
     private func isDeload(_ w: Int) -> Bool {
-        // ALL programs use blockLength as source of truth (synced everywhere)
-        guard let inst = instance else { return false }
-        let bl = inst.blockLength > 0 ? inst.blockLength : 5
-        let posInBlock = ((w - 1) % (bl + 1)) + 1
-        return posInBlock > bl
+        // Continuous Training off OR Skip Deloads on → no deload weeks
+        // anywhere in the UI. Single source of truth: deloadWeeks(...).
+        guard usesPeriodization, !skipDeloads, let inst = instance else { return false }
+        return deloadWeeks(for: programId, blockLength: inst.blockLength,
+                            instance: inst).contains(w)
     }
     var body: some View {
         VStack(spacing: 8) {
@@ -815,6 +889,13 @@ struct WeekStrip: View {
 // MARK: - Home Day Card
 struct HomeDayCard: View {
     let dayOfWeek: Int; let sessionType: SessionType?; let isDone: Bool; let weekLogs: [WorkoutLog]
+    /// Optional override for the session-name line. When non-nil/non-empty,
+    /// displayed instead of `sessionType.shortLabel`. Set by the user via the
+    /// long-press "Rename" context menu and persisted on UserProgramInstance.
+    var customLabel: String? = nil
+    /// Callback invoked when the user taps "Rename" in the context menu.
+    /// Caller is responsible for presenting the rename UI + saving the result.
+    var onRename: (() -> Void)? = nil
     private let dayNames = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
     private var dayName: String { dayNames[dayOfWeek - 1] }
     private var sessionLogs: [WorkoutLog] {
@@ -822,11 +903,21 @@ struct HomeDayCard: View {
         return weekLogs.filter { $0.sessionTypeRaw == st.rawValue }
     }
     private var sessionVolume: Int { Int(sessionLogs.reduce(0.0) { $0 + ($1.weight * Double($1.reps)) }) }
+
+    /// Resolved label to show in the session-name slot. Custom override wins,
+    /// else falls back to the session type's short label.
+    private var displaySessionLabel: String {
+        if let custom = customLabel, !custom.trimmingCharacters(in: .whitespaces).isEmpty {
+            return custom
+        }
+        return sessionType?.shortLabel ?? ""
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             Rectangle().fill(stripeColor).frame(width: 3)
             HStack(spacing: 10) {
-                // Drag affordance — three small dots indicate the row is draggable
+                // Drag affordance — 3-line grip on the left signals the row is draggable.
                 Image(systemName: "line.3.horizontal")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.appTextDim.opacity(0.5))
@@ -837,14 +928,15 @@ struct HomeDayCard: View {
                 }.frame(width: 30)
                 VStack(alignment: .leading, spacing: 3) {
                     if let st = sessionType, st != .rest {
-                        Text(st.shortLabel).font(.system(size: 13, weight: .black)).foregroundColor(isDone ? .appGreen : .appTextPrimary)
+                        Text(displaySessionLabel).font(.system(size: 13, weight: .black)).foregroundColor(isDone ? .appGreen : .appTextPrimary)
                         Text(st.muscleSubtitle).font(.system(size: 11)).foregroundColor(.appTextDim)
                         if isDone {
                             Text("\(sessionLogs.count) sets · \(sessionVolume > 1000 ? "\(sessionVolume/1000)K" : "\(sessionVolume)") lbs")
                                 .font(.system(size: 10, weight: .bold)).foregroundColor(.appGreen.opacity(0.9))
                         }
                     } else {
-                        Text("REST & RECOVERY").font(.system(size: 12, weight: .black)).foregroundColor(.appTextDim)
+                        Text(displaySessionLabel.isEmpty ? "REST & RECOVERY" : displaySessionLabel)
+                            .font(.system(size: 12, weight: .black)).foregroundColor(.appTextDim)
                         Text("Active recovery · sleep priority").font(.system(size: 10)).foregroundColor(.appTextDim.opacity(0.7))
                     }
                 }
@@ -853,7 +945,27 @@ struct HomeDayCard: View {
                     if isDone { Image(systemName: "checkmark.circle.fill").font(.system(size: 20)).foregroundColor(.appGreen) }
                     else { Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundColor(.appTextDim) }
                 } else { Image(systemName: "moon.fill").font(.system(size: 14)).foregroundColor(.appTextDim.opacity(0.4)) }
-            }.padding(.horizontal, 10).padding(.vertical, 11)
+            }.padding(.horizontal, 14).padding(.vertical, 11)
+        }
+        .contextMenu {
+            if let cb = onRename {
+                Button {
+                    cb()
+                } label: {
+                    Label(customLabel?.isEmpty == false ? "Edit Name" : "Rename Day",
+                          systemImage: "pencil")
+                }
+                if customLabel?.isEmpty == false, let cb2 = onRename {
+                    Button(role: .destructive) {
+                        // Caller decides what "reset" means — we just invoke
+                        // the same callback. Caller should detect empty input
+                        // as a request to clear the override.
+                        cb2()
+                    } label: {
+                        Label("Reset to Default", systemImage: "arrow.uturn.backward")
+                    }
+                }
+            }
         }
     }
     private var stripeColor: Color {
@@ -878,8 +990,6 @@ struct DayDropDelegate: DropDelegate {
             guard let str = reading as? String, let sourceDay = Int(str), sourceDay != targetDay else { return }
             DispatchQueue.main.async {
                 swapDays(source: sourceDay, target: targetDay)
-                // User figured out drag-and-drop — auto-dismiss the hint
-                UserDefaults.standard.set(true, forKey: "dragHintDismissed.v1")
             }
         }
         return true
@@ -925,21 +1035,34 @@ struct HomeSessionCard: View {
     let sessionType: SessionType
     let isDone: Bool
     let weekLogs: [WorkoutLog]
+    /// Optional override — populated by HomeView via `instance.customLabel(for:)`.
+    /// Renders in place of `sessionType.shortLabel` when set.
+    var customLabel: String? = nil
 
     private var sessionVolume: Int { Int(weekLogs.reduce(0.0) { $0 + ($1.weight * Double($1.reps)) }) }
+
+    private var displayLabel: String {
+        if let l = customLabel, !l.isEmpty { return l }
+        return sessionType.shortLabel
+    }
 
     var body: some View {
         HStack(spacing: 0) {
             Rectangle().fill(isDone ? Color.appGreen : sessionType.sessionColor).frame(width: 3)
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                // Drag affordance — matches the DAYS view for visual consistency.
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.appTextDim.opacity(0.5))
+                    .padding(.leading, 4)
                 VStack(spacing: 1) {
                     Text("S\(sessionNumber)")
                         .font(.system(size: 11, weight: .black, design: .rounded))
                         .foregroundColor(isDone ? .appGreen : sessionType.sessionColor)
                     if isDone { Image(systemName: "checkmark").font(.system(size: 8, weight: .black)).foregroundColor(.appGreen) }
-                }.frame(width: 32)
+                }.frame(width: 30)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(sessionType.shortLabel)
+                    Text(displayLabel)
                         .font(.system(size: 13, weight: .black)).foregroundColor(isDone ? .appGreen : .appTextPrimary)
                     Text(sessionType.muscleSubtitle)
                         .font(.system(size: 11)).foregroundColor(.appTextDim)
@@ -1002,6 +1125,10 @@ extension SessionType {
 // MARK: - Hero Header
 struct HomeHeroHeader: View {
     let profile: UserProfile?; let instance: UserProgramInstance?; let displayWeek: Int; let onTapProgram: () -> Void
+    /// Computed by the parent so the header reads the SAME block state as
+    /// the rest of Home. Nil for freestyle or when no instance exists.
+    /// Always periodization-aware via the parent's displayedBlockInfo.
+    var blockInfo: ComputedBlockInfo? = nil
     private var isFreestyle: Bool { instance?.programId == 0 }
     private var progress: Double { Double(displayWeek) / 24.0 }
     var body: some View {
@@ -1028,6 +1155,8 @@ struct HomeHeroHeader: View {
                     }.buttonStyle(.plain)
                 }
                 Spacer()
+                // Per-tab walkthrough — focused tour of just this tab's features
+                TabHelpButton(chapter: .home)
                 if !isFreestyle {
                     ZStack {
                         Circle().stroke(Color.appBorder, lineWidth: 3)
@@ -1044,28 +1173,14 @@ struct HomeHeroHeader: View {
             Rectangle().frame(height: 1.5).foregroundColor(.appRed.opacity(0.5))
         }
     }
+    /// Reads the computed phase name straight from the parent's
+    /// ComputedBlockInfo — same source of truth as every other block-state
+    /// display on Home. Falls back to generic labels only when the parent
+    /// hasn't passed an instance/info (freestyle or no program).
     private var blockLabel: String {
         guard let inst = instance else { return "TRAINING" }
         if inst.programId == 0 { return "FREESTYLE" }
-        let goal = profile?.goal ?? .hypertrophy
-        let isHyp = goal == .hypertrophy || goal == .recomp
-
-        // Generated programs — use block type with goal-aware naming
-        if inst.isGenerated {
-            switch (isHyp, inst.blockType) {
-            case (true, .accumulation):    return "TRAINING BLOCK"
-            case (true, .reaccumulation):  return "GROWTH PHASE"
-            case (true, .deload):          return "RECOVERY"
-            case (true, _):                return "TRAINING BLOCK"
-            case (false, _):               return inst.blockType.rawValue.uppercased()
-            }
-        }
-
-        // Seeded programs
-        let w = displayWeek
-        if inst.programId == 7 { if [3,6,9,12,15,18,21].contains(w) || w == 24 { return isHyp ? "RECOVERY" : "DELOAD" }; if w <= 9 { return "BLOCK 1" }; if w <= 15 { return "BLOCK 2" }; return "BLOCK 3" }
-        if [4,8,12,16,20].contains(w) { return isHyp ? "RECOVERY" : "DELOAD" }; if w == 24 { return "TESTING" }
-        if w <= 8 { return isHyp ? "TRAINING BLOCK" : "ACCUMULATION" }; if w <= 16 { return isHyp ? "GROWTH PHASE" : "INTENSIFICATION" }; return isHyp ? "TRAINING BLOCK" : "PEAKING"
+        return (blockInfo?.displayPhaseName ?? "Training").uppercased()
     }
 }
 
@@ -1085,6 +1200,8 @@ struct WeekHubSheet: View {
     @Query private var allTemplates: [ProgramSessionTemplate]
     @Query private var allExercises: [Exercise]
     @Query private var programTemplates: [ProgramTemplate]
+    @Query private var profilesQuery: [UserProfile]
+    private var profile: UserProfile? { profilesQuery.first }
     @State private var localWeek: Int
     @State private var editorItem: SessionEditorItem? = nil
     @State private var confirmAdvance = false
@@ -1507,22 +1624,36 @@ struct WeekHubSheet: View {
         if let idx = workDays.firstIndex(of: dow), idx < rotation.count { return rotation[idx] }
         return .rest
     }
+    /// Computed block info for any week — same source of truth as the
+    /// rest of the app. Routes through both periodization toggles AND the
+    /// explicit blockLayout if the user has one saved, so the WeekHub
+    /// labels match what the user sees everywhere else.
+    private func blockInfo(_ w: Int) -> ComputedBlockInfo {
+        ComputedBlockInfo.compute(
+            forWeek: w, programId: instance.programId,
+            blockLength: instance.blockLength,
+            totalWeeks: totalWeeks,
+            goal: profile?.goal ?? .hypertrophy,
+            instance: instance,
+            usesPeriodization: profile?.usesPeriodization ?? true,
+            skipDeloads: profile?.skipDeloads ?? false)
+    }
     private func blockLabel(_ w: Int) -> String {
-        if isDeload(w) { return "DELOAD" }; if w == 24 { return "TESTING" }
-        if instance.programId == 7 { if w <= 9 { return "BLOCK 1 — HYPERTROPHY" }; if w <= 15 { return "BLOCK 2 — STRENGTH" }; return "BLOCK 3 — PEAK" }
-        if w <= 8 { return "ACCUMULATION" }; if w <= 16 { return "INTENSIFICATION" }; return "PEAKING"
+        blockInfo(w).displayPhaseName.uppercased()
     }
     private func blockColor(_ w: Int) -> Color {
-        if isDeload(w) { return .appBlue }; if w == 24 { return .appGold }
-        if instance.programId == 7 { if w <= 9 { return .appGreen }; if w <= 15 { return .appGold }; return .appRed }
-        if w <= 8 { return .appGreen }; if w <= 16 { return .appGold }; return .appRed
+        let info = blockInfo(w)
+        if info.isDeloadWeek { return .appBlue }
+        switch info.blockType {
+        case .accumulation:    return .appGreen
+        case .reaccumulation:  return .appGold
+        case .intensification: return .appOrange
+        case .peak:            return .appRed
+        case .deload:          return .appBlue
+        }
     }
     private func isDeload(_ w: Int) -> Bool {
-        // Generated programs: deload is the last week of each block cycle
-        // ALL programs use blockLength as source of truth
-        let bl = instance.blockLength > 0 ? instance.blockLength : 5
-        let posInBlock = ((w - 1) % (bl + 1)) + 1
-        return posInBlock > bl
+        blockInfo(w).isDeloadWeek
     }
 }
 
@@ -1613,6 +1744,14 @@ struct SessionDetailEditor: View {
     @State private var showAddExercise = false
     @State private var deleteTarget: ProgramSessionTemplate? = nil
     @State private var showDeleteConfirm = false
+    // Rename UI — entered via the pencil button next to the session title.
+    @State private var showRenameAlert: Bool = false
+    @State private var renameInput: String = ""
+
+    /// Resolved session name — custom override if set, else default short label.
+    private var displaySessionName: String {
+        instance.customLabel(for: sessionType) ?? sessionType.shortLabel
+    }
 
     private var exerciseNames: [String: String] { Dictionary(exercises.map { ($0.exerciseKey, $0.displayName) }, uniquingKeysWith: { first, _ in first }) }
     private func resolvedKey(for t: ProgramSessionTemplate) -> String {
@@ -1758,12 +1897,50 @@ struct SessionDetailEditor: View {
                     Button(action: onDismiss) { Image(systemName: "xmark").font(.system(size: 13, weight: .bold)).foregroundColor(.appTextSecondary) }
                 }
                 ToolbarItem(placement: .principal) {
-                    VStack(spacing: 0) {
-                        Text(sessionType.shortLabel).font(.system(size: 13, weight: .black)).foregroundColor(.appTextPrimary)
-                        Text("Week \(week)  ·  \(templates.count) exercises").font(.system(size: 10)).foregroundColor(.appTextDim)
+                    Button {
+                        renameInput = instance.customLabel(for: sessionType) ?? ""
+                        showRenameAlert = true
+                    } label: {
+                        VStack(spacing: 0) {
+                            HStack(spacing: 5) {
+                                Text(displaySessionName)
+                                    .font(.system(size: 13, weight: .black)).foregroundColor(.appTextPrimary)
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.appTextDim)
+                            }
+                            Text("Week \(week)  ·  \(templates.count) exercises").font(.system(size: 10)).foregroundColor(.appTextDim)
+                        }
                     }
+                    .buttonStyle(.plain)
                 }
             }
+        }
+        .alert("Rename Session", isPresented: $showRenameAlert) {
+            TextField("e.g. Bench Day", text: $renameInput)
+                .textInputAutocapitalization(.words)
+            Button("Save") {
+                var labels = instance.customSessionLabels
+                let trimmed = renameInput.trimmingCharacters(in: .whitespaces)
+                if trimmed.isEmpty {
+                    labels.removeValue(forKey: sessionType.rawValue)
+                } else {
+                    labels[sessionType.rawValue] = trimmed
+                }
+                instance.customSessionLabels = labels
+                try? modelContext.save()
+                renameInput = ""
+            }
+            Button("Reset to Default", role: .destructive) {
+                var labels = instance.customSessionLabels
+                labels.removeValue(forKey: sessionType.rawValue)
+                instance.customSessionLabels = labels
+                try? modelContext.save()
+                renameInput = ""
+            }
+            Button("Cancel", role: .cancel) { renameInput = "" }
+        } message: {
+            Text("Give '\(sessionType.shortLabel)' a custom name (e.g. 'Bench Day'). Shows up everywhere this session appears. Leave blank to reset.")
         }
         .sheet(item: $swapTarget) { target in
             ExerciseSwapSheet(slot: target, instance: instance, week: week,
@@ -1956,6 +2133,16 @@ struct MuscleCoverageCard: View {
     @Query private var profilesQuery: [UserProfile]
     private let muscles = ExerciseDictionary.trackingMuscles
     @State private var selectedMuscle: String? = nil
+    /// Advanced density: which muscle's head breakdown is currently expanded
+    /// below the grid (nil = none). Mutually exclusive — selecting another
+    /// muscle replaces the breakdown.
+    @State private var expandedHeadMuscle: String? = nil
+    /// Inside the head breakdown panel, which head row is currently
+    /// drilled-down to show its contributing exercises.
+    @State private var expandedHeadRow: MuscleHead? = nil
+
+    /// User's UI density — drives legend wording and which threshold labels render.
+    private var density: UIDensity { profilesQuery.first?.density ?? .advanced }
 
     /// Total weeks for the user's program — needed to bound the adapted-
     /// templates neighbor walk.
@@ -2011,88 +2198,71 @@ struct MuscleCoverageCard: View {
                 }
                 .reduce(0) { $0 + $1.setCountDelta }
             let effectiveSets = max(0, t.targetSets + delta)
+            let directs: Set<String>
             if let def = ExerciseDictionary.all[key] {
-                for pm in def.primaryMuscles {
-                    if let n = ExerciseDictionary.normalizeMuscle(pm) {
-                        result[n, default: 0] += effectiveSets
-                    }
-                }
+                directs = def.directTrackingMuscles
             } else if let ex = exercises.first(where: { $0.exerciseKey == key }) {
-                for pm in ex.musclesPrimary {
-                    if let n = ExerciseDictionary.normalizeMuscle(pm) {
-                        result[n, default: 0] += effectiveSets
-                    }
-                }
+                directs = ex.directTrackingMuscles
+            } else {
+                directs = []
             }
+            for n in directs { result[n, default: 0] += effectiveSets }
         }
         // Add isAddition overrides
         for ov in inst.overrides where ov.isAddition && ov.appliesTo(week: displayWeek) {
             let key = ov.replacementExerciseKey
+            let directs: Set<String>
             if let def = ExerciseDictionary.all[key] {
-                for pm in def.primaryMuscles {
-                    if let n = ExerciseDictionary.normalizeMuscle(pm) {
-                        result[n, default: 0] += ov.addedSets
-                    }
-                }
+                directs = def.directTrackingMuscles
             } else if let ex = exercises.first(where: { $0.exerciseKey == key }) {
-                for pm in ex.musclesPrimary {
-                    if let n = ExerciseDictionary.normalizeMuscle(pm) {
-                        result[n, default: 0] += ov.addedSets
-                    }
-                }
+                directs = ex.directTrackingMuscles
+            } else {
+                directs = []
             }
+            for n in directs { result[n, default: 0] += ov.addedSets }
         }
         return result
     }
 
-    /// Direct sets only (primaryMuscles at 1.0) — used for zone classification and bar display
+    /// Direct sets only (one set per UNIQUE tracking muscle in primaryMuscles).
+    /// Used for zone classification and bar display. Dedupes synonymous primary
+    /// entries (e.g. ["Lats", "Mid Back"] → one set of Back, not two).
     private var directSetsByMuscle: [String: Int] {
         var vol: [String: Double] = [:]
         for log in weekLogs {
             if let def = ExerciseDictionary.all[log.exerciseKey] {
-                for pm in def.primaryMuscles {
-                    if let n = ExerciseDictionary.normalizeMuscle(pm) { vol[n, default: 0] += 1.0 }
-                }
-            } else {
-                let ex = exercises.first { $0.exerciseKey == log.exerciseKey }
-                if let ex = ex {
-                    let pri = ex.musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
-                    if !pri.isEmpty {
-                        for m in pri { vol[m, default: 0] += 1.0 }
-                    } else {
-                        let name = log.displayName.lowercased()
-                        if name.contains("bench") || name.contains("chest") || name.contains("fly") { vol["Chest", default: 0] += 1.0 }
-                        else if name.contains("row") || name.contains("pull") || name.contains("lat") || name.contains("back") { vol["Back", default: 0] += 1.0 }
-                        else if name.contains("squat") || name.contains("leg press") || name.contains("lunge") { vol["Quads", default: 0] += 1.0 }
-                        else if name.contains("curl") && !name.contains("leg") { vol["Biceps", default: 0] += 1.0 }
-                        else if name.contains("tricep") || name.contains("pushdown") || name.contains("skull") { vol["Triceps", default: 0] += 1.0 }
-                        else if name.contains("shoulder") || name.contains("delt") || name.contains("lateral") { vol["Delts", default: 0] += 1.0 }
-                    }
+                for n in def.directTrackingMuscles { vol[n, default: 0] += 1.0 }
+            } else if let ex = exercises.first(where: { $0.exerciseKey == log.exerciseKey }) {
+                let pri = ex.directTrackingMuscles
+                if !pri.isEmpty {
+                    for m in pri { vol[m, default: 0] += 1.0 }
+                } else {
+                    // Last-resort name heuristic (no dict, no primary on Exercise)
+                    let name = log.displayName.lowercased()
+                    if name.contains("bench") || name.contains("chest") || name.contains("fly") { vol["Chest", default: 0] += 1.0 }
+                    else if name.contains("row") || name.contains("pull") || name.contains("lat") || name.contains("back") { vol["Back", default: 0] += 1.0 }
+                    else if name.contains("squat") || name.contains("leg press") || name.contains("lunge") { vol["Quads", default: 0] += 1.0 }
+                    else if name.contains("curl") && !name.contains("leg") { vol["Biceps", default: 0] += 1.0 }
+                    else if name.contains("tricep") || name.contains("pushdown") || name.contains("skull") { vol["Triceps", default: 0] += 1.0 }
+                    else if name.contains("shoulder") || name.contains("delt") || name.contains("lateral") { vol["Delts", default: 0] += 1.0 }
                 }
             }
         }
         return vol.mapValues { Int(round($0)) }
     }
 
-    /// Effective sets (primary + weighted secondary) — used for informational display only
+    /// Effective sets = direct (1.0 per unique primary tracking muscle) +
+    /// weighted indirect contribution (max secondary weight per tracking muscle,
+    /// excluding primaries). Used for informational display only.
     private var effectiveSetsByMuscle: [String: Int] {
         var vol: [String: Double] = [:]
         for log in weekLogs {
             if let def = ExerciseDictionary.all[log.exerciseKey] {
-                for pm in def.primaryMuscles {
-                    if let n = ExerciseDictionary.normalizeMuscle(pm) { vol[n, default: 0] += 1.0 }
-                }
-                for sm in def.secondaryMuscles {
-                    if let n = ExerciseDictionary.normalizeMuscle(sm.muscle) { vol[n, default: 0] += sm.weight }
-                }
-            } else {
-                let ex = exercises.first { $0.exerciseKey == log.exerciseKey }
-                if let ex = ex {
-                    let pri = ex.musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
-                    let sec = ex.musclesSecondary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
-                    for m in pri { vol[m, default: 0] += 1.0 }
-                    for m in sec where !pri.contains(m) { vol[m, default: 0] += IndirectVolumeMap.secondaryWeight }
-                }
+                for n in def.directTrackingMuscles { vol[n, default: 0] += 1.0 }
+                for (n, w) in def.indirectTrackingMuscles { vol[n, default: 0] += w }
+            } else if let ex = exercises.first(where: { $0.exerciseKey == log.exerciseKey }) {
+                for n in ex.directTrackingMuscles { vol[n, default: 0] += 1.0 }
+                for (n, w) in ex.indirectTrackingMuscles { vol[n, default: 0] += w }
             }
         }
         return vol.mapValues { Int(round($0)) }
@@ -2234,20 +2404,51 @@ struct MuscleCoverageCard: View {
                     .padding(8)
                     .background(zone == .optimal ? color.opacity(0.06) : Color.appSurface)
                     .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(zone == .optimal ? color.opacity(0.3) : Color.appBorder, lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                        // Highlight the tile when its head breakdown is open
+                        (density == .advanced && expandedHeadMuscle == muscle)
+                            ? Color.appBlue
+                            : (zone == .optimal ? color.opacity(0.3) : Color.appBorder),
+                        lineWidth: (density == .advanced && expandedHeadMuscle == muscle) ? 1.5 : 1))
                     .onTapGesture {
-                        if let cb = onAdjustVolume { cb(muscle) }
-                        else { selectedMuscle = muscle }
+                        if density == .advanced {
+                            // Advanced: tap toggles head breakdown below.
+                            // Volume Adjuster reachable from the breakdown panel.
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                expandedHeadMuscle = expandedHeadMuscle == muscle ? nil : muscle
+                            }
+                        } else if let cb = onAdjustVolume {
+                            cb(muscle)
+                        } else {
+                            selectedMuscle = muscle
+                        }
                     }
                 }
             }
 
-            // Volume zone legend
+            // Advanced-density head breakdown panel — shown below the grid
+            // for whichever muscle is currently tapped. Uses head contributions
+            // from ExerciseDictionary or custom Exercise records to compute
+            // per-head set credits across the week's logs.
+            if density == .advanced, let muscle = expandedHeadMuscle {
+                headBreakdownPanel(muscle: muscle)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            // Volume zone legend — plain language in minimal/standard,
+            // sports-science abbreviations (<MEV, >MRV) only in advanced.
             HStack(spacing: 12) {
-                legendDot(color: .appRed, label: "<MEV")
-                legendDot(color: .appYellow, label: "Building")
-                legendDot(color: .appGreen, label: "Optimal")
-                legendDot(color: .appOrange, label: ">MRV")
+                if density == .advanced {
+                    legendDot(color: .appRed, label: "<MEV")
+                    legendDot(color: .appYellow, label: "Building")
+                    legendDot(color: .appGreen, label: "Optimal")
+                    legendDot(color: .appOrange, label: ">MRV")
+                } else {
+                    legendDot(color: .appRed, label: "Light")
+                    legendDot(color: .appYellow, label: "Building")
+                    legendDot(color: .appGreen, label: "On target")
+                    legendDot(color: .appOrange, label: "Heavy load")
+                }
             }
             .padding(.top, 4)
         }
@@ -2264,6 +2465,566 @@ struct MuscleCoverageCard: View {
             Circle().fill(color).frame(width: 5, height: 5)
             Text(label).font(.system(size: 8, weight: .medium)).foregroundColor(.appTextDim)
         }
+    }
+
+    // ═══════════════════════════════════════════
+    // HEAD BREAKDOWN PANEL
+    // Advanced-density expansion that surfaces the per-head set counts
+    // for a single muscle. Pulls head contributions from the static
+    // ExerciseDictionary first, then from custom Exercise records,
+    // with inference fallback when neither is annotated. Each head
+    // gets its own bar scaled to the parent muscle's MRV.
+    // ═══════════════════════════════════════════
+
+    /// Sum the head-equivalent set credits across this week's logs for the
+    /// given parent muscle. Each log = one set; head credit = weight × 1.
+    private func headCreditsForMuscle(_ muscle: String) -> [(head: MuscleHead, sets: Double)] {
+        let heads = MuscleHead.heads(of: muscle)
+        var totals: [MuscleHead: Double] = [:]
+        for log in weekLogs {
+            let contributions = lookupHeadContributions(for: log.exerciseKey)
+            for (head, weight) in contributions where head.parentMuscle == muscle {
+                totals[head, default: 0] += weight
+            }
+        }
+        return heads.map { ($0, totals[$0] ?? 0) }
+    }
+
+    /// Resolve head contributions for any exerciseKey — dictionary first,
+    /// then a custom Exercise's stored or inferred contributions.
+    private func lookupHeadContributions(for exerciseKey: String) -> [MuscleHead: Double] {
+        if let def = ExerciseDictionary.all[exerciseKey] {
+            return def.headContributions
+        }
+        if let ex = exercises.first(where: { $0.exerciseKey == exerciseKey }) {
+            let stored = ex.headContributions
+            return stored.isEmpty
+                ? Exercise.inferHeadContributions(primary: ex.musclesPrimary,
+                                                  secondary: ex.musclesSecondary)
+                : stored
+        }
+        return [:]
+    }
+
+    @ViewBuilder
+    private func headBreakdownPanel(muscle: String) -> some View {
+        let lm = landmark(for: muscle)
+        let credits = headCreditsForMuscle(muscle)
+        // Parent muscle total = the SAME number shown on the bar tile above
+        // (`directSetsByMuscle`). The head bars below show how those direct
+        // sets distribute across the muscle's heads (heads overlap within a
+        // single set — they're not additive to the parent).
+        let parentCredit = Double(directSetsByMuscle[muscle] ?? 0)
+
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Text(muscle.uppercased())
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundColor(.appBlue).kerning(1.5)
+                Text("HEAD BREAKDOWN")
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundColor(.appTextDim).kerning(1)
+                // Info icon — opens explainer covering set-equivalents math
+                // and where the weight values come from.
+                JargonHelp(termId: "head_credits", size: 11)
+                Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        expandedHeadMuscle = nil
+                        expandedHeadRow = nil
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.appTextDim)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if credits.allSatisfy({ $0.sets < 0.05 }) {
+                Text("No head-level data yet for this muscle. Log a set of any \(muscle.lowercased()) exercise to see the breakdown.")
+                    .font(.system(size: 12)).foregroundColor(.appTextSecondary)
+                    .padding(.vertical, 4)
+            } else {
+                // ── Interpretive summary ──────────────────────────────────
+                // Translate raw head numbers into a single actionable
+                // sentence so the user knows what to DO with the breakdown.
+                if let interp = headInterpretation(muscle: muscle, credits: credits,
+                                                   parentCredit: parentCredit, target: Int(lm.mavHigh)) {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: interp.icon).font(.system(size: 11, weight: .bold))
+                            .foregroundColor(interp.color)
+                        Text(interp.text)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.appTextPrimary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(8)
+                    .background(interp.color.opacity(0.08))
+                    .cornerRadius(6)
+                }
+
+                // Per-head emphasis tags require knowing the average
+                // distribution — compute once for the tag function below.
+                let nonZeroCredits = credits.filter { $0.sets > 0.05 }
+                let avgHeadSets: Double = {
+                    guard !nonZeroCredits.isEmpty else { return 0 }
+                    return nonZeroCredits.reduce(0) { $0 + $1.sets } / Double(nonZeroCredits.count)
+                }()
+
+                VStack(spacing: 8) {
+                    ForEach(credits, id: \.head) { entry in
+                        let value = entry.sets
+                        let frac = lm.mrv > 0 ? min(value / Double(lm.mrv), 1.2) : 0
+                        let clamped = min(frac, 1.0)
+                        let isExpanded = expandedHeadRow == entry.head
+                        let tag = headEmphasisTag(value: value, average: avgHeadSets)
+                        Button {
+                            // Toggle drill-down: tap a head row to see exactly
+                            // which exercises are contributing to it this week.
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                expandedHeadRow = isExpanded ? nil : entry.head
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(entry.head.laymanName.capitalizingFirst)
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.appTextPrimary)
+                                        .lineLimit(1).minimumScaleFactor(0.85)
+                                    if entry.head.laymanDiffersFromDisplay {
+                                        Text(entry.head.displayName)
+                                            .font(.system(size: 8))
+                                            .foregroundColor(.appTextDim)
+                                            .lineLimit(1).minimumScaleFactor(0.85)
+                                    }
+                                }
+                                .frame(width: 105, alignment: .leading)
+                                if let tag = tag {
+                                    Text(tag.label)
+                                        .font(.system(size: 8, weight: .black)).kerning(0.5)
+                                        .foregroundColor(tag.color)
+                                        .padding(.horizontal, 4).padding(.vertical, 1)
+                                        .background(tag.color.opacity(0.15))
+                                        .cornerRadius(3)
+                                }
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        RoundedRectangle(cornerRadius: 3).fill(Color.appSurface2).frame(height: 6)
+                                        RoundedRectangle(cornerRadius: 3)
+                                            .fill(barColor(value, mrv: Double(lm.mrv)))
+                                            .frame(width: geo.size.width * CGFloat(clamped), height: 6)
+                                    }
+                                }.frame(height: 8)
+                                Text(setsLabel(value))
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                    .foregroundColor(.appTextPrimary)
+                                    .frame(width: 36, alignment: .trailing)
+                                // Chevron flips on expansion; subtle enough to
+                                // not crowd the row.
+                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(isExpanded ? .appBlue : .appTextDim.opacity(0.6))
+                                    .frame(width: 12)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        // Drill-down: which exercises fed this head this week
+                        if isExpanded {
+                            contributingExercisesView(head: entry.head)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                }
+            }
+
+            // Footer: separate the muscle total (max-over-heads = the set
+            // count that "counts" toward Triceps recovery / volume targets)
+            // from the stimulus sum (heads added up — useful as a relative
+            // emphasis indicator). Without this the user would see
+            // "Lateral 8 + Medial 9 + Long 8 = 25" and wonder why the card
+            // says only 11 sets total.
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text("\(muscle) total: \(setsLabel(parentCredit)) set-equivalents")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.appTextPrimary)
+                    Spacer()
+                    if onAdjustVolume != nil {
+                        Button {
+                            onAdjustVolume?(muscle)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "slider.horizontal.3").font(.system(size: 10, weight: .bold))
+                                Text("Adjust Volume").font(.system(size: 10, weight: .black)).kerning(0.5)
+                            }
+                            .foregroundColor(.appRed)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(Color.appRed.opacity(0.1)).cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Text("Each direct set distributes stimulus across multiple heads. Head bars show that distribution — they don't add up to the total because heads overlap within a single set.")
+                    .font(.system(size: 9))
+                    .foregroundColor(.appTextDim)
+                    .lineSpacing(1)
+            }
+        }
+        .padding(14)
+        .background(Color.appBlue.opacity(0.04))
+        .cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBlue.opacity(0.25), lineWidth: 1))
+    }
+
+    /// Single decimal point for half-set credits. "8.0" → "8", "7.5" stays.
+    private func setsLabel(_ v: Double) -> String {
+        if abs(v - v.rounded()) < 0.05 {
+            return "\(Int(v.rounded()))"
+        }
+        return String(format: "%.1f", v)
+    }
+
+    /// Reuses the same zone palette as the canonical-muscle bars but
+    /// scaled to MRV per head. Lets users spot under/over heads at a glance.
+    private func barColor(_ sets: Double, mrv: Double) -> Color {
+        guard mrv > 0 else { return .appTextDim }
+        let frac = sets / mrv
+        if frac < 0.20 { return .appRed }
+        if frac < 0.40 { return .appYellow }
+        if frac <= 0.85 { return .appGreen }
+        return .appOrange
+    }
+
+    // ═══════════════════════════════════════════
+    // HEAD INTERPRETATION
+    // Turn raw head numbers into one actionable sentence + per-head tags so
+    // the user knows what to do with the breakdown (not just what it says).
+    // ═══════════════════════════════════════════
+
+    private struct HeadInterpretation {
+        let text: String
+        let icon: String   // SF Symbol
+        let color: Color
+    }
+
+    private struct EmphasisTag {
+        let label: String  // "DOMINANT" / "LAGGING"
+        let color: Color
+    }
+
+    /// Returns a tag for a head row if it deviates significantly from the
+    /// average distribution. >1.4× avg → dominant. <0.6× avg → lagging.
+    /// Otherwise no tag (the head is in line with the rest).
+    private func headEmphasisTag(value: Double, average: Double) -> EmphasisTag? {
+        guard average > 0.5 else { return nil }  // not enough data
+        let ratio = value / average
+        if ratio >= 1.4 { return EmphasisTag(label: "HIGH", color: .appBlue) }
+        if ratio <= 0.6 { return EmphasisTag(label: "LOW", color: .appOrange) }
+        return nil
+    }
+
+    /// Generates an interpretive sentence (and pacing line when relevant) from
+    /// the head breakdown. Signals considered:
+    ///   1. Zero-head detection (a head with no work while others have lots)
+    ///   2. Weekly volume status (under / on / over target)
+    ///   3. Mid-week pacing (catching up vs being behind for the elapsed days)
+    ///   4. Inter-head imbalance ratio
+    ///
+    /// Sentence is always non-nil so the user always sees a translation of the
+    /// numbers, even when everything is "fine" (in that case they see explicit
+    /// confirmation rather than no feedback).
+    private func headInterpretation(
+        muscle: String,
+        credits: [(head: MuscleHead, sets: Double)],
+        parentCredit: Double,
+        target: Int
+    ) -> HeadInterpretation? {
+        // ── Classify heads ────────────────────────────────────────────────
+        // A head is "zero" if it has near-no work AND there's enough total
+        // volume that we'd expect it to receive some stimulus. Without the
+        // "enough total volume" gate, every head shows as "zero" at the
+        // start of the week — useless noise.
+        let nonZero = credits.filter { $0.sets > 0.5 }
+        let zeroHeads = parentCredit >= 3.0
+            ? credits.filter { $0.sets < 0.3 }
+            : []
+
+        // ── Volume zones ──────────────────────────────────────────────────
+        let targetD = Double(max(target, 0))
+        let underTarget = targetD > 0 && parentCredit < targetD * 0.7
+        let overTarget  = targetD > 0 && parentCredit > targetD * 1.25
+        let onTarget    = !underTarget && !overTarget
+
+        // ── Pacing: how far along the training week are we? ───────────────
+        // Count distinct workout SESSIONS (by exact workoutDate timestamp),
+        // not calendar days. Multiple sessions on the same day each count
+        // toward week progress. If we're mid-week and behind pace, surface
+        // a "catching up" hint instead of a "you're under target" doom
+        // message at day 2 of 6.
+        let trainedSessions = Set(weekLogs.map { $0.workoutDate }).count
+        let plannedDays = max(1, profilesQuery.first?.daysPerWeek ?? 6)
+        let weekFraction = min(1.0, Double(trainedSessions) / Double(plannedDays))
+        // Week is "complete" once the user has logged at least as many
+        // sessions as their weekly plan calls for — fall through to the
+        // under/over/balanced cases instead of showing pacing messages.
+        let isMidWeek = weekFraction > 0 && weekFraction < 1.0
+        let expectedByNow = targetD * weekFraction
+        let behindPace = isMidWeek && targetD > 0 && parentCredit < expectedByNow * 0.6
+        let onPace     = isMidWeek && targetD > 0 && parentCredit >= expectedByNow * 0.6
+
+        // ── Imbalance (only consider heads with nonzero contribution) ─────
+        let maxEntry = nonZero.max(by: { $0.sets < $1.sets })
+        let minNonZero = nonZero.min(by: { $0.sets < $1.sets })
+        let ratio: Double = {
+            guard let mx = maxEntry?.sets, let mn = minNonZero?.sets, mn > 0 else { return 1.0 }
+            return mx / mn
+        }()
+        let strongImbalance = ratio >= 1.8
+        let mildEmphasis   = ratio >= 1.3 && ratio < 1.8
+        let balanced       = nonZero.count >= 2 && ratio < 1.3
+
+        // ═════════════════════════════════════════════════════════════════
+        // COMPOSE
+        // Priority: zero-head → over-target → behind-pace → under-target →
+        // balanced/imbalanced on-target.
+        // ═════════════════════════════════════════════════════════════════
+
+        // 1. Missing head(s) entirely
+        if !zeroHeads.isEmpty, let missing = zeroHeads.first {
+            let names = zeroHeads.prefix(2).map { $0.head.laymanName }.joined(separator: " and ")
+            if underTarget {
+                return HeadInterpretation(
+                    text: "Under your \(muscle.lowercased()) target AND missing \(names) entirely. Add an exercise that hits \(missing.head.laymanName).",
+                    icon: "exclamationmark.triangle.fill", color: .appOrange)
+            }
+            if overTarget {
+                return HeadInterpretation(
+                    text: "Over target overall but \(names) isn't getting any work. Redistribute toward \(missing.head.laymanName) for balance.",
+                    icon: "arrow.up.arrow.down", color: .appOrange)
+            }
+            return HeadInterpretation(
+                text: "Missing \(names). Tap that head below to see exercises that build it.",
+                icon: "arrow.up.arrow.down", color: .appOrange)
+        }
+
+        // 2. Over weekly target
+        if overTarget {
+            if mildEmphasis || strongImbalance, let mx = maxEntry {
+                return HeadInterpretation(
+                    text: "Over your weekly target, with \(mx.head.laymanName) doing most of the work. Watch fatigue and consider easing back.",
+                    icon: "exclamationmark.circle.fill", color: .appRed)
+            }
+            return HeadInterpretation(
+                text: "Over your weekly target by ~\(Int(parentCredit.rounded()) - target) sets. Consider a deload if this is sustained.",
+                icon: "exclamationmark.circle.fill", color: .appRed)
+        }
+
+        // 3. Mid-week pacing signals (only when not end-of-week)
+        if behindPace {
+            let needed = max(1, Int((targetD - parentCredit).rounded()))
+            if strongImbalance, let mn = minNonZero {
+                return HeadInterpretation(
+                    text: "Behind pace for this week — ~\(needed) sets to go, with \(mn.head.laymanName) lagging. Bias remaining sessions toward it.",
+                    icon: "clock.fill", color: .appOrange)
+            }
+            return HeadInterpretation(
+                text: "Behind pace for this week — ~\(needed) sets remaining to hit your \(muscle.lowercased()) target.",
+                icon: "clock.fill", color: .appOrange)
+        }
+        if onPace && !onTarget && underTarget {
+            // Special case: under final target but on pace (early in the week)
+            return HeadInterpretation(
+                text: "On pace for this week — ~\(max(1, target - Int(parentCredit.rounded()))) sets still to come. Distribution looks reasonable so far.",
+                icon: "clock.fill", color: .appBlue)
+        }
+
+        // 4. Under target (end of week — pacing didn't catch it earlier)
+        if underTarget {
+            let missing = max(1, target - Int(parentCredit.rounded()))
+            if strongImbalance, let mn = minNonZero {
+                return HeadInterpretation(
+                    text: "Under your weekly target by ~\(missing) sets, with \(mn.head.laymanName) lagging. Add an exercise that emphasizes it.",
+                    icon: "exclamationmark.triangle.fill", color: .appOrange)
+            }
+            if balanced {
+                return HeadInterpretation(
+                    text: "Under your weekly target by ~\(missing) sets, but distribution is even. Any direct \(muscle.lowercased()) exercise will help.",
+                    icon: "exclamationmark.triangle.fill", color: .appOrange)
+            }
+            return HeadInterpretation(
+                text: "Under your weekly target by ~\(missing) sets. Add more direct \(muscle.lowercased()) work this week.",
+                icon: "exclamationmark.triangle.fill", color: .appOrange)
+        }
+
+        // 5. On target — describe balance
+        if strongImbalance, let mn = minNonZero, let mx = maxEntry {
+            return HeadInterpretation(
+                text: "On target overall, but \(mx.head.laymanName) is dominant while \(mn.head.laymanName) is lagging. Tap \(mn.head.laymanName) to find exercises for it.",
+                icon: "arrow.up.arrow.down", color: .appBlue)
+        }
+        if mildEmphasis, let mx = maxEntry {
+            return HeadInterpretation(
+                text: "On target with mild emphasis on \(mx.head.laymanName). Most heads are still getting useful work.",
+                icon: "checkmark.circle.fill", color: .appGreen)
+        }
+        if balanced {
+            return HeadInterpretation(
+                text: "On target and balanced — every \(muscle.lowercased()) head is getting proportional stimulus.",
+                icon: "checkmark.circle.fill", color: .appGreen)
+        }
+        // Fallback: only one head has nonzero (rare for multi-head muscles)
+        if nonZero.count == 1, let only = nonZero.first {
+            return HeadInterpretation(
+                text: "All your \(muscle.lowercased()) work this week is going to \(only.head.laymanName). Add variety to hit the other heads.",
+                icon: "arrow.up.arrow.down", color: .appOrange)
+        }
+        return HeadInterpretation(
+            text: "Tracking your \(muscle.lowercased()) breakdown. Add a few more sets to get a clearer picture.",
+            icon: "info.circle.fill", color: .appBlue)
+    }
+
+    // ═══════════════════════════════════════════
+    // CONTRIBUTING EXERCISES DRILL-DOWN
+    // Tap a head row → see exactly which exercises fed that head this
+    // week, with the per-exercise math made explicit: sets × weight = credit.
+    // ═══════════════════════════════════════════
+
+    private struct HeadContribution: Identifiable {
+        let id: String  // exerciseKey
+        let displayName: String
+        let setCount: Int
+        let weight: Double
+        let credit: Double
+    }
+
+    private func exercisesContributingTo(_ head: MuscleHead) -> [HeadContribution] {
+        // Group logs by exerciseKey, then look up that exercise's weight
+        // for this head. Skip exercises whose contribution to this head is
+        // negligible (< 0.05) — they're not meaningfully feeding the head.
+        var groups: [String: (name: String, sets: Int, weight: Double)] = [:]
+        for log in weekLogs {
+            let contributions = lookupHeadContributions(for: log.exerciseKey)
+            guard let weight = contributions[head], weight > 0.05 else { continue }
+            if var existing = groups[log.exerciseKey] {
+                existing.sets += 1
+                groups[log.exerciseKey] = existing
+            } else {
+                groups[log.exerciseKey] = (log.displayName, 1, weight)
+            }
+        }
+        return groups.map { key, value in
+            HeadContribution(
+                id: key,
+                displayName: value.name,
+                setCount: value.sets,
+                weight: value.weight,
+                credit: Double(value.sets) * value.weight
+            )
+        }.sorted { $0.credit > $1.credit }
+    }
+
+    @ViewBuilder
+    private func contributingExercisesView(head: MuscleHead) -> some View {
+        let contributions = exercisesContributingTo(head)
+        let inUseKeys = Set(contributions.map { $0.id })
+        let recommended = recommendedExercisesForHead(head, excluding: inUseKeys)
+        VStack(alignment: .leading, spacing: 8) {
+            if contributions.isEmpty {
+                Text("No exercises hit \(head.laymanName) this week.")
+                    .font(.system(size: 11)).foregroundColor(.appTextDim)
+                    .italic()
+            } else {
+                Text("WHAT'S FEEDING IT")
+                    .font(.system(size: 8, weight: .black))
+                    .foregroundColor(.appTextDim).kerning(1)
+                ForEach(contributions) { c in
+                    HStack(spacing: 6) {
+                        Text(c.displayName)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.appTextPrimary)
+                            .lineLimit(1).minimumScaleFactor(0.8)
+                        Spacer()
+                        HStack(spacing: 3) {
+                            Text("\(c.setCount)")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundColor(.appTextPrimary)
+                            Text("×")
+                                .font(.system(size: 8))
+                                .foregroundColor(.appTextDim)
+                            Text(String(format: "%.1f", c.weight))
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.appTextDim)
+                            Text("=")
+                                .font(.system(size: 8))
+                                .foregroundColor(.appTextDim)
+                            Text(setsLabel(c.credit))
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .foregroundColor(.appBlue)
+                                .frame(width: 28, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+
+            // ── Recommended exercises to grow this head ─────────────────
+            // Top dictionary entries whose head contribution to this head is
+            // ≥ 0.7, ranked by weight. Filters out exercises already feeding
+            // the head (they're shown above). Empty list = silent.
+            if !recommended.isEmpty {
+                Text("BUILD IT WITH")
+                    .font(.system(size: 8, weight: .black))
+                    .foregroundColor(.appTextDim).kerning(1)
+                    .padding(.top, contributions.isEmpty ? 0 : 4)
+                ForEach(recommended, id: \.key) { rec in
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.appGreen.opacity(0.85))
+                        Text(rec.displayName)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.appTextPrimary)
+                            .lineLimit(1).minimumScaleFactor(0.8)
+                        Spacer()
+                        Text(String(format: "%.1f", rec.headContributions[head] ?? 0))
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(.appGreen)
+                            .frame(width: 28, alignment: .trailing)
+                    }
+                }
+                Text("Numbers show how strongly each exercise hits \(head.laymanName).")
+                    .font(.system(size: 9))
+                    .foregroundColor(.appTextDim)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .padding(.leading, 14)  // indent under the head row
+        .background(Color.appSurface)
+        .cornerRadius(6)
+    }
+
+    /// Top dictionary exercises ranked by their contribution to the given
+    /// head. Returns the strongest 4 with weight ≥ 0.7, excluding anything
+    /// already in `excluding` (typically the user's current exercises for
+    /// this head — they're shown in the "WHAT'S FEEDING IT" list).
+    private func recommendedExercisesForHead(_ head: MuscleHead, excluding: Set<String>) -> [ExerciseDefinition] {
+        ExerciseDictionary.all.values
+            .filter { def in
+                guard let w = def.headContributions[head], w >= 0.7 else { return false }
+                return !excluding.contains(def.key)
+            }
+            .sorted { (a, b) -> Bool in
+                let aw = a.headContributions[head] ?? 0
+                let bw = b.headContributions[head] ?? 0
+                if aw != bw { return aw > bw }
+                return a.displayName < b.displayName
+            }
+            .prefix(4)
+            .map { $0 }
     }
 }
 
@@ -2282,7 +3043,62 @@ struct MuscleDetailSheet: View {
     let tier: MuscleTier
     let weekLogs: [WorkoutLog]
 
+    @Query private var profilesQuery: [UserProfile]
+    @Query private var allExercises: [Exercise]
+    private var density: UIDensity { profilesQuery.first?.density ?? .advanced }
+
+    /// Per-head set credits from this week's logs. Mirror of MuscleCoverageCard's
+    /// version — pulled here so the detail sheet can render its own head bars.
+    private var headCredits: [(head: MuscleHead, sets: Double)] {
+        let heads = MuscleHead.heads(of: muscle)
+        var totals: [MuscleHead: Double] = [:]
+        for log in weekLogs {
+            let contributions = headContributions(for: log.exerciseKey)
+            for (head, weight) in contributions where head.parentMuscle == muscle {
+                totals[head, default: 0] += weight
+            }
+        }
+        return heads.map { ($0, totals[$0] ?? 0) }
+    }
+
+    private func headContributions(for key: String) -> [MuscleHead: Double] {
+        if let def = ExerciseDictionary.all[key] { return def.headContributions }
+        if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
+            let stored = ex.headContributions
+            return stored.isEmpty
+                ? Exercise.inferHeadContributions(primary: ex.musclesPrimary,
+                                                  secondary: ex.musclesSecondary)
+                : stored
+        }
+        return [:]
+    }
+
+    private func headBarColor(_ v: Double) -> Color {
+        guard landmark.mrv > 0 else { return .appTextDim }
+        let frac = v / Double(landmark.mrv)
+        if frac < 0.20 { return .appRed }
+        if frac < 0.40 { return .appYellow }
+        if frac <= 0.85 { return .appGreen }
+        return .appOrange
+    }
+
+    private func setsLabel(_ v: Double) -> String {
+        if abs(v - v.rounded()) < 0.05 { return "\(Int(v.rounded()))" }
+        return String(format: "%.1f", v)
+    }
+
     private var zone: VolumeZone { VolumeZone.classify(sets: sets, landmark: landmark) }
+
+    /// Plain-language zone label for non-advanced density.
+    private var zoneLabel: String {
+        if density == .advanced { return zone.rawValue }
+        switch zone {
+        case .underTraining: return "Need more sets"
+        case .building:      return "Building"
+        case .optimal:       return "On target"
+        case .overReaching:  return "Heavy load"
+        }
+    }
 
     private var indirectSetsThisWeek: Double {
         var indirect = 0.0
@@ -2361,23 +3177,80 @@ struct MuscleDetailSheet: View {
                     Text("SETS THIS WEEK").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim).kerning(0.5)
                 }
                 VStack(alignment: .leading, spacing: 6) {
-                    thresholdRow("MV", value: VolumeLandmark.mv(muscle: muscle), desc: "Maintenance")
-                    thresholdRow("MEV", value: landmark.mev, desc: "Min effective")
-                    thresholdRow("MAV", value: landmark.mav, desc: "Target zone")
-                    thresholdRow("MRV", value: landmark.mrv, desc: "Max recoverable")
+                    if density == .advanced {
+                        HStack(spacing: 4) {
+                            Text("THRESHOLDS").font(.system(size: 8, weight: .black))
+                                .foregroundColor(.appTextDim).kerning(0.8)
+                            JargonHelp(termId: "volume_zones", size: 9)
+                        }
+                        thresholdRow("MV", value: VolumeLandmark.mv(muscle: muscle), desc: "Maintenance")
+                        thresholdRow("MEV", value: landmark.mev, desc: "Min effective")
+                        thresholdRow("MAV", value: landmark.mav, desc: "Target zone")
+                        thresholdRow("MRV", value: landmark.mrv, desc: "Max recoverable")
+                    } else {
+                        thresholdRow("Min", value: landmark.mev, desc: "Minimum to grow")
+                        thresholdRow("Target", value: landmark.mav, desc: "Sweet spot")
+                        thresholdRow("Max", value: landmark.mrv, desc: "Don't exceed")
+                    }
                 }
             }
             .padding(14).background(Color.appSurface).cornerRadius(12)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
 
-            // Zone badge
+            // Zone badge — plain-language label for non-advanced users.
             HStack {
                 Circle().fill(zoneColor).frame(width: 8, height: 8)
-                Text(zone.rawValue).font(.system(size: 13, weight: .bold)).foregroundColor(zoneColor)
+                Text(zoneLabel).font(.system(size: 13, weight: .bold)).foregroundColor(zoneColor)
                 Spacer()
                 Text(zoneAdvice).font(.system(size: 12)).foregroundColor(.appTextSecondary)
             }
             .padding(12).background(zoneColor.opacity(0.06)).cornerRadius(10)
+
+            // Head breakdown — advanced only. Shows which heads of this
+            // muscle are receiving stimulus this week.
+            if density == .advanced {
+                let credits = headCredits
+                if !credits.allSatisfy({ $0.sets < 0.05 }) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 4) {
+                            Text("HEAD BREAKDOWN").font(.system(size: 9, weight: .black))
+                                .foregroundColor(.appBlue).kerning(1)
+                            JargonHelp(termId: "head_credits", size: 10)
+                            Spacer()
+                            Text(setsLabel(credits.reduce(0) { $0 + $1.sets }))
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .foregroundColor(.appTextDim)
+                        }
+                        ForEach(credits, id: \.head) { entry in
+                            let v = entry.sets
+                            let frac = landmark.mrv > 0 ? min(v / Double(landmark.mrv), 1.2) : 0
+                            HStack(spacing: 6) {
+                                Text(entry.head.displayName)
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.appTextPrimary)
+                                    .frame(width: 110, alignment: .leading)
+                                    .lineLimit(1).minimumScaleFactor(0.85)
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        RoundedRectangle(cornerRadius: 2).fill(Color.appSurface2).frame(height: 5)
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(headBarColor(v))
+                                            .frame(width: geo.size.width * CGFloat(min(frac, 1.0)), height: 5)
+                                    }
+                                }.frame(height: 6)
+                                Text(setsLabel(v))
+                                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    .foregroundColor(.appTextPrimary)
+                                    .frame(width: 30, alignment: .trailing)
+                            }
+                        }
+                    }
+                    .padding(12)
+                    .background(Color.appBlue.opacity(0.05))
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBlue.opacity(0.2), lineWidth: 1))
+                }
+            }
 
             // Indirect volume
             let indirect = indirectSetsThisWeek
@@ -2458,6 +3331,7 @@ struct ACWRCard: View {
             VStack(spacing: 8) {
                 HStack {
                     Text("LOAD CONSISTENCY").font(.system(size: 10, weight: .black)).foregroundColor(.appTextDim).kerning(1.5)
+                    JargonHelp(termId: "acwr", size: 10)
                     Spacer()
                     Text("7d vs 28d avg").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
                 }
@@ -2536,13 +3410,21 @@ struct RecentSessionsList: View {
         // Pull from ALL instances so past program sessions are visible
         let allLogs = allInstances.flatMap { $0.logs }
         guard !allLogs.isEmpty else { return [] }
-        let byDay = Dictionary(grouping: allLogs) { Calendar.current.startOfDay(for: $0.workoutDate) }
-        return byDay.sorted { $0.key > $1.key }.prefix(8).map {
+        // Group by exact workoutDate (session.startedAt) instead of startOfDay.
+        // Otherwise two workouts on the same calendar day collapse into one
+        // row and `.first` picks an arbitrary sessionType — so a morning
+        // Heavy Upper + evening Heavy Lower would show as just one entry
+        // mislabeled. Each unique startedAt is one session.
+        let bySession = Dictionary(grouping: allLogs) { $0.workoutDate }
+        return bySession.sorted { $0.key > $1.key }.prefix(8).map {
             let sortedLogs = $0.value.sorted { $0.exerciseKey == $1.exerciseKey ? $0.setIndex < $1.setIndex : $0.exerciseKey < $1.exerciseKey }
             let notes = $0.value.first(where: { !$0.sessionNotes.isEmpty })?.sessionNotes ?? ""
             let dates = $0.value.map { $0.date }
             let duration: TimeInterval? = dates.count >= 2 ? dates.max()!.timeIntervalSince(dates.min()!) : nil
-            return (date: $0.key, sessionTypeRaw: $0.value.first?.sessionTypeRaw ?? "", setCount: $0.value.count, logs: sortedLogs, sessionNotes: notes, duration: duration)
+            // sessionTypeRaw is the same across all logs in the same session,
+            // so any log's value works — picking by min setIndex for stability.
+            let sessionType = $0.value.min(by: { $0.setIndex < $1.setIndex })?.sessionTypeRaw ?? $0.value.first?.sessionTypeRaw ?? ""
+            return (date: $0.key, sessionTypeRaw: sessionType, setCount: $0.value.count, logs: sortedLogs, sessionNotes: notes, duration: duration)
         }
     }
     var body: some View {
@@ -2556,7 +3438,14 @@ struct RecentSessionsList: View {
                 }.padding(16).appCard()
             } else {
                 ForEach(sessions, id: \.date) { s in
-                    RecentSessionRow(date: s.date, sessionTypeRaw: s.sessionTypeRaw, setCount: s.setCount, sessionNotes: s.sessionNotes, duration: s.duration)
+                    // Lookup custom label by rawValue — works even when the
+                    // session was logged under a different instance (e.g.,
+                    // older program) since we only show the rename if the
+                    // current instance has one.
+                    let custom = instance?.customSessionLabels[s.sessionTypeRaw]
+                    RecentSessionRow(date: s.date, sessionTypeRaw: s.sessionTypeRaw, setCount: s.setCount,
+                                     sessionNotes: s.sessionNotes, duration: s.duration,
+                                     customLabel: custom)
                         .onTapGesture { editingSession = (date: s.date, logs: s.logs) }
                         .contextMenu {
                             Button { editingSession = (date: s.date, logs: s.logs) } label: {
@@ -2853,7 +3742,12 @@ struct RecentSessionRow: View {
     let date: Date; let sessionTypeRaw: String; let setCount: Int
     var sessionNotes: String = ""
     var duration: TimeInterval? = nil
-    private var label: String { SessionType(rawValue: sessionTypeRaw)?.shortLabel ?? sessionTypeRaw.uppercased() }
+    /// Custom label for this session type (caller passes from instance lookup).
+    var customLabel: String? = nil
+    private var label: String {
+        if let l = customLabel, !l.isEmpty { return l }
+        return SessionType(rawValue: sessionTypeRaw)?.shortLabel ?? sessionTypeRaw.uppercased()
+    }
     private var sessionColor: Color { SessionType(rawValue: sessionTypeRaw)?.sessionColor ?? .appRed }
     private var relativeDate: String {
         if Calendar.current.isDateInToday(date) { return "Today" }
@@ -2948,6 +3842,10 @@ struct WeekOverviewSheet: View {
     private var goal: GoalType { profile?.goal ?? .hypertrophy }
     private var isHyp: Bool { goal == .hypertrophy || goal == .recomp }
     private var currentWeek: Int { instance?.currentWeek ?? 1 }
+    /// Drives whole-sheet adaptation. When false the sheet renders as a
+    /// plain "Program Weeks" list — no mesocycle vocabulary, no phase
+    /// coloring, no recovery-week styling, no volume-change indicators.
+    private var usesPeriodization: Bool { profile?.usesPeriodization ?? true }
 
     private var totalWeeks: Int {
         guard let inst = instance else { return 24 }
@@ -2957,6 +3855,8 @@ struct WeekOverviewSheet: View {
 
     /// Single source of truth for any week's block phase. Uses ComputedBlockInfo
     /// so this view, the Train tab pill, and the BlockConfigCard never disagree.
+    /// Passes both usesPeriodization and skipDeloads so all the user's
+    /// block-related toggles propagate end to end.
     private func info(for w: Int) -> ComputedBlockInfo? {
         guard let inst = instance else { return nil }
         return ComputedBlockInfo.compute(
@@ -2965,7 +3865,9 @@ struct WeekOverviewSheet: View {
             blockLength: inst.blockLength,
             totalWeeks: totalWeeks,
             goal: goal,
-            instance: inst
+            instance: inst,
+            usesPeriodization: usesPeriodization,
+            skipDeloads: profile?.skipDeloads ?? false
         )
     }
 
@@ -3041,14 +3943,20 @@ struct WeekOverviewSheet: View {
         ScrollView {
             VStack(spacing: 14) {
                 RoundedRectangle(cornerRadius: 3).fill(Color.appBorder).frame(width: 36, height: 4).padding(.top, 12)
-                Text("MESOCYCLE OVERVIEW").font(.system(size: 11, weight: .black)).foregroundColor(.appRed).kerning(2)
+                Text(usesPeriodization ? "MESOCYCLE OVERVIEW" : "PROGRAM WEEKS")
+                    .font(.system(size: 11, weight: .black)).foregroundColor(.appRed).kerning(2)
 
                 // Current position
                 VStack(alignment: .leading, spacing: 4) {
                     Text("You're on Week \(currentWeek)")
                         .font(.system(size: 18, weight: .black)).foregroundColor(.appTextPrimary)
-                    Text(phaseName(currentWeek) + " — \(weekTitle(currentWeek))")
-                        .font(.system(size: 13, weight: .bold)).foregroundColor(.appBlue)
+                    if usesPeriodization {
+                        Text(phaseName(currentWeek) + " — \(weekTitle(currentWeek))")
+                            .font(.system(size: 13, weight: .bold)).foregroundColor(.appBlue)
+                    } else {
+                        Text("Week \(currentWeek) of \(totalWeeks)")
+                            .font(.system(size: 13, weight: .bold)).foregroundColor(.appBlue)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(14).background(Color.appSurface).cornerRadius(12)
@@ -3057,7 +3965,9 @@ struct WeekOverviewSheet: View {
                 // Week list
                 ForEach(1...totalWeeks, id: \.self) { w in
                     let isCurrent = w == currentWeek
-                    let isRecovery = isRecoveryWeek(w)
+                    // Recovery week styling only when periodization is on —
+                    // otherwise every week reads as a regular training week.
+                    let isRecovery = usesPeriodization && isRecoveryWeek(w)
                     let isExpanded = expandedWeek == w
 
                     VStack(spacing: 0) {
@@ -3075,15 +3985,24 @@ struct WeekOverviewSheet: View {
                                 }
                                 VStack(alignment: .leading, spacing: 3) {
                                     HStack(spacing: 6) {
-                                        Text(weekTitle(w)).font(.system(size: 13, weight: .bold))
+                                        Text(usesPeriodization ? weekTitle(w) : "Week \(w)")
+                                            .font(.system(size: 13, weight: .bold))
                                             .foregroundColor(isCurrent ? .appTextPrimary : .appTextSecondary)
                                         if isCurrent {
                                             Text("NOW").font(.system(size: 8, weight: .black)).foregroundColor(.appRed)
                                                 .padding(.horizontal, 5).padding(.vertical, 2).background(Color.appRed.opacity(0.1)).cornerRadius(3)
                                         }
                                     }
-                                    Text(phaseName(w)).font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(isRecovery ? .appBlue : .appGreen)
+                                    if usesPeriodization {
+                                        Text(phaseName(w)).font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(isRecovery ? .appBlue : .appGreen)
+                                    } else if w < currentWeek {
+                                        Text("Completed").font(.system(size: 10, weight: .bold)).foregroundColor(.appGreen)
+                                    } else if w == currentWeek {
+                                        Text("Current week").font(.system(size: 10, weight: .bold)).foregroundColor(.appTextDim)
+                                    } else {
+                                        Text("Upcoming").font(.system(size: 10, weight: .bold)).foregroundColor(.appTextDim)
+                                    }
                                 }
                                 Spacer()
                                 if w < currentWeek {
@@ -3100,20 +4019,26 @@ struct WeekOverviewSheet: View {
                         if isExpanded {
                             VStack(alignment: .leading, spacing: 10) {
                                 Divider().background(Color.appBorder)
-                                Text(weekDetail(w))
-                                    .font(.system(size: 13)).foregroundColor(.appTextSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                if usesPeriodization {
+                                    Text(weekDetail(w))
+                                        .font(.system(size: 13)).foregroundColor(.appTextSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
 
-                                // Volume change indicator
-                                if !isRecovery {
-                                    let phase = phaseName(w)
-                                    let volLabel = phase == "Growth Phase" || phase == "Volume Phase" ? "↑ 15% more sets than standard" : (isRecoveryWeek(w) ? "↓ Maintenance volume only" : "Standard volume")
-                                    HStack(spacing: 6) {
-                                        Image(systemName: phase.contains("Growth") || phase.contains("Volume") ? "arrow.up.right" : "equal")
-                                            .font(.system(size: 10)).foregroundColor(phase.contains("Growth") || phase.contains("Volume") ? .appGold : .appGreen)
-                                        Text(volLabel).font(.system(size: 11, weight: .bold))
-                                            .foregroundColor(phase.contains("Growth") || phase.contains("Volume") ? .appGold : .appTextDim)
+                                    // Volume change indicator
+                                    if !isRecovery {
+                                        let phase = phaseName(w)
+                                        let volLabel = phase == "Growth Phase" || phase == "Volume Phase" ? "↑ 15% more sets than standard" : (isRecoveryWeek(w) ? "↓ Maintenance volume only" : "Standard volume")
+                                        HStack(spacing: 6) {
+                                            Image(systemName: phase.contains("Growth") || phase.contains("Volume") ? "arrow.up.right" : "equal")
+                                                .font(.system(size: 10)).foregroundColor(phase.contains("Growth") || phase.contains("Volume") ? .appGold : .appGreen)
+                                            Text(volLabel).font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(phase.contains("Growth") || phase.contains("Volume") ? .appGold : .appTextDim)
+                                        }
                                     }
+                                } else {
+                                    Text("Tap View Week to open this week's schedule. You can jump to it as your current week with Set as Current.")
+                                        .font(.system(size: 13)).foregroundColor(.appTextSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
 
                                 HStack(spacing: 8) {
@@ -3152,6 +4077,11 @@ struct BlockInfoSheet: View {
     let profile: UserProfile?
     @Query private var allProgramTemplates: [ProgramTemplate]
 
+    /// User's UI density. Minimal hides the "What this block means" and
+    /// "Weekly focus" explainer cards; keeps the visual week-by-week list
+    /// and timeline since those are language-agnostic.
+    private var density: UIDensity { profile?.density ?? .advanced }
+
     private var goal: GoalType { profile?.goal ?? .hypertrophy }
     private var isHyp: Bool { goal == .hypertrophy || goal == .recomp }
     /// Total program weeks for this instance — drives the upper bound when
@@ -3162,6 +4092,8 @@ struct BlockInfoSheet: View {
             ?? (inst.programId == 2 ? 16 : 24)
     }
     /// Single source of truth for the current week's block phase.
+    /// Honors both block-related toggles (Continuous Training and Skip
+    /// Deload Weeks) so this card never disagrees with the rest of the app.
     private var info: ComputedBlockInfo? {
         guard let inst = instance else { return nil }
         return ComputedBlockInfo.compute(
@@ -3170,7 +4102,9 @@ struct BlockInfoSheet: View {
             blockLength: inst.blockLength,
             totalWeeks: totalWeeks,
             goal: goal,
-            instance: inst
+            instance: inst,
+            usesPeriodization: profile?.usesPeriodization ?? true,
+            skipDeloads: profile?.skipDeloads ?? false
         )
     }
 
@@ -3208,8 +4142,13 @@ struct BlockInfoSheet: View {
                 if let inst = instance, let info = info {
                     // ── CURRENT BLOCK ──
                     VStack(spacing: 8) {
-                        Text(info.displayPhaseName)
-                            .font(.system(size: 24, weight: .black, design: .rounded)).foregroundColor(.appTextPrimary)
+                        HStack(spacing: 8) {
+                            Text(info.displayPhaseName)
+                                .font(.system(size: 24, weight: .black, design: .rounded)).foregroundColor(.appTextPrimary)
+                            if density == .advanced {
+                                JargonHelp(termId: "block_phase", size: 13)
+                            }
+                        }
                         HStack(spacing: 20) {
                             VStack(spacing: 2) {
                                 Text("WEEK").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim)
@@ -3236,21 +4175,29 @@ struct BlockInfoSheet: View {
                     .padding(20).background(Color.appSurface).cornerRadius(14)
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.appBorder, lineWidth: 1))
 
-                    // ── WHAT THIS BLOCK MEANS ──
-                    VStack(alignment: .leading, spacing: 8) {
-                        blockExplanation(info.blockType, goal: goal)
+                    // ── WHAT THIS BLOCK MEANS — hidden in minimal ──
+                    // The explanation text leans on training-theory vocabulary
+                    // ("accumulation", "intensification") that wouldn't help
+                    // a casual user. The block-type heading above already
+                    // conveys the practical info.
+                    if density != .minimal {
+                        VStack(alignment: .leading, spacing: 8) {
+                            blockExplanation(info.blockType, goal: goal)
+                        }
+                        .padding(14).background(Color.appSurface).cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
                     }
-                    .padding(14).background(Color.appSurface).cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
 
-                    // ── WEEKLY FOCUS ──
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("THIS WEEK'S FOCUS").font(.system(size: 10, weight: .bold)).foregroundColor(.appTextDim).kerning(1)
-                        Text(weekFocus(info.blockType, blockWeek: info.weekInBlock, blockLength: info.blockTrainingWeeks, goal: goal))
-                            .font(.system(size: 13, weight: .semibold)).foregroundColor(.appTextPrimary)
+                    // ── WEEKLY FOCUS — hidden in minimal ──
+                    if density != .minimal {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("THIS WEEK'S FOCUS").font(.system(size: 10, weight: .bold)).foregroundColor(.appTextDim).kerning(1)
+                            Text(weekFocus(info.blockType, blockWeek: info.weekInBlock, blockLength: info.blockTrainingWeeks, goal: goal))
+                                .font(.system(size: 13, weight: .semibold)).foregroundColor(.appTextPrimary)
+                        }
+                        .padding(14).background(Color.appSurface).cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
                     }
-                    .padding(14).background(Color.appSurface).cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
 
                     // ── WEEK-BY-WEEK PROGRESSION ──
                     VStack(alignment: .leading, spacing: 8) {
@@ -3387,7 +4334,9 @@ struct BlockInfoSheet: View {
             let bi = ComputedBlockInfo.compute(
                 forWeek: w, programId: inst.programId,
                 blockLength: inst.blockLength, totalWeeks: totalWeeks, goal: goal,
-                instance: inst)
+                instance: inst,
+                usesPeriodization: profile?.usesPeriodization ?? true,
+                skipDeloads: profile?.skipDeloads ?? false)
             if bi.isDeloadWeek {
                 let isCurrent = w == currentWeek
                 let isPast = w < currentWeek

@@ -20,10 +20,7 @@ struct ExerciseSwapSheet: View {
 
     @State private var searchText = ""
     @State private var selectedKey: String? = nil
-    // Default to this-week scope. Users typically swap for a single workout
-    // (subbing equipment that's busy, trying a variation); applying to all
-    // future sessions should be an explicit opt-in, not the default.
-    @State private var scope: OverrideScope = .single
+    @State private var scope: OverrideScope = .future
     @State private var showCreateCustom = false
     @State private var selectedMuscleFilter: String? = nil
     @State private var cachedAlternatives: [RankedAlternative]? = nil
@@ -406,6 +403,7 @@ struct CreateCustomExerciseSheet: View {
     let onCreated: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Query private var profilesQuery: [UserProfile]
 
     @State private var exerciseName = ""
     @State private var primaryMuscles: Set<String> = []
@@ -413,6 +411,14 @@ struct CreateCustomExerciseSheet: View {
     @State private var selectedEquipment: String = "barbell"
     @State private var isCompound = true
     @State private var errorMessage = ""
+
+    // Advanced-density: optional head-level detail. Off by default — when
+    // off, the algorithm infers head contributions from primary/secondary
+    // muscle picks. When on, user fine-tunes per head.
+    @State private var customizeHeads: Bool = false
+    @State private var headWeights: [MuscleHead: Double] = [:]
+
+    private var density: UIDensity { profilesQuery.first?.density ?? .advanced }
 
     private let availableMuscles = ExerciseDictionary.trackingMuscles + [
         "Core", "Traps", "Lats", "Forearms"
@@ -558,6 +564,20 @@ struct CreateCustomExerciseSheet: View {
                             .cornerRadius(8).overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
                         }
 
+                        // ── ADVANCED: per-head detail ──
+                        // Only shown in Advanced density. Lets users tag exactly
+                        // which heads this exercise hits and how hard, so the
+                        // segmented volume tracker is accurate. When off, we
+                        // infer from primary/secondary muscle picks.
+                        if density == .advanced, !primaryMuscles.isEmpty {
+                            CustomHeadPicker(
+                                primaryMuscles: primaryMuscles,
+                                secondaryMuscles: secondaryMuscles,
+                                customizeHeads: $customizeHeads,
+                                headWeights: $headWeights
+                            )
+                        }
+
                         if !errorMessage.isEmpty {
                             Text(errorMessage)
                                 .font(.system(size: 12)).foregroundColor(.appRed)
@@ -612,10 +632,18 @@ struct CreateCustomExerciseSheet: View {
             isCustom: true
         )
 
+        // If user customized heads in Advanced, persist them.
+        // Otherwise leave empty so the inference path runs at credit time.
+        if customizeHeads && !headWeights.isEmpty {
+            let pruned = headWeights.filter { $0.value > 0.01 }
+            exercise.headContributions = pruned
+        }
+
         modelContext.insert(exercise)
         try? modelContext.save()
         onCreated(key)
     }
+
 }
 
 // ═══════════════════════════════════════════

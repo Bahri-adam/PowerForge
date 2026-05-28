@@ -63,6 +63,18 @@ struct ExerciseDefinition {
     let sessionRestriction: SessionRestriction?  // nil=anywhere, .lowerOnly=lower/fullbody only
     let additionalFilterMuscles: [String]       // extra muscles to show this exercise under in filter UI
 
+    /// Head-level volume contribution per set. When populated, this is the
+    /// authoritative source for volume math (used by Advanced density to
+    /// surface per-head bars, and aggregated up to canonical 9 for the
+    /// other densities). When empty, volume math falls back to
+    /// primaryMuscles (1.0) + secondaryMuscles (weight).
+    ///
+    /// Values are per-set contribution. Sum across heads of one parent
+    /// muscle does NOT need to equal 1.0 — when reducing to canonical
+    /// muscle credit we take MAX over heads (you do one set, that
+    /// muscle works once at its peak head contribution).
+    let headContributions: [MuscleHead: Double]
+
     init(
         key: String,
         displayName: String,
@@ -82,7 +94,8 @@ struct ExerciseDefinition {
         head: String = "",
         generatorPattern: String = "",
         sessionRestriction: SessionRestriction? = nil,
-        additionalFilterMuscles: [String] = []
+        additionalFilterMuscles: [String] = [],
+        headContributions: [MuscleHead: Double] = [:]
     ) {
         self.key = key
         self.displayName = displayName
@@ -103,6 +116,106 @@ struct ExerciseDefinition {
         self.head = head
         self.generatorPattern = generatorPattern
         self.sessionRestriction = sessionRestriction
+        self.headContributions = headContributions
+    }
+}
+
+// ═══════════════════════════════════════════
+// VOLUME CREDIT HELPERS
+// Single entry point for "how much does this exercise contribute to
+// each tracking muscle per set?" Used by HomeView.setsByMuscle,
+// MuscleCoverageCard.effectiveSetsByMuscle, IndirectVolumeMap, etc.
+// ═══════════════════════════════════════════
+
+extension ExerciseDefinition {
+
+    /// Per-set credit per canonical tracking muscle.
+    ///
+    /// When headContributions is populated: takes MAX weight over heads
+    /// belonging to each parent muscle (one set = one stimulus at peak
+    /// head contribution).
+    ///
+    /// When headContributions is empty: falls back to primaryMuscles
+    /// (1.0 each, normalized) + secondaryMuscles (their weight, normalized).
+    ///
+    /// Used everywhere that asks "how many sets does this give to Chest/Back/etc"
+    /// so the math is consistent across HomeView, ProgramTab, VolumeAdjuster.
+    func musclesCredit() -> [String: Double] {
+        var result: [String: Double] = [:]
+
+        // Head-level path (preferred when populated)
+        if !headContributions.isEmpty {
+            for (head, weight) in headContributions {
+                let parent = head.parentMuscle
+                result[parent] = max(result[parent] ?? 0, weight)
+            }
+            return result
+        }
+
+        // Legacy fallback: primary (1.0) + secondary (weight)
+        for pm in primaryMuscles {
+            if let n = ExerciseDictionary.normalizeMuscle(pm) {
+                result[n] = max(result[n] ?? 0, 1.0)
+            }
+        }
+        for sm in secondaryMuscles {
+            if let n = ExerciseDictionary.normalizeMuscle(sm.muscle) {
+                result[n] = max(result[n] ?? 0, sm.weight)
+            }
+        }
+        return result
+    }
+
+    /// Per-set credit per individual head. Empty when no headContributions
+    /// is set. Used by the Advanced-density expanded muscle bars.
+    func headCredits() -> [MuscleHead: Double] {
+        return headContributions
+    }
+
+    /// Unique tracking muscles where this exercise is a direct (primary) target.
+    /// Multiple raw primary entries that collapse to the same tracking muscle
+    /// (e.g. ["Lats", "Mid Back"] → "Back") count ONCE. Without this, a single
+    /// set of dumbbell row would count as 2 sets of Back.
+    var directTrackingMuscles: Set<String> {
+        Set(primaryMuscles.compactMap { ExerciseDictionary.normalizeMuscle($0) })
+    }
+
+    /// Weighted secondary contributions per tracking muscle, deduped.
+    /// If multiple secondaries normalize to the same tracking muscle, takes
+    /// MAX (one set fires the muscle once, not multiple times). Excludes
+    /// muscles already counted as direct.
+    var indirectTrackingMuscles: [String: Double] {
+        let direct = directTrackingMuscles
+        var result: [String: Double] = [:]
+        for sm in secondaryMuscles {
+            guard let n = ExerciseDictionary.normalizeMuscle(sm.muscle),
+                  !direct.contains(n) else { continue }
+            result[n] = max(result[n] ?? 0, sm.weight)
+        }
+        return result
+    }
+}
+
+/// Same helpers for SwiftData `Exercise` records (custom exercises).
+extension Exercise {
+    /// Unique tracking muscles where this exercise is a direct (primary) target.
+    var directTrackingMuscles: Set<String> {
+        Set(musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) })
+    }
+
+    /// Weighted secondary contributions per tracking muscle, deduped (max).
+    /// Excludes muscles already in primaries. Uses the flat
+    /// `IndirectVolumeMap.secondaryWeight` since custom exercises don't carry
+    /// per-secondary weights.
+    var indirectTrackingMuscles: [String: Double] {
+        let direct = directTrackingMuscles
+        var result: [String: Double] = [:]
+        for raw in musclesSecondary {
+            guard let n = ExerciseDictionary.normalizeMuscle(raw),
+                  !direct.contains(n) else { continue }
+            result[n] = max(result[n] ?? 0, IndirectVolumeMap.secondaryWeight)
+        }
+        return result
     }
 }
 
@@ -166,34 +279,49 @@ struct ExerciseDictionary {
             key: "bench_press_barbell", displayName: "Barbell Bench Press",
             movementPattern: .horizontalPush, swapPattern: "horizontal_push",
             primaryMuscles: ["Chest"],
-            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.5), .init(muscle: "Front Delts", weight: 0.5)],
+            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.6), .init(muscle: "Front Delts", weight: 0.5)],
             equipment: .barbell, isCompound: true, stretchPosition: .mid,
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_dumbbell", "bench_press_smith", "machine_chest_press"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "mid", generatorPattern: "horizontal_press"),
+            rank: 1, head: "mid", generatorPattern: "horizontal_press",
+            headContributions: [
+                .chestMid: 1.0, .chestLower: 0.4,
+                .tricepsLateral: 0.6, .tricepsMedial: 0.5, .tricepsLong: 0.4,
+                .deltsFront: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "bench_press_incline_barbell", displayName: "Incline Barbell Bench Press",
             movementPattern: .horizontalPush, swapPattern: "horizontal_push_incline",
             primaryMuscles: ["Upper Chest"],
-            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.5), .init(muscle: "Front Delts", weight: 0.5)],
+            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.5), .init(muscle: "Front Delts", weight: 0.7)],
             equipment: .barbell, isCompound: true, stretchPosition: .mid,
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_incline_dumbbell", "bench_press_incline_smith", "incline_machine_press", "cable_fly_low_to_high"],
             swapWarning: nil, variationOfKey: "bench_press_barbell",
-            rank: 1, head: "upper", generatorPattern: "incline_press"),
+            rank: 1, head: "upper", generatorPattern: "incline_press",
+            headContributions: [
+                .chestUpper: 1.0, .chestMid: 0.5,
+                .deltsFront: 0.7,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.5, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "bench_press_decline_barbell", displayName: "Decline Barbell Bench Press",
             movementPattern: .horizontalPush, swapPattern: "horizontal_push_decline",
             primaryMuscles: ["Lower Chest"],
-            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.5), .init(muscle: "Front Delts", weight: 0.3)],
+            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.6), .init(muscle: "Front Delts", weight: 0.3)],
             equipment: .barbell, isCompound: true, stretchPosition: .shortened,
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_decline_dumbbell", "bench_press_decline_smith", "cable_fly_high_to_low"],
             swapWarning: nil, variationOfKey: "bench_press_barbell",
-            head: "lower", generatorPattern: "decline_press"),
+            head: "lower", generatorPattern: "decline_press",
+            headContributions: [
+                .chestLower: 1.0, .chestMid: 0.4,
+                .tricepsLateral: 0.6, .tricepsMedial: 0.5, .tricepsLong: 0.5,
+                .deltsFront: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "bench_press_dumbbell", displayName: "Dumbbell Bench Press",
@@ -204,18 +332,28 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_barbell", "bench_press_smith", "machine_chest_press"],
             swapWarning: nil, variationOfKey: "bench_press_barbell",
-            head: "mid", generatorPattern: "horizontal_press"),
+            head: "mid", generatorPattern: "horizontal_press",
+            headContributions: [
+                .chestMid: 1.0, .chestLower: 0.4,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4,
+                .deltsFront: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "bench_press_incline_dumbbell", displayName: "Incline Dumbbell Press",
             movementPattern: .horizontalPush, swapPattern: "horizontal_push_incline",
             primaryMuscles: ["Upper Chest"],
-            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.5), .init(muscle: "Front Delts", weight: 0.5)],
+            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.4), .init(muscle: "Front Delts", weight: 0.7)],
             equipment: .dumbbell, isCompound: true, stretchPosition: .mid,
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_incline_barbell", "bench_press_incline_smith", "cable_fly_low_to_high"],
             swapWarning: nil, variationOfKey: "bench_press_barbell",
-            rank: 1, head: "upper", generatorPattern: "incline_press"),
+            rank: 1, head: "upper", generatorPattern: "incline_press",
+            headContributions: [
+                .chestUpper: 1.0, .chestMid: 0.5,
+                .deltsFront: 0.7,
+                .tricepsLateral: 0.4, .tricepsMedial: 0.4, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "bench_press_decline_dumbbell", displayName: "Decline Dumbbell Press",
@@ -226,7 +364,12 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_decline_barbell", "bench_press_decline_smith", "cable_fly_high_to_low"],
             swapWarning: nil, variationOfKey: "bench_press_barbell",
-            rank: 3, head: "lower", generatorPattern: "decline_press"),
+            rank: 3, head: "lower", generatorPattern: "decline_press",
+            headContributions: [
+                .chestLower: 1.0, .chestMid: 0.4,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4,
+                .deltsFront: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "fly_dumbbell", displayName: "Dumbbell Fly",
@@ -237,7 +380,11 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["cable_fly_neutral", "pec_deck", "fly_incline_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "mid", generatorPattern: "fly"),
+            rank: 3, head: "mid", generatorPattern: "fly",
+            headContributions: [
+                .chestMid: 1.0, .chestLower: 0.4,
+                .deltsFront: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "fly_incline_dumbbell", displayName: "Incline Dumbbell Fly",
@@ -248,7 +395,11 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["cable_fly_low_to_high", "pec_deck"],
             swapWarning: nil, variationOfKey: "fly_dumbbell",
-            rank: 3, head: "upper", generatorPattern: "fly"),
+            rank: 3, head: "upper", generatorPattern: "fly",
+            headContributions: [
+                .chestUpper: 1.0, .chestMid: 0.4,
+                .deltsFront: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "cable_fly_low_to_high", displayName: "Cable Fly (Low to High)",
@@ -259,7 +410,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["fly_incline_dumbbell", "pec_deck"],
             swapWarning: nil, variationOfKey: nil,
-            head: "upper", generatorPattern: "fly"),
+            head: "upper", generatorPattern: "fly",
+            headContributions: [
+                .chestUpper: 1.0, .chestMid: 0.4,
+                .deltsFront: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "cable_fly_high_to_low", displayName: "Cable Fly (High to Low)",
@@ -270,7 +425,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["pec_deck"],
             swapWarning: nil, variationOfKey: nil,
-            head: "lower", generatorPattern: "fly"),
+            head: "lower", generatorPattern: "fly",
+            headContributions: [
+                .chestLower: 1.0, .chestMid: 0.4,
+                .deltsFront: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "cable_fly_neutral", displayName: "Cable Fly (Neutral)",
@@ -281,7 +440,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["fly_dumbbell", "pec_deck"],
             swapWarning: nil, variationOfKey: nil,
-            head: "mid", generatorPattern: "fly"),
+            head: "mid", generatorPattern: "fly",
+            headContributions: [
+                .chestMid: 1.0, .chestLower: 0.4,
+                .deltsFront: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "pec_deck", displayName: "Pec Deck / Machine Fly",
@@ -292,7 +455,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["cable_fly_neutral", "fly_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "mid", generatorPattern: "fly"),
+            rank: 3, head: "mid", generatorPattern: "fly",
+            headContributions: [
+                .chestMid: 1.0, .chestLower: 0.3,
+                .deltsFront: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "pushup", displayName: "Push-Up",
@@ -303,7 +470,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["bench_press_dumbbell", "bench_press_barbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "mid", generatorPattern: "horizontal_press"),
+            head: "mid", generatorPattern: "horizontal_press",
+            headContributions: [
+                .chestMid: 0.7, .chestLower: 0.4,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.5, .tricepsLong: 0.3,
+                .deltsFront: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "dips_chest", displayName: "Dips (Chest-Focused)",
@@ -314,7 +486,12 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_decline_dumbbell", "bench_press_decline_barbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "lower", generatorPattern: "decline_press"),
+            head: "lower", generatorPattern: "decline_press",
+            headContributions: [
+                .chestLower: 0.9, .chestMid: 0.5,
+                .tricepsLateral: 0.6, .tricepsMedial: 0.5, .tricepsLong: 0.4,
+                .deltsFront: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "landmine_press", displayName: "Landmine Press",
@@ -325,7 +502,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["bench_press_incline_dumbbell", "bench_press_incline_barbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "upper", generatorPattern: "incline_press"),
+            head: "upper", generatorPattern: "incline_press",
+            headContributions: [
+                .chestUpper: 1.0, .chestMid: 0.4,
+                .deltsFront: 0.6,
+                .tricepsLateral: 0.3, .tricepsMedial: 0.3, .tricepsLong: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "bench_press_smith", displayName: "Smith Machine Bench Press",
@@ -336,7 +518,12 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_barbell", "bench_press_dumbbell", "machine_chest_press"],
             swapWarning: nil, variationOfKey: "bench_press_barbell",
-            head: "mid", generatorPattern: "horizontal_press"),
+            head: "mid", generatorPattern: "horizontal_press",
+            headContributions: [
+                .chestMid: 1.0, .chestLower: 0.4,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4,
+                .deltsFront: 0.5
+            ]),
 
         // ═══════════════════════════════════════
         // BACK
@@ -346,12 +533,16 @@ struct ExerciseDictionary {
             key: "row_barbell", displayName: "Barbell Row (Overhand)",
             movementPattern: .horizontalPull, swapPattern: "horizontal_pull",
             primaryMuscles: ["Lats", "Mid Back"],
-            secondaryMuscles: [.init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.5), .init(muscle: "Traps", weight: 0.3)],
+            secondaryMuscles: [.init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.6), .init(muscle: "Traps", weight: 0.4), .init(muscle: "Lower Back", weight: 0.4)],
             equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["low_back"],
             swapKeys: ["row_dumbbell", "row_tbar", "row_cable_wide", "row_chest_supported"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "thickness", generatorPattern: "horizontal_row"),
+            rank: 1, head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .midBack: 1.0, .lats: 0.8, .traps: 0.4, .rearDelts: 0.6, .lowerBack: 0.4,
+                .bicepsLong: 0.5, .bicepsShort: 0.3, .brachialis: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "row_barbell_underhand", displayName: "Barbell Row (Underhand)",
@@ -362,7 +553,11 @@ struct ExerciseDictionary {
             jointStressTags: ["low_back"],
             swapKeys: ["row_cable_narrow", "row_dumbbell", "row_machine"],
             swapWarning: nil, variationOfKey: "row_barbell",
-            head: "thickness", generatorPattern: "horizontal_row"),
+            head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.8, .rearDelts: 0.3, .lowerBack: 0.4,
+                .bicepsShort: 0.7, .bicepsLong: 0.5, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "row_dumbbell", displayName: "Dumbbell Row",
@@ -373,7 +568,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["row_barbell", "row_cable_narrow", "row_meadows", "row_chest_supported"],
             swapWarning: nil, variationOfKey: nil,
-            head: "thickness", generatorPattern: "horizontal_row"),
+            head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.8, .rearDelts: 0.4,
+                .bicepsLong: 0.5, .bicepsShort: 0.4, .brachialis: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "row_cable_narrow", displayName: "Cable Row (Narrow Grip)",
@@ -384,7 +583,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["row_machine", "row_barbell_underhand", "row_dumbbell"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "thickness", generatorPattern: "horizontal_row"),
+            rank: 1, head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .midBack: 1.0, .lats: 0.7, .rearDelts: 0.4,
+                .bicepsShort: 0.5, .bicepsLong: 0.4, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "row_cable_wide", displayName: "Cable Row (Wide Grip)",
@@ -395,18 +598,26 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["row_chest_supported", "row_tbar", "row_barbell"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "thickness", generatorPattern: "horizontal_row"),
+            rank: 1, head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .midBack: 1.0, .rearDelts: 0.8, .lats: 0.5,
+                .bicepsShort: 0.3, .bicepsLong: 0.3, .brachialis: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "pulldown_wide", displayName: "Lat Pulldown (Wide Overhand)",
             movementPattern: .verticalPull, swapPattern: "vertical_pull",
             primaryMuscles: ["Lats"],
-            secondaryMuscles: [.init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.3)],
+            secondaryMuscles: [.init(muscle: "Mid Back", weight: 0.4), .init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.4)],
             equipment: .cable, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: [],
             swapKeys: ["pullup", "pulldown_close", "pullover_cable"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "width", generatorPattern: "vertical_pull"),
+            rank: 1, head: "width", generatorPattern: "vertical_pull",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.4, .rearDelts: 0.4,
+                .bicepsShort: 0.5, .bicepsLong: 0.3, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "pulldown_close", displayName: "Lat Pulldown (Close Neutral)",
@@ -417,29 +628,41 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["chinup", "pullup_neutral", "pulldown_wide"],
             swapWarning: nil, variationOfKey: "pulldown_wide", isAnchorableAsTier1: true,
-            rank: 1, head: "width", generatorPattern: "vertical_pull"),
+            rank: 1, head: "width", generatorPattern: "vertical_pull",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.5,
+                .bicepsShort: 0.6, .bicepsLong: 0.4, .brachialis: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "pullup", displayName: "Pull-Up (Overhand)",
             movementPattern: .verticalPull, swapPattern: "vertical_pull",
             primaryMuscles: ["Lats"],
-            secondaryMuscles: [.init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.3)],
+            secondaryMuscles: [.init(muscle: "Mid Back", weight: 0.6), .init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.4)],
             equipment: .bodyweight, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: [],
             swapKeys: ["pulldown_wide", "pullup_neutral"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "width", generatorPattern: "vertical_pull"),
+            rank: 1, head: "width", generatorPattern: "vertical_pull",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.6, .rearDelts: 0.4,
+                .bicepsShort: 0.5, .bicepsLong: 0.4, .brachialis: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "chinup", displayName: "Chin-Up (Underhand)",
             movementPattern: .verticalPull, swapPattern: "vertical_pull",
-            primaryMuscles: ["Lats"],
-            secondaryMuscles: [.init(muscle: "Biceps", weight: 0.7)],
+            primaryMuscles: ["Lats", "Biceps"],
+            secondaryMuscles: [.init(muscle: "Mid Back", weight: 0.5)],
             equipment: .bodyweight, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: [],
             swapKeys: ["pulldown_close", "pullup_neutral"],
             swapWarning: nil, variationOfKey: "pullup",
-            rank: 1, head: "width", generatorPattern: "vertical_pull"),
+            rank: 1, head: "width", generatorPattern: "vertical_pull",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.5,
+                .bicepsShort: 0.9, .bicepsLong: 0.7, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "pullup_neutral", displayName: "Neutral Grip Pull-Up",
@@ -450,7 +673,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["chinup", "pulldown_close"],
             swapWarning: nil, variationOfKey: "pullup",
-            rank: 1, head: "width", generatorPattern: "vertical_pull"),
+            rank: 1, head: "width", generatorPattern: "vertical_pull",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.5,
+                .bicepsShort: 0.6, .bicepsLong: 0.5, .brachialis: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "row_meadows", displayName: "Meadows Row",
@@ -461,7 +688,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["row_dumbbell", "row_cable_narrow"],
             swapWarning: nil, variationOfKey: "row_barbell",
-            head: "thickness", generatorPattern: "horizontal_row"),
+            head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.7, .rearDelts: 0.4,
+                .bicepsLong: 0.5, .bicepsShort: 0.3, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "row_tbar", displayName: "T-Bar Row",
@@ -472,7 +703,11 @@ struct ExerciseDictionary {
             jointStressTags: ["low_back"],
             swapKeys: ["row_barbell", "row_chest_supported", "row_dumbbell"],
             swapWarning: nil, variationOfKey: "row_barbell",
-            rank: 1, head: "thickness", generatorPattern: "horizontal_row"),
+            rank: 1, head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .midBack: 1.0, .lats: 0.8, .traps: 0.4, .rearDelts: 0.5, .lowerBack: 0.4,
+                .bicepsLong: 0.5, .bicepsShort: 0.3, .brachialis: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "row_machine", displayName: "Machine Row",
@@ -483,7 +718,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["row_cable_narrow", "row_dumbbell", "row_chest_supported"],
             swapWarning: nil, variationOfKey: nil,
-            head: "thickness", generatorPattern: "horizontal_row"),
+            head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .midBack: 1.0, .lats: 0.7, .rearDelts: 0.3,
+                .bicepsLong: 0.4, .bicepsShort: 0.3, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "row_chest_supported", displayName: "Chest-Supported Row",
@@ -494,7 +733,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["row_cable_wide", "row_tbar", "row_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "thickness", generatorPattern: "horizontal_row"),
+            head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .midBack: 1.0, .lats: 0.8, .rearDelts: 0.5,
+                .bicepsLong: 0.4, .bicepsShort: 0.3, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "pulldown_straight_arm", displayName: "Straight-Arm Pulldown",
@@ -505,7 +748,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["pullover_cable"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "width", generatorPattern: "vertical_pull"),
+            rank: 3, head: "width", generatorPattern: "vertical_pull",
+            headContributions: [
+                .lats: 1.0, .chestUpper: 0.3,
+                .tricepsLong: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "rack_pull", displayName: "Rack Pull",
@@ -516,29 +763,52 @@ struct ExerciseDictionary {
             jointStressTags: ["low_back"],
             swapKeys: ["deadlift_barbell", "deadlift_trap_bar"],
             swapWarning: nil, variationOfKey: "deadlift_barbell",
-            head: "thickness", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            head: "thickness", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .traps: 1.0, .midBack: 0.8, .lats: 0.6, .lowerBack: 0.7,
+                .glutesMax: 0.4,
+                .hamstringsHipExtension: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "deadlift_barbell", displayName: "Barbell Deadlift",
             movementPattern: .hinge, swapPattern: "hip_hinge",
-            primaryMuscles: ["Lats", "Mid Back", "Traps"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7), .init(muscle: "Hamstrings", weight: 0.7), .init(muscle: "Quads", weight: 0.4)],
+            // Promote Glutes + Hamstrings to PRIMARY. Conventional deadlift
+            // is a posterior-chain compound — these aren't secondary movers,
+            // they're the prime force generators along with the back's
+            // isometric/contraction work.
+            primaryMuscles: ["Lats", "Mid Back", "Traps", "Glutes", "Hamstrings"],
+            secondaryMuscles: [.init(muscle: "Quads", weight: 0.4), .init(muscle: "Lower Back", weight: 1.0)],
             equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["low_back"],
             swapKeys: ["deadlift_trap_bar", "rack_pull"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "thickness", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            rank: 1, head: "thickness", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .lats: 0.6, .midBack: 0.8, .traps: 0.6, .lowerBack: 1.0,
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 1.0,
+                .rectusFemoris: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "deadlift_trap_bar", displayName: "Trap Bar Deadlift",
             movementPattern: .hinge, swapPattern: "hip_hinge",
-            primaryMuscles: ["Lats", "Mid Back"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7), .init(muscle: "Quads", weight: 0.7), .init(muscle: "Hamstrings", weight: 0.5)],
+            // Trap bar shifts a bit more onto quads vs conventional, but
+            // glutes + hams are still primary movers.
+            primaryMuscles: ["Mid Back", "Quads", "Glutes", "Hamstrings"],
+            secondaryMuscles: [.init(muscle: "Lats", weight: 0.5), .init(muscle: "Lower Back", weight: 0.8)],
             equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["low_back"],
             swapKeys: ["deadlift_barbell", "rack_pull"],
             swapWarning: nil, variationOfKey: "deadlift_barbell",
-            rank: 1, head: "thickness", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            rank: 1, head: "thickness", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .midBack: 0.7, .traps: 0.5, .lowerBack: 0.8,
+                .glutesMax: 0.9,
+                .hamstringsHipExtension: 0.7,
+                .vastusLateralis: 0.7, .vastusMedialis: 0.7, .rectusFemoris: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "good_morning", displayName: "Good Morning",
@@ -549,7 +819,12 @@ struct ExerciseDictionary {
             jointStressTags: ["low_back"],
             swapKeys: ["rdl_barbell", "hyperextension"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "thickness", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            rank: 3, head: "thickness", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .lowerBack: 0.6, .midBack: 0.4,
+                .hamstringsHipExtension: 0.9,
+                .glutesMax: 0.7
+            ]),
 
         ExerciseDefinition(
             key: "hyperextension", displayName: "Hyperextension",
@@ -560,7 +835,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["reverse_hyperextension", "good_morning"],
             swapWarning: nil, variationOfKey: nil,
-            head: "thickness", generatorPattern: "hinge"),
+            head: "thickness", generatorPattern: "hinge",
+            headContributions: [
+                .lowerBack: 1.0,
+                .glutesMax: 0.7,
+                .hamstringsHipExtension: 0.7
+            ]),
 
         ExerciseDefinition(
             key: "reverse_hyperextension", displayName: "Reverse Hyperextension",
@@ -571,7 +851,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["hyperextension", "good_morning"],
             swapWarning: nil, variationOfKey: "hyperextension",
-            head: "thickness", generatorPattern: "hinge"),
+            head: "thickness", generatorPattern: "hinge",
+            headContributions: [
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 0.6,
+                .lowerBack: 0.6
+            ]),
 
         // Keep old key as alias
         ExerciseDefinition(
@@ -583,7 +868,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["pulldown_wide", "pullup", "pulldown_close"],
             swapWarning: nil, variationOfKey: "pulldown_wide", isAnchorableAsTier1: true,
-            rank: 1, head: "width", generatorPattern: "vertical_pull"),
+            rank: 1, head: "width", generatorPattern: "vertical_pull",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.4, .rearDelts: 0.3,
+                .bicepsShort: 0.5, .bicepsLong: 0.3, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "pullover_cable", displayName: "Cable Pullover",
@@ -594,18 +883,25 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["pulldown_straight_arm"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "width", generatorPattern: "vertical_pull"),
+            rank: 3, head: "width", generatorPattern: "vertical_pull",
+            headContributions: [
+                .lats: 1.0, .chestLower: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "row_cable_neutral", displayName: "Cable Row (Neutral Grip)",
             movementPattern: .horizontalPull, swapPattern: "horizontal_pull",
             primaryMuscles: ["Lats", "Mid Back"],
-            secondaryMuscles: [.init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.3)],
+            secondaryMuscles: [.init(muscle: "Biceps", weight: 0.5), .init(muscle: "Rear Delts", weight: 0.4)],
             equipment: .cable, isCompound: true, stretchPosition: .mid,
             jointStressTags: [],
             swapKeys: ["row_cable_narrow", "row_machine", "row_dumbbell"],
             swapWarning: nil, variationOfKey: "row_cable_narrow",
-            head: "thickness", generatorPattern: "horizontal_row"),
+            head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .midBack: 1.0, .lats: 0.8, .rearDelts: 0.4,
+                .bicepsLong: 0.4, .bicepsShort: 0.4, .brachialis: 0.4
+            ]),
 
         // ═══════════════════════════════════════
         // SHOULDERS
@@ -615,12 +911,18 @@ struct ExerciseDictionary {
             key: "ohp_barbell", displayName: "Overhead Press (Barbell)",
             movementPattern: .verticalPush, swapPattern: "vertical_push",
             primaryMuscles: ["Front Delts", "Mid Delts"],
-            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.5), .init(muscle: "Upper Traps", weight: 0.3)],
+            secondaryMuscles: [.init(muscle: "Triceps", weight: 0.6), .init(muscle: "Upper Traps", weight: 0.4), .init(muscle: "Upper Chest", weight: 0.3)],
             equipment: .barbell, isCompound: true, stretchPosition: .mid,
             jointStressTags: ["shoulder"],
             swapKeys: ["ohp_dumbbell", "arnold_press", "shoulder_press_machine", "ohp_smith"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "anterior", generatorPattern: "vertical_press"),
+            rank: 1, head: "anterior", generatorPattern: "vertical_press",
+            headContributions: [
+                .deltsFront: 1.0, .deltsLateral: 0.5,
+                .tricepsLateral: 0.6, .tricepsMedial: 0.5, .tricepsLong: 0.5,
+                .traps: 0.4,
+                .chestUpper: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "ohp_dumbbell", displayName: "Dumbbell Shoulder Press",
@@ -631,7 +933,12 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["ohp_barbell", "arnold_press", "shoulder_press_machine"],
             swapWarning: nil, variationOfKey: "ohp_barbell",
-            rank: 1, head: "anterior", generatorPattern: "vertical_press"),
+            rank: 1, head: "anterior", generatorPattern: "vertical_press",
+            headContributions: [
+                .deltsFront: 1.0, .deltsLateral: 0.5,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4,
+                .traps: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "arnold_press", displayName: "Arnold Press",
@@ -642,7 +949,12 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["ohp_dumbbell", "ohp_barbell"],
             swapWarning: nil, variationOfKey: "ohp_barbell",
-            head: "anterior", generatorPattern: "vertical_press"),
+            head: "anterior", generatorPattern: "vertical_press",
+            headContributions: [
+                .deltsFront: 1.0, .deltsLateral: 0.6,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4,
+                .traps: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "shoulder_press_seated_dumbbell", displayName: "Seated DB Shoulder Press",
@@ -653,7 +965,11 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["ohp_dumbbell", "ohp_barbell", "shoulder_press_machine"],
             swapWarning: nil, variationOfKey: "ohp_dumbbell",
-            head: "anterior", generatorPattern: "vertical_press"),
+            head: "anterior", generatorPattern: "vertical_press",
+            headContributions: [
+                .deltsFront: 1.0, .deltsLateral: 0.5,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "shoulder_press_machine", displayName: "Machine Shoulder Press",
@@ -664,7 +980,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["ohp_dumbbell", "ohp_barbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "anterior", generatorPattern: "vertical_press"),
+            head: "anterior", generatorPattern: "vertical_press",
+            headContributions: [
+                .deltsFront: 1.0, .deltsLateral: 0.5,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "lateral_raise_dumbbell", displayName: "Dumbbell Lateral Raise",
@@ -675,7 +995,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["lateral_raise_cable", "lateral_raise_machine"],
             swapWarning: nil, variationOfKey: nil,
-            head: "medial", generatorPattern: "lateral_raise"),
+            head: "medial", generatorPattern: "lateral_raise",
+            headContributions: [
+                .deltsLateral: 1.0, .deltsFront: 0.2,
+                .traps: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "lateral_raise_cable", displayName: "Cable Lateral Raise",
@@ -686,7 +1010,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["lateral_raise_dumbbell", "lateral_raise_machine"],
             swapWarning: nil, variationOfKey: "lateral_raise_dumbbell",
-            rank: 1, head: "medial", generatorPattern: "lateral_raise"),
+            rank: 1, head: "medial", generatorPattern: "lateral_raise",
+            headContributions: [
+                .deltsLateral: 1.0, .deltsFront: 0.2,
+                .traps: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "lateral_raise_machine", displayName: "Machine Lateral Raise",
@@ -697,7 +1025,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["lateral_raise_cable", "lateral_raise_dumbbell"],
             swapWarning: nil, variationOfKey: "lateral_raise_dumbbell",
-            head: "medial", generatorPattern: "lateral_raise"),
+            head: "medial", generatorPattern: "lateral_raise",
+            headContributions: [
+                .deltsLateral: 1.0, .deltsFront: 0.2,
+                .traps: 0.2
+            ]),
 
         ExerciseDefinition(
             key: "front_raise_dumbbell", displayName: "Dumbbell Front Raise",
@@ -708,7 +1040,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["front_raise_cable"],
             swapWarning: nil, variationOfKey: nil,
-            head: "anterior", generatorPattern: "lateral_raise"),
+            head: "anterior", generatorPattern: "lateral_raise",
+            headContributions: [
+                .deltsFront: 1.0, .deltsLateral: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "front_raise_cable", displayName: "Cable Front Raise",
@@ -719,7 +1054,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["front_raise_dumbbell"],
             swapWarning: nil, variationOfKey: "front_raise_dumbbell",
-            head: "anterior", generatorPattern: "lateral_raise"),
+            head: "anterior", generatorPattern: "lateral_raise",
+            headContributions: [
+                .deltsFront: 1.0, .deltsLateral: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "rear_delt_fly_dumbbell", displayName: "Rear Delt Fly (Dumbbell)",
@@ -730,7 +1068,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["rear_delt_fly_cable", "rear_delt_machine", "face_pull_cable"],
             swapWarning: nil, variationOfKey: nil,
-            head: "posterior", generatorPattern: "rear_fly"),
+            head: "posterior", generatorPattern: "rear_fly",
+            headContributions: [
+                .rearDelts: 1.0, .midBack: 0.5, .traps: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "rear_delt_fly_cable", displayName: "Rear Delt Fly (Cable)",
@@ -741,7 +1082,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["rear_delt_fly_dumbbell", "face_pull_cable", "rear_delt_machine"],
             swapWarning: nil, variationOfKey: "rear_delt_fly_dumbbell",
-            head: "posterior", generatorPattern: "rear_fly"),
+            head: "posterior", generatorPattern: "rear_fly",
+            headContributions: [
+                .rearDelts: 1.0, .midBack: 0.5, .traps: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "rear_delt_machine", displayName: "Rear Delt Machine Fly",
@@ -752,7 +1096,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["rear_delt_fly_cable", "rear_delt_fly_dumbbell", "face_pull_cable"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "posterior", generatorPattern: "rear_fly"),
+            rank: 1, head: "posterior", generatorPattern: "rear_fly",
+            headContributions: [
+                .rearDelts: 1.0, .midBack: 0.5, .traps: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "face_pull_cable", displayName: "Face Pull",
@@ -763,7 +1110,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["rear_delt_fly_cable", "rear_delt_fly_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "posterior", generatorPattern: "rear_fly"),
+            rank: 1, head: "posterior", generatorPattern: "rear_fly",
+            headContributions: [
+                .rearDelts: 0.9, .midBack: 0.6, .traps: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "upright_row", displayName: "Upright Row",
@@ -774,7 +1124,10 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["face_pull_cable", "lateral_raise_cable", "shrug_barbell"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "medial", generatorPattern: "lateral_raise"),
+            rank: 3, head: "medial", generatorPattern: "lateral_raise",
+            headContributions: [
+                .deltsLateral: 0.8, .deltsFront: 0.6, .traps: 0.7
+            ]),
 
         ExerciseDefinition(
             key: "shrug_barbell", displayName: "Barbell Shrug",
@@ -785,7 +1138,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["shrug_dumbbell", "shrug_cable"],
             swapWarning: nil, variationOfKey: nil,
-            generatorPattern: "shrug"),
+            generatorPattern: "shrug",
+            headContributions: [
+                .traps: 1.0, .deltsLateral: 0.2
+            ]),
 
         ExerciseDefinition(
             key: "shrug_dumbbell", displayName: "Dumbbell Shrug",
@@ -796,7 +1152,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["shrug_barbell", "shrug_cable"],
             swapWarning: nil, variationOfKey: "shrug_barbell",
-            generatorPattern: "shrug"),
+            generatorPattern: "shrug",
+            headContributions: [
+                .traps: 1.0, .deltsLateral: 0.2
+            ]),
 
         ExerciseDefinition(
             key: "shrug_cable", displayName: "Cable Shrug",
@@ -807,7 +1166,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["shrug_barbell", "shrug_dumbbell"],
             swapWarning: nil, variationOfKey: "shrug_barbell",
-            generatorPattern: "shrug"),
+            generatorPattern: "shrug",
+            headContributions: [
+                .traps: 1.0, .deltsLateral: 0.2
+            ]),
 
         // ═══════════════════════════════════════
         // TRICEPS
@@ -823,7 +1185,12 @@ struct ExerciseDictionary {
             swapKeys: ["dips_tricep", "machine_dip"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
             rank: 1, head: "lateral", generatorPattern: "press",
-            additionalFilterMuscles: ["Chest"]),
+            additionalFilterMuscles: ["Chest"],
+            headContributions: [
+                .tricepsLateral: 0.8, .tricepsMedial: 0.7, .tricepsLong: 0.6,
+                .chestMid: 0.7, .chestLower: 0.4,
+                .deltsFront: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "tricep_pushdown_cable", displayName: "Triceps Pushdown (Bar)",
@@ -834,7 +1201,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["tricep_pushdown_rope", "tricep_pushdown_machine"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "lateral", generatorPattern: "pushdown"),
+            rank: 3, head: "lateral", generatorPattern: "pushdown",
+            headContributions: [
+                .tricepsLateral: 1.0, .tricepsMedial: 0.9, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "tricep_pushdown_rope", displayName: "Triceps Pushdown (Rope)",
@@ -845,18 +1215,77 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["tricep_pushdown_cable", "tricep_pushdown_machine"],
             swapWarning: nil, variationOfKey: "tricep_pushdown_cable",
-            rank: 3, head: "lateral", generatorPattern: "pushdown"),
+            rank: 3, head: "lateral", generatorPattern: "pushdown",
+            headContributions: [
+                .tricepsLateral: 1.0, .tricepsMedial: 0.9, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
-            key: "tricep_overhead_cable", displayName: "Overhead Triceps Extension (Cable)",
+            key: "tricep_overhead_cable", displayName: "Overhead Triceps Extension (Cable, High Anchor)",
             movementPattern: .isolation, swapPattern: "isolation",
             primaryMuscles: ["Triceps"],
             secondaryMuscles: [],
             equipment: .cable, isCompound: false, stretchPosition: .lengthened,
             jointStressTags: [],
-            swapKeys: ["tricep_overhead_dumbbell", "skullcrusher_barbell"],
+            swapKeys: ["tricep_overhead_cable_low", "tricep_overhead_dumbbell", "skullcrusher_barbell"],
             swapWarning: "Long head stretch movement — avoid swapping to shortened-position exercises.", variationOfKey: nil,
-            rank: 1, head: "long", generatorPattern: "extension"),
+            rank: 1, head: "long", generatorPattern: "extension",
+            headContributions: [
+                .tricepsLong: 1.0, .tricepsLateral: 0.5, .tricepsMedial: 0.5
+            ]),
+
+        // Low-pulley variant: cable anchored at the floor, you face away and
+        // extend forward/up. Peak resistance occurs in the deepest stretch
+        // (cable behind head), which research suggests is more hypertrophic
+        // for the long head than the high-anchor variant.
+        ExerciseDefinition(
+            key: "tricep_overhead_cable_low", displayName: "Overhead Triceps Extension (Cable, Low Anchor)",
+            movementPattern: .isolation, swapPattern: "isolation",
+            primaryMuscles: ["Triceps"],
+            secondaryMuscles: [],
+            equipment: .cable, isCompound: false, stretchPosition: .lengthened,
+            jointStressTags: [],
+            swapKeys: ["tricep_overhead_cable", "tricep_overhead_dumbbell", "skullcrusher_barbell"],
+            swapWarning: "Stretch-biased long-head movement — peak load is in the lengthened position. Avoid swapping to shortened-position exercises.",
+            variationOfKey: "tricep_overhead_cable",
+            rank: 1, head: "long", generatorPattern: "extension",
+            // Higher long-head weighting reflects greater stretch-position
+            // loading. Lateral/medial slightly lower than high-anchor variant.
+            headContributions: [
+                .tricepsLong: 1.0, .tricepsLateral: 0.45, .tricepsMedial: 0.45
+            ]),
+
+        // Single-arm overhead extension. Allows greater ROM and stretch on
+        // each side independently. Commonly programmed as a finisher.
+        ExerciseDefinition(
+            key: "tricep_overhead_single_arm_dumbbell", displayName: "Single-Arm Overhead Triceps Extension (Dumbbell)",
+            movementPattern: .isolation, swapPattern: "isolation",
+            primaryMuscles: ["Triceps"],
+            secondaryMuscles: [],
+            equipment: .dumbbell, isCompound: false, stretchPosition: .lengthened,
+            jointStressTags: [],
+            swapKeys: ["tricep_overhead_dumbbell", "tricep_overhead_cable_low", "tricep_overhead_cable"],
+            swapWarning: "Long head stretch movement — avoid swapping to shortened-position exercises.",
+            variationOfKey: "tricep_overhead_dumbbell",
+            rank: 2, head: "long", generatorPattern: "extension",
+            headContributions: [
+                .tricepsLong: 1.0, .tricepsLateral: 0.5, .tricepsMedial: 0.5
+            ]),
+
+        // Single-arm pushdown — unilateral lateral/medial head emphasis.
+        ExerciseDefinition(
+            key: "tricep_pushdown_single_arm", displayName: "Single-Arm Triceps Pushdown",
+            movementPattern: .isolation, swapPattern: "isolation",
+            primaryMuscles: ["Triceps"],
+            secondaryMuscles: [],
+            equipment: .cable, isCompound: false, stretchPosition: .shortened,
+            jointStressTags: [],
+            swapKeys: ["tricep_pushdown_rope", "tricep_pushdown_cable"],
+            swapWarning: nil, variationOfKey: "tricep_pushdown_cable",
+            rank: 2, head: "lateral", generatorPattern: "pushdown",
+            headContributions: [
+                .tricepsLateral: 1.0, .tricepsMedial: 0.9, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "tricep_overhead_dumbbell", displayName: "Overhead Triceps Extension (Dumbbell)",
@@ -867,7 +1296,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["tricep_overhead_cable", "skullcrusher_barbell"],
             swapWarning: "Long head stretch movement — avoid swapping to shortened-position exercises.", variationOfKey: "tricep_overhead_cable",
-            rank: 1, head: "long", generatorPattern: "extension"),
+            rank: 1, head: "long", generatorPattern: "extension",
+            headContributions: [
+                .tricepsLong: 1.0, .tricepsLateral: 0.5, .tricepsMedial: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "skullcrusher_barbell", displayName: "Skull Crusher (Barbell)",
@@ -878,7 +1310,10 @@ struct ExerciseDictionary {
             jointStressTags: ["elbow"],
             swapKeys: ["skullcrusher_dumbbell", "tricep_overhead_cable"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "long", generatorPattern: "extension"),
+            rank: 1, head: "long", generatorPattern: "extension",
+            headContributions: [
+                .tricepsLong: 1.0, .tricepsLateral: 0.7, .tricepsMedial: 0.6
+            ]),
 
         ExerciseDefinition(
             key: "skullcrusher_dumbbell", displayName: "Skull Crusher (Dumbbell)",
@@ -889,7 +1324,10 @@ struct ExerciseDictionary {
             jointStressTags: ["elbow"],
             swapKeys: ["skullcrusher_barbell", "tricep_overhead_cable"],
             swapWarning: nil, variationOfKey: "skullcrusher_barbell",
-            head: "long", generatorPattern: "extension"),
+            head: "long", generatorPattern: "extension",
+            headContributions: [
+                .tricepsLong: 1.0, .tricepsLateral: 0.7, .tricepsMedial: 0.6
+            ]),
 
         ExerciseDefinition(
             key: "dips_tricep", displayName: "Dips (Triceps-Focused)",
@@ -901,7 +1339,12 @@ struct ExerciseDictionary {
             swapKeys: ["close_grip_bench", "machine_dip"],
             swapWarning: nil, variationOfKey: nil,
             head: "lateral", generatorPattern: "press",
-            additionalFilterMuscles: ["Chest"]),
+            additionalFilterMuscles: ["Chest"],
+            headContributions: [
+                .tricepsLateral: 0.9, .tricepsMedial: 0.8, .tricepsLong: 0.5,
+                .chestLower: 0.6, .chestMid: 0.4,
+                .deltsFront: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "diamond_pushup", displayName: "Diamond Push-Up",
@@ -913,7 +1356,12 @@ struct ExerciseDictionary {
             swapKeys: ["close_grip_bench", "tricep_pushdown_cable"],
             swapWarning: nil, variationOfKey: nil,
             head: "lateral", generatorPattern: "press",
-            additionalFilterMuscles: ["Chest"]),
+            additionalFilterMuscles: ["Chest"],
+            headContributions: [
+                .tricepsLateral: 0.8, .tricepsMedial: 0.7, .tricepsLong: 0.5,
+                .chestMid: 0.5, .chestLower: 0.3,
+                .deltsFront: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "kickback_dumbbell", displayName: "Dumbbell Kickback",
@@ -924,7 +1372,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["tricep_pushdown_cable"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "lateral", generatorPattern: "kickback"),
+            rank: 3, head: "lateral", generatorPattern: "kickback",
+            headContributions: [
+                .tricepsLong: 0.9, .tricepsLateral: 0.5, .tricepsMedial: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "jm_press", displayName: "JM Press",
@@ -935,7 +1386,12 @@ struct ExerciseDictionary {
             jointStressTags: ["elbow"],
             swapKeys: ["close_grip_bench", "skullcrusher_barbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "lateral", generatorPattern: "press"),
+            head: "lateral", generatorPattern: "press",
+            headContributions: [
+                .tricepsLong: 0.9, .tricepsLateral: 0.8, .tricepsMedial: 0.7,
+                .chestMid: 0.4,
+                .deltsFront: 0.3
+            ]),
 
         // ═══════════════════════════════════════
         // BICEPS
@@ -950,7 +1406,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_dumbbell", "curl_cable", "curl_machine"],
             swapWarning: nil, variationOfKey: nil,
-            head: "both", generatorPattern: "curl"),
+            head: "both", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 0.9, .bicepsLong: 0.7, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "curl_dumbbell", displayName: "Dumbbell Curl",
@@ -961,7 +1420,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_barbell", "curl_cable"],
             swapWarning: nil, variationOfKey: "curl_barbell",
-            head: "both", generatorPattern: "curl"),
+            head: "both", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 0.9, .bicepsLong: 0.7, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "curl_incline_dumbbell", displayName: "Incline Dumbbell Curl",
@@ -972,7 +1434,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_high_cable"],
             swapWarning: "Long head stretch movement — do not swap to preacher curl (opposite stretch profile).", variationOfKey: "curl_barbell",
-            rank: 1, head: "long", generatorPattern: "curl"),
+            rank: 1, head: "long", generatorPattern: "curl",
+            headContributions: [
+                .bicepsLong: 1.0, .bicepsShort: 0.5, .brachialis: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "curl_preacher_barbell", displayName: "Preacher Curl (Barbell)",
@@ -983,7 +1448,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_preacher_dumbbell", "curl_machine", "curl_spider"],
             swapWarning: "Short head emphasis — not equivalent to incline curl.", variationOfKey: nil,
-            head: "short", generatorPattern: "curl"),
+            head: "short", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 1.0, .bicepsLong: 0.5, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "curl_preacher_dumbbell", displayName: "Preacher Curl (Dumbbell)",
@@ -994,7 +1462,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_preacher_barbell", "curl_machine"],
             swapWarning: "Short head emphasis — not equivalent to incline curl.", variationOfKey: "curl_preacher_barbell",
-            head: "short", generatorPattern: "curl"),
+            head: "short", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 1.0, .bicepsLong: 0.5, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "curl_cable", displayName: "Cable Curl",
@@ -1005,7 +1476,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_barbell", "curl_dumbbell"],
             swapWarning: nil, variationOfKey: "curl_barbell",
-            rank: 1, head: "short", generatorPattern: "curl"),
+            rank: 1, head: "short", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 0.9, .bicepsLong: 0.7, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "curl_high_cable", displayName: "High Cable Curl",
@@ -1016,7 +1490,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_incline_dumbbell"],
             swapWarning: "Long head stretch movement — do not swap to preacher curl.", variationOfKey: nil,
-            head: "long", generatorPattern: "curl"),
+            head: "long", generatorPattern: "curl",
+            headContributions: [
+                .bicepsLong: 1.0, .bicepsShort: 0.5, .brachialis: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "curl_hammer", displayName: "Hammer Curl",
@@ -1027,7 +1504,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_reverse"],
             swapWarning: "Brachialis primary — not a true bicep swap.", variationOfKey: nil,
-            rank: 3, head: "brachio", generatorPattern: "curl"),
+            rank: 3, head: "brachio", generatorPattern: "curl",
+            headContributions: [
+                .brachialis: 1.0, .bicepsLong: 0.6, .bicepsShort: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "curl_reverse", displayName: "Reverse Curl",
@@ -1038,7 +1518,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_hammer"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "brachio", generatorPattern: "curl"),
+            rank: 3, head: "brachio", generatorPattern: "curl",
+            headContributions: [
+                .brachialis: 1.0, .bicepsShort: 0.3, .bicepsLong: 0.2
+            ]),
 
         ExerciseDefinition(
             key: "curl_concentration", displayName: "Concentration Curl",
@@ -1049,7 +1532,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_preacher_dumbbell", "curl_machine"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "short", generatorPattern: "curl"),
+            rank: 3, head: "short", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 1.0, .bicepsLong: 0.6, .brachialis: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "curl_spider", displayName: "Spider Curl",
@@ -1060,7 +1546,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_preacher_barbell", "curl_machine"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "short", generatorPattern: "curl"),
+            rank: 3, head: "short", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 1.0, .bicepsLong: 0.5, .brachialis: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "curl_machine", displayName: "Machine Curl",
@@ -1071,7 +1560,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_barbell", "curl_cable"],
             swapWarning: nil, variationOfKey: nil,
-            head: "both", generatorPattern: "curl"),
+            head: "both", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 0.9, .bicepsLong: 0.7, .brachialis: 0.3
+            ]),
 
         // ═══════════════════════════════════════
         // QUADS
@@ -1081,12 +1573,20 @@ struct ExerciseDictionary {
             key: "squat_barbell", displayName: "Barbell Back Squat",
             movementPattern: .squat, swapPattern: "knee_dominant",
             primaryMuscles: ["Quads"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7), .init(muscle: "Hamstrings", weight: 0.3), .init(muscle: "Adductors", weight: 0.3)],
+            // Bumped Hams 0.3→0.4 (deeper squats engage hams more in the
+            // hole). Lower back gets significant isometric stabilizer work.
+            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7), .init(muscle: "Hamstrings", weight: 0.4), .init(muscle: "Adductors", weight: 0.3), .init(muscle: "Lower Back", weight: 0.5)],
             equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["knee", "low_back"],
             swapKeys: ["squat_front", "hack_squat", "squat_smith", "leg_press"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
+            rank: 1, head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.7,
+                .glutesMax: 0.7,
+                .hamstringsHipExtension: 0.4,
+                .lowerBack: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "squat_front", displayName: "Barbell Front Squat",
@@ -1097,7 +1597,13 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["squat_barbell", "hack_squat", "squat_goblet"],
             swapWarning: nil, variationOfKey: "squat_barbell",
-            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .rectusFemoris: 1.0, .vastusLateralis: 0.9, .vastusMedialis: 0.9,
+                .glutesMax: 0.5,
+                .hamstringsHipExtension: 0.2,
+                .lowerBack: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "squat_goblet", displayName: "Goblet Squat",
@@ -1108,29 +1614,46 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["squat_front", "hack_squat"],
             swapWarning: nil, variationOfKey: "squat_barbell",
-            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .rectusFemoris: 1.0, .vastusLateralis: 0.9, .vastusMedialis: 0.9,
+                .glutesMax: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "hack_squat", displayName: "Hack Squat (Machine)",
             movementPattern: .squat, swapPattern: "knee_dominant",
             primaryMuscles: ["Quads"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.4)],
+            // Bumped Glutes 0.4→0.5 (deep hack squat with sit-back gets
+            // meaningful glute work). Adductor stabilizer credit added.
+            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.5), .init(muscle: "Adductors", weight: 0.3)],
             equipment: .machine, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["knee"],
             swapKeys: ["leg_press", "pendulum_squat", "squat_smith"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
+            rank: 1, head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.6,
+                .glutesMax: 0.7
+            ]),
 
         ExerciseDefinition(
             key: "leg_press", displayName: "Leg Press",
             movementPattern: .squat, swapPattern: "knee_dominant",
             primaryMuscles: ["Quads"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.5), .init(muscle: "Hamstrings", weight: 0.3)],
+            // Bumped Hams 0.3→0.4 — deep leg press with feet high engages
+            // hams more than a shallow press.
+            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.6), .init(muscle: "Hamstrings", weight: 0.4)],
             equipment: .machine, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["knee"],
             swapKeys: ["hack_squat", "squat_smith"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "compound", generatorPattern: "press", sessionRestriction: .lowerOnly),
+            rank: 1, head: "compound", generatorPattern: "press", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.7,
+                .glutesMax: 0.6,
+                .hamstringsHipExtension: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "belt_squat", displayName: "Belt Squat",
@@ -1141,7 +1664,11 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["hack_squat", "leg_press", "squat_barbell", "pendulum_squat"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.7,
+                .glutesMax: 0.6
+            ]),
 
         ExerciseDefinition(
             key: "leg_extension", displayName: "Leg Extension",
@@ -1152,7 +1679,10 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["leg_extension_single", "spanish_squat", "sissy_squat"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "isolation", generatorPattern: "extension", sessionRestriction: .lowerOnly),
+            rank: 3, head: "isolation", generatorPattern: "extension", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .rectusFemoris: 1.0, .vastusLateralis: 0.8, .vastusMedialis: 0.8
+            ]),
 
         ExerciseDefinition(
             key: "bulgarian_split_squat", displayName: "Bulgarian Split Squat",
@@ -1163,7 +1693,12 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["lunge_barbell", "step_up", "single_leg_leg_press"],
             swapWarning: nil, variationOfKey: nil,
-            head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 0.9, .rectusFemoris: 0.6,
+                .glutesMax: 0.7, .glutesMedius: 0.4,
+                .hamstringsHipExtension: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "lunge_barbell", displayName: "Barbell Lunge",
@@ -1174,7 +1709,12 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["bulgarian_split_squat", "step_up"],
             swapWarning: nil, variationOfKey: nil,
-            head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 0.9, .rectusFemoris: 0.6,
+                .glutesMax: 0.6,
+                .hamstringsHipExtension: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "lunge_dumbbell", displayName: "Dumbbell Lunge",
@@ -1185,7 +1725,12 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["bulgarian_split_squat", "step_up", "lunge_barbell"],
             swapWarning: nil, variationOfKey: "lunge_barbell",
-            head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 0.9, .rectusFemoris: 0.6,
+                .glutesMax: 0.6,
+                .hamstringsHipExtension: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "step_up", displayName: "Step-Up",
@@ -1196,7 +1741,12 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["bulgarian_split_squat", "lunge_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly),
+            rank: 3, head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 0.9, .vastusMedialis: 0.8, .rectusFemoris: 0.5,
+                .glutesMax: 0.7,
+                .hamstringsHipExtension: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "sissy_squat", displayName: "Sissy Squat",
@@ -1207,7 +1757,10 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["leg_extension"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 4, head: "isolation", generatorPattern: "extension", sessionRestriction: .lowerOnly),
+            rank: 4, head: "isolation", generatorPattern: "extension", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .rectusFemoris: 1.0, .vastusLateralis: 0.7, .vastusMedialis: 0.7
+            ]),
 
         ExerciseDefinition(
             key: "spanish_squat", displayName: "Spanish Squat",
@@ -1218,7 +1771,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["leg_extension"],
             swapWarning: nil, variationOfKey: nil,
-            head: "isolation", generatorPattern: "extension", sessionRestriction: .lowerOnly),
+            head: "isolation", generatorPattern: "extension", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 0.8, .vastusMedialis: 0.9, .rectusFemoris: 0.6,
+                .glutesMax: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "pendulum_squat", displayName: "Pendulum Squat",
@@ -1229,7 +1786,11 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["hack_squat", "leg_press"],
             swapWarning: nil, variationOfKey: "hack_squat",
-            rank: 1, head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
+            rank: 1, head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.6,
+                .glutesMax: 0.7
+            ]),
 
         ExerciseDefinition(
             key: "squat_smith", displayName: "Smith Machine Squat",
@@ -1240,7 +1801,12 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["squat_barbell", "hack_squat", "leg_press"],
             swapWarning: nil, variationOfKey: "squat_barbell",
-            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.6,
+                .glutesMax: 0.6,
+                .hamstringsHipExtension: 0.3
+            ]),
 
         // ═══════════════════════════════════════
         // HAMSTRINGS
@@ -1249,35 +1815,55 @@ struct ExerciseDictionary {
         ExerciseDefinition(
             key: "rdl_barbell", displayName: "Romanian Deadlift (Barbell)",
             movementPattern: .hinge, swapPattern: "hip_hinge",
-            primaryMuscles: ["Hamstrings"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7), .init(muscle: "Lower Back", weight: 0.4)],
+            // Glutes are co-primary on RDL — full hip extension at the top
+            // is heavy glute work. Was previously secondary at 0.7 which
+            // chronically under-counted glute volume for posterior-focused
+            // training.
+            primaryMuscles: ["Hamstrings", "Glutes"],
+            secondaryMuscles: [.init(muscle: "Lower Back", weight: 0.5), .init(muscle: "Lats", weight: 0.3)],
             equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["low_back"],
             swapKeys: ["rdl_dumbbell", "rdl_single_leg", "stiff_leg_deadlift"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            rank: 1, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsHipExtension: 1.0,
+                .glutesMax: 0.9,
+                .lowerBack: 0.5,
+                .lats: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "rdl_dumbbell", displayName: "Romanian Deadlift (Dumbbell)",
             movementPattern: .hinge, swapPattern: "hip_hinge",
-            primaryMuscles: ["Hamstrings"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7), .init(muscle: "Lower Back", weight: 0.3)],
+            primaryMuscles: ["Hamstrings", "Glutes"],
+            secondaryMuscles: [.init(muscle: "Lower Back", weight: 0.4)],
             equipment: .dumbbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["low_back"],
             swapKeys: ["rdl_barbell", "rdl_single_leg"],
             swapWarning: nil, variationOfKey: "rdl_barbell",
-            rank: 1, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            rank: 1, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsHipExtension: 1.0,
+                .glutesMax: 0.9,
+                .lowerBack: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "rdl_single_leg", displayName: "Single-Leg RDL",
             movementPattern: .hinge, swapPattern: "hip_hinge",
-            primaryMuscles: ["Hamstrings"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.7)],
+            primaryMuscles: ["Hamstrings", "Glutes"],
+            secondaryMuscles: [],
             equipment: .dumbbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: [],
             swapKeys: ["rdl_barbell", "rdl_dumbbell"],
             swapWarning: nil, variationOfKey: "rdl_barbell",
-            head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsHipExtension: 1.0,
+                .glutesMax: 0.9, .glutesMedius: 0.4,
+                .lowerBack: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "leg_curl_lying", displayName: "Lying Leg Curl",
@@ -1288,7 +1874,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["leg_curl_seated", "leg_curl_standing", "nordic_hamstring_curl"],
             swapWarning: "Seated leg curl loads the long head in a more lengthened position — stretch profile differs.", variationOfKey: nil,
-            head: "knee_flexion", generatorPattern: "curl", sessionRestriction: .lowerOnly),
+            head: "knee_flexion", generatorPattern: "curl", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsKneeFlexion: 1.0
+            ]),
 
         ExerciseDefinition(
             key: "leg_curl_seated", displayName: "Seated Leg Curl",
@@ -1299,7 +1888,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["leg_curl_lying", "leg_curl_standing", "leg_curl_seated_single"],
             swapWarning: "Lying leg curl has a different stretch profile — seated is preferred for long head hypertrophy.", variationOfKey: nil,
-            rank: 1, head: "knee_flexion", generatorPattern: "curl", sessionRestriction: .lowerOnly),
+            rank: 1, head: "knee_flexion", generatorPattern: "curl", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsKneeFlexion: 1.0, .hamstringsHipExtension: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "nordic_hamstring_curl", displayName: "Nordic Hamstring Curl",
@@ -1310,18 +1902,28 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["glute_ham_raise"],
             swapWarning: nil, variationOfKey: nil,
-            head: "knee_flexion", generatorPattern: "curl", sessionRestriction: .lowerOnly),
+            head: "knee_flexion", generatorPattern: "curl", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsKneeFlexion: 1.0, .hamstringsHipExtension: 0.3,
+                .glutesMax: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "stiff_leg_deadlift", displayName: "Stiff-Leg Deadlift",
             movementPattern: .hinge, swapPattern: "hip_hinge",
-            primaryMuscles: ["Hamstrings"],
-            secondaryMuscles: [.init(muscle: "Glutes", weight: 0.6), .init(muscle: "Lower Back", weight: 0.5)],
+            primaryMuscles: ["Hamstrings", "Glutes"],
+            secondaryMuscles: [.init(muscle: "Lower Back", weight: 0.5)],
             equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["low_back"],
             swapKeys: ["rdl_barbell", "good_morning"],
             swapWarning: nil, variationOfKey: "rdl_barbell",
-            head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsHipExtension: 1.0,
+                .glutesMax: 0.8,
+                .lowerBack: 0.6,
+                .lats: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "glute_ham_raise", displayName: "Glute-Ham Raise",
@@ -1332,7 +1934,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["nordic_hamstring_curl"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "knee_flexion", generatorPattern: "curl", sessionRestriction: .lowerOnly),
+            rank: 3, head: "knee_flexion", generatorPattern: "curl", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsKneeFlexion: 0.9, .hamstringsHipExtension: 0.6,
+                .glutesMax: 0.5,
+                .lowerBack: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "cable_pull_through", displayName: "Cable Pull-Through",
@@ -1343,7 +1950,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["rdl_barbell", "rdl_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            rank: 3, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsHipExtension: 1.0,
+                .glutesMax: 1.0,
+                .lowerBack: 0.4
+            ]),
 
         // ═══════════════════════════════════════
         // GLUTES
@@ -1353,23 +1965,36 @@ struct ExerciseDictionary {
             key: "hip_thrust_barbell", displayName: "Hip Thrust (Barbell)",
             movementPattern: .hipThrust, swapPattern: "isolation",
             primaryMuscles: ["Glutes"],
-            secondaryMuscles: [.init(muscle: "Hamstrings", weight: 0.4)],
+            // Heels-driven hip thrust gives hamstrings serious work — bumped
+            // from 0.4 to 0.6. Some quad contribution too on the knee-extension
+            // portion of the lockout.
+            secondaryMuscles: [.init(muscle: "Hamstrings", weight: 0.6), .init(muscle: "Quads", weight: 0.3)],
             equipment: .barbell, isCompound: true, stretchPosition: .shortened,
             jointStressTags: [],
             swapKeys: ["hip_thrust_machine", "glute_bridge"],
             swapWarning: nil, variationOfKey: nil, isAnchorableAsTier1: true,
-            rank: 1, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly),
+            rank: 1, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 0.6,
+                .vastusLateralis: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "hip_thrust_machine", displayName: "Hip Thrust (Machine)",
             movementPattern: .hipThrust, swapPattern: "isolation",
             primaryMuscles: ["Glutes"],
-            secondaryMuscles: [.init(muscle: "Hamstrings", weight: 0.3)],
+            secondaryMuscles: [.init(muscle: "Hamstrings", weight: 0.5)],
             equipment: .machine, isCompound: true, stretchPosition: .shortened,
             jointStressTags: [],
             swapKeys: ["hip_thrust_barbell", "glute_bridge"],
             swapWarning: nil, variationOfKey: "hip_thrust_barbell",
-            rank: 1, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly),
+            rank: 1, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 0.5,
+                .vastusLateralis: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "glute_bridge", displayName: "Glute Bridge",
@@ -1380,7 +2005,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["hip_thrust_barbell", "hip_thrust_machine"],
             swapWarning: nil, variationOfKey: "hip_thrust_barbell",
-            rank: 4, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly),
+            rank: 4, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "cable_kickback", displayName: "Cable Kickback",
@@ -1391,7 +2020,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["machine_kickback"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 4, head: "extension", generatorPattern: "kickback", sessionRestriction: .lowerOnly),
+            rank: 4, head: "extension", generatorPattern: "kickback", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "machine_kickback", displayName: "Machine Kickback",
@@ -1402,7 +2035,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["cable_kickback"],
             swapWarning: nil, variationOfKey: "cable_kickback",
-            rank: 4, head: "extension", generatorPattern: "kickback", sessionRestriction: .lowerOnly),
+            rank: 4, head: "extension", generatorPattern: "kickback", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "abduction_machine", displayName: "Hip Abduction Machine",
@@ -1413,7 +2050,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["cable_hip_abduction"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 3, head: "abduction", generatorPattern: "abduction", sessionRestriction: .lowerOnly),
+            rank: 3, head: "abduction", generatorPattern: "abduction", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMedius: 1.0, .glutesMax: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "cable_hip_abduction", displayName: "Cable Hip Abduction",
@@ -1424,7 +2064,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["abduction_machine"],
             swapWarning: nil, variationOfKey: "abduction_machine",
-            rank: 3, head: "abduction", generatorPattern: "abduction", sessionRestriction: .lowerOnly),
+            rank: 3, head: "abduction", generatorPattern: "abduction", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMedius: 1.0, .glutesMax: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "deadlift_sumo", displayName: "Sumo Deadlift",
@@ -1435,7 +2078,13 @@ struct ExerciseDictionary {
             jointStressTags: ["low_back"],
             swapKeys: ["leg_press_wide", "rdl_barbell"],
             swapWarning: nil, variationOfKey: "deadlift_barbell",
-            head: "extension", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            head: "extension", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 0.6,
+                .vastusLateralis: 0.5, .vastusMedialis: 0.5, .rectusFemoris: 0.3,
+                .lowerBack: 0.7, .midBack: 0.5, .traps: 0.4, .lats: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "leg_press_wide", displayName: "Wide-Stance Leg Press",
@@ -1446,7 +2095,12 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["deadlift_sumo"],
             swapWarning: nil, variationOfKey: "leg_press",
-            head: "extension", generatorPattern: "press", sessionRestriction: .lowerOnly),
+            head: "extension", generatorPattern: "press", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0,
+                .vastusLateralis: 0.7, .vastusMedialis: 0.8, .rectusFemoris: 0.4,
+                .hamstringsHipExtension: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "frog_pump", displayName: "Frog Pump",
@@ -1457,7 +2111,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["glute_bridge"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 4, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly),
+            rank: 4, head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0, .glutesMedius: 0.3
+            ]),
 
         // ═══════════════════════════════════════
         // CALVES
@@ -1472,7 +2129,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["calf_raise_leg_press", "calf_raise_smith", "calf_raise_single_leg"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly),
+            rank: 1, head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .gastrocnemius: 1.0, .soleus: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "calf_raise_seated", displayName: "Seated Calf Raise",
@@ -1483,7 +2143,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: [],
             swapWarning: "Knee-bent position isolates soleus — no direct equivalent. Do not swap to standing version.", variationOfKey: nil,
-            head: "soleus", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly),
+            head: "soleus", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .soleus: 1.0, .gastrocnemius: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "calf_raise_leg_press", displayName: "Leg Press Calf Raise",
@@ -1494,7 +2157,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["calf_raise_standing", "calf_raise_smith"],
             swapWarning: nil, variationOfKey: "calf_raise_standing",
-            rank: 1, head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly),
+            rank: 1, head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .gastrocnemius: 0.9, .soleus: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "calf_raise_single_leg", displayName: "Single-Leg Calf Raise",
@@ -1505,7 +2171,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["calf_raise_standing"],
             swapWarning: nil, variationOfKey: "calf_raise_standing",
-            rank: 3, head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly),
+            rank: 3, head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .gastrocnemius: 1.0, .soleus: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "calf_raise_donkey", displayName: "Donkey Calf Raise",
@@ -1516,7 +2185,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["calf_raise_standing"],
             swapWarning: nil, variationOfKey: "calf_raise_standing",
-            head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly),
+            head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .gastrocnemius: 1.0, .soleus: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "calf_raise_smith", displayName: "Smith Machine Calf Raise",
@@ -1527,7 +2199,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["calf_raise_standing", "calf_raise_leg_press"],
             swapWarning: nil, variationOfKey: "calf_raise_standing",
-            head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly),
+            head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .gastrocnemius: 1.0, .soleus: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "calf_raise_bodyweight", displayName: "Bodyweight Calf Raise",
@@ -1538,7 +2213,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["calf_raise_standing"],
             swapWarning: nil, variationOfKey: "calf_raise_standing",
-            rank: 3, head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly),
+            rank: 3, head: "gastro", generatorPattern: "calf_raise", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .gastrocnemius: 1.0, .soleus: 0.4
+            ]),
 
         // ═══════════════════════════════════════
         // CORE
@@ -1656,7 +2334,12 @@ struct ExerciseDictionary {
             jointStressTags: ["low_back"],
             swapKeys: ["rdl_barbell", "stiff_leg_deadlift"],
             swapWarning: nil, variationOfKey: "good_morning",
-            rank: 3, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly),
+            rank: 3, head: "hip_hinge", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsHipExtension: 1.0,
+                .glutesMax: 0.6,
+                .lowerBack: 0.6
+            ]),
 
         // ═══════════════════════════════════════
         // ADDITIONAL EXERCISES (machine variants & smith variants)
@@ -1671,7 +2354,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["bench_press_barbell", "bench_press_dumbbell", "bench_press_smith"],
             swapWarning: nil, variationOfKey: nil,
-            head: "mid", generatorPattern: "horizontal_press"),
+            head: "mid", generatorPattern: "horizontal_press",
+            headContributions: [
+                .chestMid: 1.0, .chestLower: 0.3,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.3,
+                .deltsFront: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "incline_machine_press", displayName: "Incline Machine Press",
@@ -1682,7 +2370,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["bench_press_incline_barbell", "bench_press_incline_dumbbell", "landmine_press"],
             swapWarning: nil, variationOfKey: nil,
-            head: "upper", generatorPattern: "incline_press"),
+            head: "upper", generatorPattern: "incline_press",
+            headContributions: [
+                .chestUpper: 1.0, .chestMid: 0.5,
+                .deltsFront: 0.6,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "bench_press_incline_smith", displayName: "Smith Machine Incline Bench",
@@ -1693,7 +2386,12 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_incline_barbell", "bench_press_incline_dumbbell", "incline_machine_press"],
             swapWarning: nil, variationOfKey: "bench_press_barbell",
-            head: "upper", generatorPattern: "incline_press"),
+            head: "upper", generatorPattern: "incline_press",
+            headContributions: [
+                .chestUpper: 1.0, .chestMid: 0.5,
+                .deltsFront: 0.6,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "bench_press_decline_smith", displayName: "Smith Machine Decline Bench",
@@ -1704,7 +2402,12 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["bench_press_decline_barbell", "bench_press_decline_dumbbell", "dips_chest"],
             swapWarning: nil, variationOfKey: "bench_press_barbell",
-            head: "lower", generatorPattern: "decline_press"),
+            head: "lower", generatorPattern: "decline_press",
+            headContributions: [
+                .chestLower: 1.0, .chestMid: 0.4,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4,
+                .deltsFront: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "single_leg_leg_press", displayName: "Single-Leg Leg Press",
@@ -1715,7 +2418,12 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["bulgarian_split_squat", "lunge_dumbbell", "step_up"],
             swapWarning: nil, variationOfKey: nil,
-            head: "compound", generatorPattern: "single_leg", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "single_leg", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.6,
+                .glutesMax: 0.6, .glutesMedius: 0.3,
+                .hamstringsHipExtension: 0.3
+            ]),
 
         ExerciseDefinition(
             key: "machine_dip", displayName: "Machine Dip",
@@ -1726,7 +2434,12 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["dips_tricep", "close_grip_bench", "jm_press"],
             swapWarning: nil, variationOfKey: nil,
-            head: "lateral", generatorPattern: "tricep_compound"),
+            head: "lateral", generatorPattern: "tricep_compound",
+            headContributions: [
+                .tricepsLateral: 0.9, .tricepsMedial: 0.7, .tricepsLong: 0.5,
+                .chestLower: 0.5, .chestMid: 0.4,
+                .deltsFront: 0.4
+            ]),
 
         ExerciseDefinition(
             key: "tricep_pushdown_machine", displayName: "Machine Triceps Pushdown",
@@ -1737,7 +2450,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["tricep_pushdown_cable", "tricep_pushdown_rope", "kickback_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "lateral", generatorPattern: "tricep_push"),
+            head: "lateral", generatorPattern: "tricep_push",
+            headContributions: [
+                .tricepsLateral: 1.0, .tricepsMedial: 0.9, .tricepsLong: 0.4
+            ]),
 
         // ═══════════════════════════════════════
         // FUNDAMENTAL ADDITIONS
@@ -1753,7 +2469,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["leg_curl_seated", "leg_curl_lying", "nordic_hamstring_curl"],
             swapWarning: nil, variationOfKey: nil,
-            head: "knee_flexion", generatorPattern: "leg_curl", sessionRestriction: .lowerOnly),
+            head: "knee_flexion", generatorPattern: "leg_curl", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsKneeFlexion: 1.0
+            ]),
 
         ExerciseDefinition(
             key: "leg_curl_standing_single", displayName: "Single-Leg Standing Curl",
@@ -1764,7 +2483,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["leg_curl_standing", "leg_curl_seated_single", "rdl_single_leg"],
             swapWarning: nil, variationOfKey: nil,
-            head: "knee_flexion", generatorPattern: "leg_curl", sessionRestriction: .lowerOnly),
+            head: "knee_flexion", generatorPattern: "leg_curl", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsKneeFlexion: 1.0
+            ]),
 
         ExerciseDefinition(
             key: "leg_curl_seated_single", displayName: "Single-Leg Seated Leg Curl",
@@ -1775,7 +2497,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["leg_curl_seated", "leg_curl_standing_single", "leg_curl_lying"],
             swapWarning: nil, variationOfKey: nil,
-            head: "knee_flexion", generatorPattern: "leg_curl", sessionRestriction: .lowerOnly),
+            head: "knee_flexion", generatorPattern: "leg_curl", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .hamstringsKneeFlexion: 1.0, .hamstringsHipExtension: 0.3
+            ]),
 
         // ── Quads (user-requested) ──
         ExerciseDefinition(
@@ -1787,7 +2512,10 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["leg_extension", "sissy_squat"],
             swapWarning: nil, variationOfKey: nil,
-            head: "isolation", generatorPattern: "quad_isolation", sessionRestriction: .lowerOnly),
+            head: "isolation", generatorPattern: "quad_isolation", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .rectusFemoris: 1.0, .vastusLateralis: 0.8, .vastusMedialis: 0.8
+            ]),
 
         ExerciseDefinition(
             key: "v_squat_machine", displayName: "V-Squat Machine",
@@ -1798,7 +2526,11 @@ struct ExerciseDictionary {
             jointStressTags: ["knee"],
             swapKeys: ["hack_squat", "leg_press", "pendulum_squat"],
             swapWarning: nil, variationOfKey: nil,
-            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly),
+            head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.6,
+                .glutesMax: 0.6
+            ]),
 
         // ── Biceps ──
         ExerciseDefinition(
@@ -1810,7 +2542,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["curl_barbell", "curl_dumbbell", "curl_cable"],
             swapWarning: nil, variationOfKey: nil,
-            rank: 1, head: "both", generatorPattern: "curl"),
+            rank: 1, head: "both", generatorPattern: "curl",
+            headContributions: [
+                .bicepsShort: 0.9, .bicepsLong: 0.7, .brachialis: 0.5
+            ]),
 
         // ── Triceps ──
         ExerciseDefinition(
@@ -1822,7 +2557,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["skullcrusher_barbell", "skullcrusher_dumbbell", "tricep_overhead_cable"],
             swapWarning: nil, variationOfKey: nil,
-            head: "long", generatorPattern: "tricep_extension"),
+            head: "long", generatorPattern: "tricep_extension",
+            headContributions: [
+                .tricepsLong: 1.0, .tricepsLateral: 0.7, .tricepsMedial: 0.6
+            ]),
 
         ExerciseDefinition(
             key: "tricep_extension_machine", displayName: "Machine Tricep Extension",
@@ -1833,7 +2571,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["tricep_overhead_cable", "skullcrusher_barbell", "tricep_overhead_dumbbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "long", generatorPattern: "tricep_extension"),
+            head: "long", generatorPattern: "tricep_extension",
+            headContributions: [
+                .tricepsLong: 1.0, .tricepsLateral: 0.6, .tricepsMedial: 0.5
+            ]),
 
         // ── Glutes ──
         ExerciseDefinition(
@@ -1845,7 +2586,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["hip_thrust_barbell", "hip_thrust_machine", "glute_bridge"],
             swapWarning: nil, variationOfKey: nil,
-            head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly),
+            head: "extension", generatorPattern: "hip_thrust", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 1.0,
+                .hamstringsHipExtension: 0.5
+            ]),
 
         ExerciseDefinition(
             key: "adduction_machine", displayName: "Hip Adduction Machine",
@@ -1856,7 +2601,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["cable_hip_abduction", "abduction_machine"],
             swapWarning: nil, variationOfKey: nil,
-            head: "adduction", generatorPattern: "glute_isolation", sessionRestriction: .lowerOnly),
+            head: "adduction", generatorPattern: "glute_isolation", sessionRestriction: .lowerOnly,
+            headContributions: [
+                .glutesMax: 0.3
+            ]),
 
         // ── Chest ──
         ExerciseDefinition(
@@ -1868,7 +2616,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["cable_fly_neutral", "fly_dumbbell", "pec_deck"],
             swapWarning: nil, variationOfKey: nil,
-            head: "mid", generatorPattern: "fly"),
+            head: "mid", generatorPattern: "fly",
+            headContributions: [
+                .chestMid: 1.0, .chestLower: 0.5,
+                .deltsFront: 0.3
+            ]),
 
         // ── Shoulders ──
         ExerciseDefinition(
@@ -1880,7 +2632,12 @@ struct ExerciseDictionary {
             jointStressTags: ["shoulder"],
             swapKeys: ["ohp_barbell", "ohp_dumbbell", "shoulder_press_machine"],
             swapWarning: nil, variationOfKey: nil,
-            head: "anterior", generatorPattern: "overhead_press"),
+            head: "anterior", generatorPattern: "overhead_press",
+            headContributions: [
+                .deltsFront: 1.0, .deltsLateral: 0.5,
+                .tricepsLateral: 0.5, .tricepsMedial: 0.4, .tricepsLong: 0.4,
+                .traps: 0.3
+            ]),
 
         // ── Back ──
         ExerciseDefinition(
@@ -1892,7 +2649,11 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["row_cable_narrow", "row_dumbbell", "row_meadows"],
             swapWarning: nil, variationOfKey: nil,
-            head: "thickness", generatorPattern: "horizontal_row"),
+            head: "thickness", generatorPattern: "horizontal_row",
+            headContributions: [
+                .lats: 1.0, .midBack: 0.8, .rearDelts: 0.4,
+                .bicepsLong: 0.5, .bicepsShort: 0.4, .brachialis: 0.4
+            ]),
 
         // ── Traps ──
         ExerciseDefinition(
@@ -1904,7 +2665,10 @@ struct ExerciseDictionary {
             jointStressTags: [],
             swapKeys: ["shrug_dumbbell", "shrug_barbell"],
             swapWarning: nil, variationOfKey: nil,
-            head: "trap", generatorPattern: "carry"),
+            head: "trap", generatorPattern: "carry",
+            headContributions: [
+                .traps: 0.8, .lowerBack: 0.3
+            ]),
 
         // ── Core ──
         ExerciseDefinition(

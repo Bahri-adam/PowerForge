@@ -15,6 +15,7 @@ struct LearnView: View {
         case foundation = "Foundation"
         case yourProgram = "Your Program"
         case concepts = "Concepts"
+        case glossary = "Glossary"
         case comparisons = "Why Yours"
     }
     
@@ -81,6 +82,8 @@ struct LearnView: View {
                             YourProgramSection(activeProgram: activeProgram)
                         case .concepts:
                             ConceptsSection()
+                        case .glossary:
+                            GlossarySection()
                         case .comparisons:
                             ComparisonsSection(activeProgram: activeProgram)
                         }
@@ -742,3 +745,141 @@ struct ComparisonsSection: View {
         }
     }
 }
+
+// ═══════════════════════════════════════════
+// GLOSSARY SECTION
+// All JargonGlossary entries as searchable, tappable rows.
+// Tap a row → opens the same JargonExplainerSheet used by the
+// in-context "ⓘ" icons throughout the app.
+// ═══════════════════════════════════════════
+
+struct GlossarySection: View {
+    @State private var searchText: String = ""
+    @State private var selectedTerm: JargonTerm? = nil
+
+    private var filteredTerms: [JargonTerm] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return JargonGlossary.entries }
+        return JargonGlossary.entries.filter { term in
+            term.name.lowercased().contains(q)
+                || (term.abbrev?.lowercased().contains(q) ?? false)
+                || term.oneLineSummary.lowercased().contains(q)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // Intro
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "books.vertical.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.appGold)
+                    Text("Glossary")
+                        .font(.system(size: 18, weight: .black, design: .rounded))
+                        .foregroundColor(.appTextPrimary)
+                }
+                Text("Every metric and concept the app uses, defined in one place. Tap any term for the full explanation.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.appTextSecondary)
+                    .lineSpacing(2)
+            }
+            .padding(14)
+            .background(Color.appGold.opacity(0.06))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.appGold.opacity(0.2), lineWidth: 1)
+            )
+
+            // Search
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 13))
+                    .foregroundColor(.appTextDim)
+                TextField("", text: $searchText)
+                    .placeholder(when: searchText.isEmpty) {
+                        Text("Search terms…").foregroundColor(.appTextDim)
+                    }
+                    .font(.system(size: 14))
+                    .foregroundColor(.appTextPrimary)
+                if !searchText.isEmpty {
+                    Button { searchText = "" } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(.appTextDim)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(Color.appSurface2)
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBorder, lineWidth: 1))
+
+            // Term list
+            VStack(spacing: 0) {
+                ForEach(Array(filteredTerms.enumerated()), id: \.element.id) { idx, term in
+                    Button {
+                        selectedTerm = term
+                    } label: {
+                        HStack(spacing: 10) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 6) {
+                                    if let abbrev = term.abbrev {
+                                        Text(abbrev)
+                                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                                            .foregroundColor(.appRed)
+                                            .padding(.horizontal, 6).padding(.vertical, 2)
+                                            .background(Color.appRed.opacity(0.1))
+                                            .cornerRadius(4)
+                                    }
+                                    Text(term.name)
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.appTextPrimary)
+                                }
+                                Text(term.oneLineSummary)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.appTextDim)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.appTextDim)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if idx < filteredTerms.count - 1 {
+                        Divider().background(Color.appBorder).padding(.leading, 14)
+                    }
+                }
+
+                if filteredTerms.isEmpty {
+                    VStack(spacing: 6) {
+                        Text("No matches")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.appTextSecondary)
+                        Text("Try a different search term.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.appTextDim)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 30)
+                }
+            }
+            .background(Color.appSurface)
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+        }
+        .sheet(item: $selectedTerm) { term in
+            JargonExplainerSheet(term: term)
+                .presentationDetents([.medium, .large])
+        }
+    }
+}
+

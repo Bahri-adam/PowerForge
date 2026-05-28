@@ -13,6 +13,10 @@ struct ProgressView: View {
     var instance: UserProgramInstance? { activeInstances.first }
     var profile: UserProfile? { profiles.first }
 
+    /// User's UI density. Drives whether advanced analytics (Weak Points,
+    /// Balance Ratios, Genetic Potential, Predictive 1RM) render.
+    private var density: UIDensity { profile?.density ?? .advanced }
+
     @State private var selectedLiftKey: String? = nil
     @State private var selectedVolumeFilter: String = "All"
     @State private var historyExerciseKey: String? = nil
@@ -159,19 +163,11 @@ struct ProgressView: View {
             var muscleAcc: [String: Double] = [:]
             for log in wkLogs {
                 if let def = ExerciseDictionary.all[log.exerciseKey] {
-                    for pm in def.primaryMuscles {
-                        if let nm = ExerciseDictionary.normalizeMuscle(pm) { muscleAcc[nm, default: 0] += 1 }
-                    }
-                    for sm in def.secondaryMuscles {
-                        if let nm = ExerciseDictionary.normalizeMuscle(sm.muscle) { muscleAcc[nm, default: 0] += sm.weight }
-                    }
+                    for n in def.directTrackingMuscles { muscleAcc[n, default: 0] += 1 }
+                    for (n, w) in def.indirectTrackingMuscles { muscleAcc[n, default: 0] += w }
                 } else if let ex = exercises.first(where: { $0.exerciseKey == log.exerciseKey }) {
-                    for pm in ex.musclesPrimary {
-                        if let nm = ExerciseDictionary.normalizeMuscle(pm) { muscleAcc[nm, default: 0] += 1 }
-                    }
-                    for sm in ex.musclesSecondary {
-                        if let nm = ExerciseDictionary.normalizeMuscle(sm) { muscleAcc[nm, default: 0] += 0.5 }
-                    }
+                    for n in ex.directTrackingMuscles { muscleAcc[n, default: 0] += 1 }
+                    for (n, w) in ex.indirectTrackingMuscles { muscleAcc[n, default: 0] += w }
                 }
             }
             for (muscle, sets) in muscleAcc {
@@ -181,7 +177,57 @@ struct ProgressView: View {
         return result
     }
 
+    /// Head-level volume history. Per-week, per-head set credits computed
+    /// from each log's exercise headContributions. Stored with the head's
+    /// rawValue in the `muscle` field so `filteredVolumeHistory` can return
+    /// a `VolumeDatum` of the same shape regardless of filter granularity.
+    private var headVolumeHistory: [VolumeDatum] {
+        guard let inst = instance else { return [] }
+        let currentWk = inst.currentWeek
+        let startWk = max(1, currentWk - 11)
+        var result: [VolumeDatum] = []
+        for wk in startWk...currentWk {
+            let wkLogs = allLogs.filter { $0.week == wk }
+            var headAcc: [MuscleHead: Double] = [:]
+            for log in wkLogs {
+                let contributions = headContributionsFor(exerciseKey: log.exerciseKey)
+                for (head, weight) in contributions {
+                    headAcc[head, default: 0] += weight
+                }
+            }
+            for (head, sets) in headAcc {
+                result.append(VolumeDatum(week: wk, muscle: head.rawValue, sets: sets))
+            }
+        }
+        return result
+    }
+
+    private func headContributionsFor(exerciseKey: String) -> [MuscleHead: Double] {
+        if let def = ExerciseDictionary.all[exerciseKey] {
+            return def.headContributions
+        }
+        if let ex = exercises.first(where: { $0.exerciseKey == exerciseKey }) {
+            let stored = ex.headContributions
+            return stored.isEmpty
+                ? Exercise.inferHeadContributions(primary: ex.musclesPrimary,
+                                                  secondary: ex.musclesSecondary)
+                : stored
+        }
+        return [:]
+    }
+
+    /// Returns the MuscleHead enum for a filter string when it matches a
+    /// head rawValue. Used by the chart to detect head-level filtering.
+    private var selectedHead: MuscleHead? {
+        MuscleHead(rawValue: selectedVolumeFilter)
+    }
+
     private var filteredVolumeHistory: [VolumeDatum] {
+        // Head filter — show that specific head's per-week credits.
+        if let head = selectedHead {
+            return headVolumeHistory.filter { $0.muscle == head.rawValue }
+                .sorted { $0.week < $1.week }
+        }
         if selectedVolumeFilter == "All" {
             let byWeek = Dictionary(grouping: volumeHistory) { $0.week }
             return byWeek.map { wk, data in
@@ -240,9 +286,12 @@ struct ProgressView: View {
     // ── Workout History (all sessions) ──────────────────────────────────
 
     private var allWorkoutSessions: [(date: Date, exercises: [String], totalSets: Int, totalTonnage: Double)] {
-        let cal = Calendar.current
-        let byDate = Dictionary(grouping: allLogs) { cal.startOfDay(for: $0.workoutDate) }
-        return byDate.sorted { $0.key > $1.key }.map { date, logs in
+        // Group by EXACT workoutDate (session.startedAt) so multiple sessions
+        // on the same calendar day stay distinct. Grouping by startOfDay
+        // collapsed three different morning/midday/evening workouts into a
+        // single row.
+        let bySession = Dictionary(grouping: allLogs) { $0.workoutDate }
+        return bySession.sorted { $0.key > $1.key }.map { date, logs in
             let exKeys = Array(Set(logs.map { $0.exerciseKey }))
             let names = exKeys.map { displayName(for: $0) }
             let tonnage = logs.reduce(0.0) { $0 + $1.weight * Double($1.reps) }
@@ -301,6 +350,7 @@ struct ProgressView: View {
                         .font(.system(size: 22, weight: .black, design: .rounded)).foregroundColor(.appTextPrimary)
                 }
                 Spacer()
+                TabHelpButton(chapter: .progress)
             }
             .padding(.horizontal, 16).padding(.vertical, 14)
             .background(LinearGradient.appHeader)
@@ -337,9 +387,9 @@ struct ProgressView: View {
     private var overviewContent: some View {
         statsStrip
         logPRButton
-        if !mostImproved.isEmpty { mostImprovedSection }
+        if density.showsMostImproved, !mostImproved.isEmpty { mostImprovedSection }
         if !recentPRs.isEmpty { recentPRsSection }
-        if !weakPoints.isEmpty { weakPointsSection }
+        if density.showsWeakPoints, !weakPoints.isEmpty { weakPointsSection }
     }
 
     private var logPRButton: some View {
@@ -363,6 +413,7 @@ struct ProgressView: View {
 
     private var statsStrip: some View {
         VStack(spacing: 8) {
+            // First row — always shown.
             HStack(spacing: 0) {
                 PremiumStatCell(value: "\(totalSessions)", label: "SESSIONS")
                 statDivider
@@ -372,14 +423,18 @@ struct ProgressView: View {
             }
             .padding(.vertical, 4).appCard()
 
-            HStack(spacing: 0) {
-                PremiumStatCell(value: instance != nil ? "W\(instance!.currentWeek)" : "—", label: "WEEK", color: .appGold)
-                statDivider
-                PremiumStatCell(value: tonnageLabel, label: "TONNAGE", color: .appBlue)
-                statDivider
-                PremiumStatCell(value: "\(exercisePRs.count)", label: "EXERCISES")
+            // Second row — standard+advanced only. Minimal keeps the stat
+            // strip to 3 core numbers to reduce visual load.
+            if density.showsFullStatsStrip {
+                HStack(spacing: 0) {
+                    PremiumStatCell(value: instance != nil ? "W\(instance!.currentWeek)" : "—", label: "WEEK", color: .appGold)
+                    statDivider
+                    PremiumStatCell(value: tonnageLabel, label: "TONNAGE", color: .appBlue)
+                    statDivider
+                    PremiumStatCell(value: "\(exercisePRs.count)", label: "EXERCISES")
+                }
+                .padding(.vertical, 4).appCard()
             }
-            .padding(.vertical, 4).appCard()
         }
     }
 
@@ -505,6 +560,11 @@ struct ProgressView: View {
     private var sessionDateFormatter: DateFormatter {
         let f = DateFormatter(); f.dateFormat = "EEE, MMM d"; return f
     }
+    /// Time-only formatter — used as a small subtitle to disambiguate
+    /// multiple sessions on the same calendar day.
+    private var sessionTimeFormatter: DateFormatter {
+        let f = DateFormatter(); f.dateFormat = "h:mm a"; return f
+    }
 
     // ══════════════════════════════════════════════════════════════════════
     // STRENGTH
@@ -512,11 +572,17 @@ struct ProgressView: View {
 
     @ViewBuilder
     private var strengthContent: some View {
-        strengthGoalsSection
+        if density.showsStrengthGoalsSection {
+            strengthGoalsSection
+        }
         prsSection
         e1rmTrendSection
-        balanceSection
-        geneticPotentialSection
+        if density.showsBalanceRatios {
+            balanceSection
+        }
+        if density.showsGeneticPotential {
+            geneticPotentialSection
+        }
     }
 
     // ── Strength Goals (display-only — management is in Program tab) ────
@@ -588,7 +654,12 @@ struct ProgressView: View {
         return Group {
             if !ratios.isEmpty {
                 VStack(spacing: 8) {
-                    SectionHeader(title: "STRENGTH BALANCE")
+                    HStack(spacing: 6) {
+                        SectionHeader(title: "STRENGTH BALANCE")
+                            .layoutPriority(1)
+                        JargonHelp(termId: "balance_ratios", size: 10)
+                        Spacer()
+                    }
                     VStack(spacing: 0) {
                         ForEach(Array(ratios.enumerated()), id: \.element.id) { idx, r in
                             HStack(spacing: 10) {
@@ -659,7 +730,12 @@ struct ProgressView: View {
         return Group {
             if !estimates.isEmpty {
                 VStack(spacing: 8) {
-                    SectionHeader(title: "YOUR POTENTIAL")
+                    HStack(spacing: 6) {
+                        SectionHeader(title: "YOUR POTENTIAL")
+                            .layoutPriority(1)
+                        JargonHelp(termId: "genetic_potential", size: 10)
+                        Spacer()
+                    }
                     VStack(spacing: 0) {
                         ForEach(Array(estimates.prefix(6).enumerated()), id: \.element.id) { idx, est in
                             HStack(spacing: 10) {
@@ -867,8 +943,10 @@ struct ProgressView: View {
                 .appCard()
             }
 
-            // Predictive timeline
-            if let prediction = predictionForSelectedLift() {
+            // Predictive timeline — advanced only. Linear regression on
+            // session-grouped e1RM data; needs interpretation casual users
+            // wouldn't want to do.
+            if density.showsPredictive1RM, let prediction = predictionForSelectedLift() {
                 HStack(spacing: 8) {
                     Image(systemName: "chart.line.uptrend.xyaxis").font(.system(size: 12)).foregroundColor(.appBlue)
                     VStack(alignment: .leading, spacing: 2) {
@@ -878,6 +956,7 @@ struct ProgressView: View {
                             .font(.system(size: 10)).foregroundColor(.appTextDim)
                     }
                     Spacer()
+                    JargonHelp(termId: "predictive_1rm", size: 12)
                 }
                 .padding(12).background(Color.appBlue.opacity(0.06)).cornerRadius(8)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBlue.opacity(0.15), lineWidth: 1))
@@ -891,15 +970,56 @@ struct ProgressView: View {
 
     @ViewBuilder
     private var volumeContent: some View {
-        volumeLineSection
-        frequencyGrid
+        if density.showsVolumeChart {
+            volumeLineSection
+        }
+        if density.showsFrequencyHeatmap {
+            frequencyGrid
+        }
+        if !density.showsVolumeChart && !density.showsFrequencyHeatmap {
+            // Minimal mode lands here with no content. Show a friendly nudge
+            // so the tab isn't just empty.
+            VStack(spacing: 8) {
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 24)).foregroundColor(.appTextDim)
+                Text("Volume tracking is available in Standard or Advanced mode")
+                    .font(.system(size: 13)).foregroundColor(.appTextSecondary)
+                    .multilineTextAlignment(.center)
+                Text("Settings → Interface")
+                    .font(.system(size: 11, weight: .bold)).foregroundColor(.appBlue)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 60)
+        }
     }
 
     // ── Volume line chart ────────────────────────────────────────────────
 
     private var volumeLineSection: some View {
-        VStack(spacing: 10) {
-            SectionHeader(title: "WEEKLY VOLUME")
+        // When Advanced + a specific parent muscle is selected, surface the
+        // muscle's heads as a second filter row. Tapping a head filters the
+        // chart to that head's per-week credits.
+        let parentMuscleSelected: String? = {
+            if selectedVolumeFilter == "All" { return nil }
+            if MuscleHead(rawValue: selectedVolumeFilter) != nil {
+                return MuscleHead(rawValue: selectedVolumeFilter)?.parentMuscle
+            }
+            if ExerciseDictionary.trackingMuscles.contains(selectedVolumeFilter) {
+                return selectedVolumeFilter
+            }
+            return nil
+        }()
+        let showHeadChips = (density == .advanced) && (parentMuscleSelected != nil)
+
+        return VStack(spacing: 10) {
+            HStack {
+                SectionHeader(title: "WEEKLY VOLUME")
+                Spacer()
+                if let head = selectedHead {
+                    Text("\(head.parentMuscle.uppercased()) → \(head.displayName.uppercased())")
+                        .font(.system(size: 9, weight: .black)).kerning(0.5)
+                        .foregroundColor(.appBlue)
+                }
+            }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
@@ -908,6 +1028,18 @@ struct ProgressView: View {
                         volumeFilterChip(muscle)
                     }
                 }
+            }
+
+            // Head sub-chips — only when advanced + a parent muscle selected
+            if showHeadChips, let parent = parentMuscleSelected {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(MuscleHead.heads(of: parent), id: \.self) { head in
+                            volumeFilterChip(head.rawValue, displayName: head.displayName, isHead: true)
+                        }
+                    }
+                }
+                .transition(.opacity)
             }
 
             if filteredVolumeHistory.isEmpty {
@@ -977,19 +1109,34 @@ struct ProgressView: View {
         }
     }
 
-    private func volumeFilterChip(_ label: String) -> some View {
-        let isSelected = selectedVolumeFilter == label
-        return Button { selectedVolumeFilter = label } label: {
-            Text(label.uppercased())
-                .font(.system(size: 10, weight: isSelected ? .black : .semibold))
-                .foregroundColor(isSelected ? .white : .appTextSecondary)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(isSelected ? muscleColor(for: label) : Color.appSurface2).cornerRadius(6)
+    private func volumeFilterChip(_ filterKey: String, displayName: String? = nil, isHead: Bool = false) -> some View {
+        let isSelected = selectedVolumeFilter == filterKey
+        let label = (displayName ?? filterKey).uppercased()
+        // Head chips use a smaller font + blue accent to distinguish them
+        // visually from the parent muscle chips.
+        let baseColor: Color = isHead ? .appBlue : muscleColor(for: filterKey)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) { selectedVolumeFilter = filterKey }
+        } label: {
+            Text(label)
+                .font(.system(size: isHead ? 9 : 10, weight: isSelected ? .black : .semibold))
+                .foregroundColor(isSelected ? .white : (isHead ? .appBlue : .appTextSecondary))
+                .padding(.horizontal, isHead ? 8 : 10)
+                .padding(.vertical, isHead ? 4 : 6)
+                .background(isSelected ? baseColor : (isHead ? Color.appBlue.opacity(0.08) : Color.appSurface2))
+                .cornerRadius(isHead ? 5 : 6)
+                .overlay(RoundedRectangle(cornerRadius: isHead ? 5 : 6)
+                    .stroke(isHead && !isSelected ? Color.appBlue.opacity(0.25) : Color.clear, lineWidth: 1))
         }.buttonStyle(.plain)
     }
 
     private func muscleColor(for muscle: String) -> Color {
         if muscle == "All" { return .appRed }
+        // Head filter keys (e.g. "biceps_long") resolve to the parent
+        // muscle's color so the chart stays visually consistent.
+        if let head = MuscleHead(rawValue: muscle) {
+            return muscleColor(for: head.parentMuscle)
+        }
         let muscles = ExerciseDictionary.trackingMuscles
         let colors: [Color] = [.appRed, .appBlue, .appGreen, .appGold, .appOrange, .appYellow,
                                 Color(red: 0.6, green: 0.4, blue: 0.8),
@@ -1114,11 +1261,29 @@ struct ProgressView: View {
                     .font(.system(size: 13)).foregroundColor(.appTextDim)
                     .frame(maxWidth: .infinity).padding(.vertical, 30).appCard()
             } else {
+                // Detect days with multiple sessions so we can surface the
+                // time-of-day as a disambiguating subtitle without polluting
+                // the date label on single-session days.
+                let tf = sessionTimeFormatter
+                let cal = Calendar.current
+                let dayCounts = Dictionary(grouping: allWorkoutSessions) {
+                    cal.startOfDay(for: $0.date)
+                }.mapValues { $0.count }
+
                 ForEach(Array(allWorkoutSessions.enumerated()), id: \.offset) { _, session in
+                    let dayKey = cal.startOfDay(for: session.date)
+                    let multipleSameDay = (dayCounts[dayKey] ?? 1) > 1
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text(f.string(from: session.date))
-                                .font(.system(size: 13, weight: .black)).foregroundColor(.appTextPrimary)
+                            HStack(spacing: 6) {
+                                Text(f.string(from: session.date))
+                                    .font(.system(size: 13, weight: .black)).foregroundColor(.appTextPrimary)
+                                if multipleSameDay {
+                                    Text(tf.string(from: session.date))
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(.appBlue)
+                                }
+                            }
                             Spacer()
                             Text("\(session.totalSets) sets")
                                 .font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)

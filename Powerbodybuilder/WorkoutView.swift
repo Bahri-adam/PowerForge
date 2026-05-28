@@ -13,6 +13,25 @@ import Charts
 /// of the program default — letting users reshape block boundaries even on
 /// seeded programs.
 func deloadWeeks(for programId: Int, blockLength: Int, instance: UserProgramInstance? = nil) -> Set<Int> {
+    // If the user has saved an explicit block layout via BlockSequenceEditor,
+    // it's the authoritative source: walk it and emit deload positions
+    // exactly where the user placed them. This guarantees round-trip
+    // fidelity — the editor's "3 weeks no recovery" choice survives reload.
+    if let inst = instance, !inst.blockLayout.isEmpty {
+        var result: Set<Int> = []
+        var cursor = 0
+        for b in inst.blockLayout {
+            cursor += b.weeks
+            if b.includeRecovery {
+                for _ in 0..<b.recoveryWeeks {
+                    cursor += 1
+                    result.insert(cursor)
+                }
+            }
+        }
+        return result
+    }
+
     let programDefaults: Set<Int> = {
         switch programId {
         case 1: return [4, 12, 20]                              // Powerbuilding
@@ -315,6 +334,10 @@ struct WorkoutView: View {
     }
     var profile: UserProfile? { profiles.first }
 
+    /// User's UI density — drives whether mid-workout jargon (IFI, PML,
+    /// stall diagnoses) renders. Engine code is unaffected.
+    private var density: UIDensity { profile?.density ?? .advanced }
+
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var activeWorkout: ActiveWorkoutSession? = nil
@@ -572,7 +595,7 @@ struct WorkoutView: View {
                     useMetric: useMetric,
                     progressionState: progState,
                     lastSessionIFI: progState?.lastIFI,
-                    blockPhase: inst.blockPhase,
+                    blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true),
                     progressionRate: profile?.progressionRate ?? .normal
                 )
                 let algoMode2 = profile?.algorithmMode ?? .full
@@ -580,7 +603,18 @@ struct WorkoutView: View {
                 let backoff = rec.backoffWeight > 0 ? rec.backoffWeight : top
                 let isTier1 = tier == .tier1
                 let sets = (0..<ex.targetSets).map { i in
-                    let w = algoMode2 == .off ? 0.0 : ((isTier1 && i > 0) ? backoff : top)
+                    // Read per-set weight from the engine's prescription first
+                    // so ascending / reverse pyramid patterns survive into the
+                    // live workout. Fall back to top/backoff only when no
+                    // prescription exists for this set index.
+                    let w: Double
+                    if algoMode2 == .off {
+                        w = 0.0
+                    } else if let p = rec.prescriptionForSet(i), p.weight > 0 {
+                        w = p.weight
+                    } else {
+                        w = (isTier1 && i > 0) ? backoff : top
+                    }
                     let r = algoMode2 == .off ? ex.targetRepsHigh : rec.repsForSet(i)
                     return LiveSet(setIndex: i, recommendedWeight: w, recommendedReps: r)
                 }
@@ -597,9 +631,12 @@ struct WorkoutView: View {
             return
         }
 
-        // If user opted out of deloads and this is a deload week, substitute
-        // templates from the most recent non-deload week so they keep training.
-        let skipDeloads = profile?.skipDeloads ?? false
+        // If user opted out of deloads — either explicitly (skipDeloads) or
+        // implicitly via Continuous Training (usesPeriodization off) — and
+        // this is a seeded deload week, substitute templates from the most
+        // recent non-deload week so they keep training normally.
+        let skipDeloads = (profile?.skipDeloads ?? false)
+                       || !(profile?.usesPeriodization ?? true)
         let dlWeeks = deloadWeeks(for: pid, blockLength: inst.blockLength, instance: inst)
         var effectiveWeek = week
         if skipDeloads && dlWeeks.contains(week) {
@@ -678,7 +715,7 @@ struct WorkoutView: View {
                 useMetric: useMetric,
                 progressionState: progState,
                 lastSessionIFI: progState?.lastIFI,
-                blockPhase: inst.blockPhase,
+                blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true),
                 progressionRate: profile?.progressionRate ?? .normal,
                 pmlFactor: pml.factor
             )
@@ -814,7 +851,7 @@ struct WorkoutView: View {
                 useMetric: useMetric,
                 progressionState: progState,
                 lastSessionIFI: progState?.lastIFI,
-                blockPhase: inst.blockPhase,
+                blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true),
                 progressionRate: profile?.progressionRate ?? .normal,
                 pmlFactor: pml.factor
             )
@@ -822,7 +859,16 @@ struct WorkoutView: View {
             let top = rec.recommendedWeight > 0 ? rec.recommendedWeight : 0
             let setLetter = "Z\(i + 1)"
             let sets = (0..<add.addedSets).map { idx -> LiveSet in
-                let weight = algoMode == .off ? 0 : top
+                // Prefer per-set prescription so ascending / reverse patterns
+                // survive (matches the same fix in the main template path).
+                let weight: Double
+                if algoMode == .off {
+                    weight = 0
+                } else if let p = rec.prescriptionForSet(idx), p.weight > 0 {
+                    weight = p.weight
+                } else {
+                    weight = top
+                }
                 let reps = algoMode == .off ? add.addedRepsHigh : rec.repsForSet(idx)
                 return LiveSet(setIndex: idx, recommendedWeight: weight, recommendedReps: reps)
             }
@@ -1155,7 +1201,7 @@ struct WorkoutView: View {
                 e1rmTrend: ProgressionEngine.computeE1rmTrend(primaryState),
                 weeksAtCurrentLoad: primaryState?.weeksAtSameLoad ?? 0,
                 weeksAtCurrentVolume: 0,
-                blockPhase: inst.blockPhase,
+                blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true),
                 respondsBetterTo: prof.respondsBetterTo
             )
 
@@ -1303,19 +1349,39 @@ struct ScheduleView: View {
         return dayTemplatesQuery.first(where: { $0.templateId.uuidString == templateId })
     }
 
-    /// Returns the session type for today's schedule (for rest days with templates)
+    /// Returns the session type for today's schedule, honoring overrides
+    /// AND the base rotation's default. Returns nil only when today is a
+    /// genuine rest day in the rotation with no override pointing at it.
     private var todayScheduledSession: SessionType? {
         guard let inst = instance else { return nil }
         let cal = Calendar.current
         let todayWeekday = cal.component(.weekday, from: Date())
-        let todayDow = todayWeekday == 1 ? 0 : todayWeekday - 1
+        // 1-7 system used by sessionOrder/displaySessionOrder mapping (Sun=7)
+        let todayDow17 = todayWeekday == 1 ? 7 : todayWeekday - 1
+        // 0-6 system used by ProgramSchedule rows (Sun=0)
+        let todayDow06 = todayWeekday == 1 ? 0 : todayWeekday - 1
         let week = currentWeek
-        if let sched = inst.schedules.first(where: { s in
-            s.dayOfWeek == todayDow && (s.isPermanent || s.week == week)
+
+        // Week-specific override wins
+        if let weekSched = inst.schedules.first(where: { s in
+            s.dayOfWeek == todayDow06 && !s.isPermanent && s.week == week
         }) {
-            return sched.isRestDay ? .rest : sched.sessionType
+            return weekSched.isRestDay ? .rest : weekSched.sessionType
         }
-        return nil
+        // Then permanent override
+        if let permSched = inst.schedules.first(where: { s in
+            s.dayOfWeek == todayDow06 && s.isPermanent
+        }) {
+            return permSched.isRestDay ? .rest : permSched.sessionType
+        }
+        // Fall back to the base rotation's default for today's day-of-week
+        let workDays: [Int] = sessionOrder.count >= 6 ? [1,2,3,4,6,7] :
+            sessionOrder.count == 5 ? [1,2,3,5,6] :
+            sessionOrder.count == 3 ? [1,3,5] : [1,2,4,5]
+        for (i, dow) in workDays.enumerated() where dow == todayDow17 && i < sessionOrder.count {
+            return sessionOrder[i]
+        }
+        return nil  // genuinely a rest day in the base rotation
     }
 
     private var sessionOrder: [SessionType] {
@@ -1354,6 +1420,33 @@ struct ScheduleView: View {
 
     private var nextSessionType: SessionType {
         guard let inst = instance else { return sessionOrder.first ?? .heavyUpper }
+        // Honor Home tab's drag-and-drop: build the effective day→session map
+        // for the current week (same logic as displaySessionOrder) and check
+        // today's slot. If today has a real session scheduled (via overrides
+        // OR by default), highlight THAT card. Otherwise fall back to the
+        // rotation pointer so we still show "what comes next" on rest days.
+        let cal = Calendar.current
+        let todayWeekday = cal.component(.weekday, from: Date())
+        let todayDow = todayWeekday == 1 ? 7 : todayWeekday - 1  // 1=Mon..7=Sun
+
+        let workDays: [Int] = sessionOrder.count >= 6 ? [1,2,3,4,6,7] :
+            sessionOrder.count == 5 ? [1,2,3,5,6] :
+            sessionOrder.count == 3 ? [1,3,5] : [1,2,4,5]
+        var dayMap: [Int: SessionType] = [:]
+        for (i, st) in sessionOrder.enumerated() where i < workDays.count {
+            dayMap[workDays[i]] = st
+        }
+        for s in inst.schedules where s.isPermanent {
+            let dow = s.dayOfWeek == 0 ? 7 : s.dayOfWeek
+            if s.isRestDay { dayMap.removeValue(forKey: dow) }
+            else { dayMap[dow] = s.sessionType }
+        }
+        for s in inst.schedules where !s.isPermanent && s.week == currentWeek {
+            let dow = s.dayOfWeek == 0 ? 7 : s.dayOfWeek
+            if s.isRestDay { dayMap.removeValue(forKey: dow) }
+            else { dayMap[dow] = s.sessionType }
+        }
+        if let todaySession = dayMap[todayDow] { return todaySession }
         return sessionOrder[inst.nextRotationIndex % sessionOrder.count]
     }
 
@@ -1366,12 +1459,40 @@ struct ScheduleView: View {
         return pid == 2 ? 16 : 24
     }
 
+    /// Per-session-type completion count for THIS week's training cycle.
+    /// Scopes to logs whose `week == currentWeek`, with a narrow grace
+    /// window for the just-completed last-of-cycle session: when the
+    /// engine auto-advances `currentWeek` at the end of a rotation, the
+    /// just-finalized log keeps the previous week tag. We include it
+    /// only if it was finalized within the last 2 hours (i.e. it was the
+    /// session that triggered the week advance).
     private var completedSessionCount: [SessionType: Int] {
         guard let inst = instance else { return [:] }
-        let validLogs = inst.logs.filter { $0.week == currentWeek && !$0.isManualPR }
-        let grouped = Dictionary(grouping: validLogs) { Calendar.current.startOfDay(for: $0.workoutDate) }
+        let week = inst.currentWeek
+
+        // Logs with this week's tag — the canonical source for "completed
+        // this cycle." Excludes manual PRs which aren't a workout session.
+        var cycleLogs = inst.logs.filter { !$0.isManualPR && $0.week == week }
+
+        // Just-advanced-week grace: include the most recent prev-week log
+        // group ONLY if (a) we're at rotation start, AND (b) it was logged
+        // within the last 2 hours. Without this guard, every prev-cycle
+        // session would persist as "completed" across weeks.
+        if inst.nextRotationIndex == 0 && week > 1 {
+            let now = Date()
+            let recentPrev = inst.logs.filter {
+                !$0.isManualPR && $0.week == week - 1 &&
+                now.timeIntervalSince($0.workoutDate) < 7200  // 2 hours
+            }
+            if let mostRecent = recentPrev.map({ $0.workoutDate }).max() {
+                cycleLogs.append(contentsOf: recentPrev.filter { $0.workoutDate == mostRecent })
+            }
+        }
+
+        // Group by exact workoutDate → unique sessions → count by session type
         var counts: [SessionType: Int] = [:]
-        for (_, logs) in grouped {
+        let groups = Dictionary(grouping: cycleLogs) { $0.workoutDate }
+        for (_, logs) in groups {
             if let st = logs.first.flatMap({ SessionType(rawValue: $0.sessionTypeRaw) }) {
                 counts[st, default: 0] += 1
             }
@@ -1417,6 +1538,7 @@ struct ScheduleView: View {
                                 .background(blockColor(week: currentWeek, pid: pid).opacity(0.12))
                                 .cornerRadius(6)
                         }
+                        TabHelpButton(chapter: .train)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
                     .background(LinearGradient.appHeader)
@@ -1485,7 +1607,8 @@ struct ScheduleView: View {
                                     .font(.system(size: 24)).foregroundColor(.appRed)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("TODAY").font(.system(size: 9, weight: .black)).foregroundColor(.appRed).kerning(1)
-                                    Text(scheduled.shortLabel).font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
+                                    Text(instance?.customLabel(for: scheduled) ?? scheduled.shortLabel)
+                                        .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
                                 }
                                 Spacer()
                                 Text(scheduled.muscleSubtitle).font(.system(size: 11)).foregroundColor(.appTextDim)
@@ -1538,6 +1661,7 @@ struct ScheduleView: View {
                                 isDone: isDone,
                                 isExpanded: isExpanded,
                                 isRotationNext: isRotationNext,
+                                customLabel: instance?.customLabel(for: sessionType),
                                 onTap: {
                                     withAnimation(.easeInOut(duration: 0.2)) {
                                         expandedSession = isExpanded ? nil : sessionType
@@ -1549,13 +1673,20 @@ struct ScheduleView: View {
                         }
                     }
 
-                    // ── MESOCYCLE BROWSER ────────────────────────────
+                    // ── PROGRAM WEEK BROWSER ──────────────────────────
+                    // Section header + sub-info adapt to the user's
+                    // periodization preference. With blocks ON it shows the
+                    // mesocycle phase and block number. With blocks OFF it's
+                    // just a week list — no phase vocabulary anywhere.
+                    let periodizationOn = profilesQuery.first?.usesPeriodization ?? true
                     VStack(spacing: 10) {
-                        Button(action: { showBlockInfoTrain = true }) {
+                        Button(action: {
+                            if periodizationOn { showBlockInfoTrain = true }
+                        }) {
                             HStack {
-                                SectionHeader(title: "MESOCYCLE")
+                                SectionHeader(title: periodizationOn ? "MESOCYCLE" : "PROGRAM WEEKS")
                                 Spacer()
-                                if let inst = instance {
+                                if periodizationOn, let inst = instance {
                                     let goal = profilesQuery.first?.goal ?? .hypertrophy
                                     let info = ComputedBlockInfo.compute(
                                         forWeek: currentWeek,
@@ -1563,15 +1694,22 @@ struct ScheduleView: View {
                                         blockLength: inst.blockLength,
                                         totalWeeks: totalWeeks,
                                         goal: goal,
-                                        instance: inst
+                                        instance: inst,
+                                        usesPeriodization: periodizationOn,
+                                        skipDeloads: profilesQuery.first?.skipDeloads ?? false
                                     )
                                     Text("\(info.displayPhaseName) · Wk \(info.weekInBlock)/\(info.blockTrainingWeeks) · Block \(info.blockNumber)")
                                         .font(.system(size: 11, weight: .bold)).foregroundColor(.appBlue)
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 13)).foregroundColor(.appBlue)
+                                } else {
+                                    Text("Week \(currentWeek) of \(totalWeeks)")
+                                        .font(.system(size: 11, weight: .bold)).foregroundColor(.appTextSecondary)
                                 }
-                                Image(systemName: "info.circle")
-                                    .font(.system(size: 13)).foregroundColor(.appBlue)
                             }
-                        }.buttonStyle(.plain)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!periodizationOn)
                         MesocycleBrowser(
                             currentWeek: currentWeek,
                             programId: pid,
@@ -1582,7 +1720,10 @@ struct ScheduleView: View {
                             exerciseNames: exerciseNames,
                             goal: profilesQuery.first?.goal ?? .hypertrophy,
                             blockLength: instance?.blockLength ?? 5,
-                            skipDeloads: profilesQuery.first?.skipDeloads ?? false
+                            skipDeloads: profilesQuery.first?.skipDeloads ?? false,
+                            usesPeriodization: periodizationOn,
+                            customSessionLabels: instance?.customSessionLabels ?? [:],
+                            instance: instance
                         )
                     }
 
@@ -1654,50 +1795,41 @@ struct ScheduleView: View {
         return deloadWeeks(for: inst.programId, blockLength: inst.blockLength, instance: inst).contains(week)
     }
 
+    /// Block label for the Train tab header badge — same source of truth as
+    /// HomeView and the MesocycleBrowser bars. Routes through ComputedBlockInfo
+    /// so all the user's block toggles propagate (Continuous Training,
+    /// Skip Deloads, custom block sequence).
     private func blockLabel(week: Int, pid: Int) -> String {
+        guard let inst = instance else { return "TRAINING" }
         let goal = profilesQuery.first?.goal ?? .hypertrophy
-        let isHyp = goal == .hypertrophy || goal == .recomp
-
-        // Use blockLength-based deload for ALL programs (synced with Home tab)
-        if isEffectiveDeloadWeek(week) { return isHyp ? "RECOVERY" : "DELOAD" }
-
-        if let inst = instance {
-            if inst.isGenerated || pid > 10 {
-                let bl = inst.blockLength > 0 ? inst.blockLength : 5
-                let blockNum = (week - 1) / (bl + 1)
-                if isHyp { return blockNum % 2 == 0 ? "TRAINING BLOCK" : "GROWTH PHASE" }
-                return inst.blockType.rawValue.uppercased()
-            }
-        }
-
-        // Seeded programs — block labels (deload already handled above)
-        if pid == 7 {
-            if week <= 9 { return "BLOCK 1" }; if week <= 15 { return "BLOCK 2" }; return "BLOCK 3"
-        }
-        if pid == 2 {
-            return week <= 8 ? (isHyp ? "TRAINING BLOCK" : "ACCUMULATION") : (isHyp ? "GROWTH PHASE" : "INTENSIFICATION")
-        }
-        if week <= 8 { return isHyp ? "TRAINING BLOCK" : "ACCUMULATION" }
-        if week <= 16 { return isHyp ? "GROWTH PHASE" : "INTENSIFICATION" }
-        return isHyp ? "TRAINING BLOCK" : "PEAKING"
+        let info = ComputedBlockInfo.compute(
+            forWeek: week, programId: pid,
+            blockLength: inst.blockLength, totalWeeks: totalWeeks,
+            goal: goal, instance: inst,
+            usesPeriodization: profilesQuery.first?.usesPeriodization ?? true,
+            skipDeloads: profilesQuery.first?.skipDeloads ?? false)
+        return info.displayPhaseName.uppercased()
     }
 
+    /// Block color routed through ComputedBlockInfo. Same palette mapping
+    /// as MesocycleBrowser.blockColor so all displays agree.
     private func blockColor(week: Int, pid: Int) -> Color {
-        // Use blockLength-based deload detection (synced with Home)
-        if isEffectiveDeloadWeek(week) { return .appBlue }
-
-        if pid == 2 {
-            if week <= 8 { return .appGreen }
-            return .appGold
+        guard let inst = instance else { return .appGreen }
+        let goal = profilesQuery.first?.goal ?? .hypertrophy
+        let info = ComputedBlockInfo.compute(
+            forWeek: week, programId: pid,
+            blockLength: inst.blockLength, totalWeeks: totalWeeks,
+            goal: goal, instance: inst,
+            usesPeriodization: profilesQuery.first?.usesPeriodization ?? true,
+            skipDeloads: profilesQuery.first?.skipDeloads ?? false)
+        if info.isDeloadWeek { return .appBlue }
+        switch info.blockType {
+        case .accumulation:    return .appGreen
+        case .reaccumulation:  return .appGold
+        case .intensification: return .appOrange
+        case .peak:            return .appRed
+        case .deload:          return .appBlue
         }
-        if pid == 7 {
-            if week <= 9 { return .appGreen }
-            if week <= 15 { return .appGold }
-            return .appRed
-        }
-        if week <= 8 { return .appGreen }
-        if week <= 16 { return .appGold }
-        return .appRed
     }
 }
 
@@ -1712,9 +1844,16 @@ struct SessionPickerCard: View {
     let isDone: Bool
     let isExpanded: Bool
     var isRotationNext: Bool = false
+    /// Caller passes from `instance.customLabel(for: sessionType)`.
+    var customLabel: String? = nil
     let onTap: () -> Void
     let onStart: () -> Void
     var onStartCustom: (() -> Void)? = nil
+
+    private var displayLabel: String {
+        if let l = customLabel, !l.isEmpty { return l }
+        return sessionType.shortLabel
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1732,7 +1871,7 @@ struct SessionPickerCard: View {
                     }
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
-                            Text(sessionType.shortLabel)
+                            Text(displayLabel)
                                 .font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
                             if isRotationNext {
                                 Text("NEXT").font(.system(size: 8, weight: .black)).foregroundColor(.appRed)
@@ -1848,8 +1987,38 @@ struct MesocycleBrowser: View {
     var goal: GoalType = .hypertrophy
     var blockLength: Int = 5
     var skipDeloads: Bool = false
+    /// Drives whether block labels + colors render at all. When false the
+    /// browser becomes a plain week selector — no "RECOVERY", "GROWTH PHASE",
+    /// no block coloring; just current/selected/past/future bars.
+    var usesPeriodization: Bool = true
+    /// Caller passes `instance.customSessionLabels` so each MesocycleSessionCard
+    /// can show the user's rename instead of the default.
+    var customSessionLabels: [String: String] = [:]
+    /// The user program instance — required so block-label/color helpers can
+    /// route through ComputedBlockInfo and honor customDeloadWeeks /
+    /// skippedDeloadWeeks set in BlockSequenceEditor. Without this, the
+    /// MesocycleBrowser bars use a hardcoded deload schedule that drifts
+    /// from what the rest of the app shows.
+    var instance: UserProgramInstance? = nil
+
     private var isHyp: Bool { goal == .hypertrophy || goal == .recomp }
     private var cycleLen: Int { blockLength + 1 }
+
+    /// Single computed block info for any week — same source of truth as
+    /// HomeView and ProgramTabView use. Honors both block toggles.
+    private func blockInfo(for week: Int) -> ComputedBlockInfo {
+        ComputedBlockInfo.compute(
+            forWeek: week, programId: programId,
+            blockLength: blockLength, totalWeeks: totalWeeks,
+            goal: goal, instance: instance,
+            usesPeriodization: usesPeriodization,
+            skipDeloads: skipDeloads)
+    }
+
+    private func customLabelFor(_ st: SessionType) -> String? {
+        let v = customSessionLabels[st.rawValue] ?? ""
+        return v.isEmpty ? nil : v
+    }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -1857,18 +2026,42 @@ struct MesocycleBrowser: View {
                 HStack {
                     Text("Week \(selectedWeek)").font(.system(size: 14, weight: .black)).foregroundColor(.appTextPrimary)
                     Spacer()
-                    Text(blockLabel(selectedWeek))
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundColor(blockColor(selectedWeek))
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(blockColor(selectedWeek).opacity(0.12)).cornerRadius(5)
+                    if usesPeriodization {
+                        Text(blockLabel(selectedWeek))
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(blockColor(selectedWeek))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(blockColor(selectedWeek).opacity(0.12)).cornerRadius(5)
+                    } else if selectedWeek == currentWeek {
+                        Text("CURRENT")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(.appRed)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Color.appRed.opacity(0.12)).cornerRadius(5)
+                    } else if selectedWeek < currentWeek {
+                        Text("COMPLETED")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(.appGreen)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Color.appGreen.opacity(0.12)).cornerRadius(5)
+                    }
                 }
                 HStack(spacing: 2) {
                     ForEach(1...max(totalWeeks, 1), id: \.self) { w in
+                        // Color the strip differently when periodization is off:
+                        // no block coloring, just current/selected/past/future.
+                        let neutralFill: Color =
+                            w == currentWeek ? Color.appRed :
+                            (w == selectedWeek ? Color.appBlue.opacity(0.7) :
+                            (w < currentWeek ? Color.appGreen.opacity(0.4) :
+                             Color.appSurface2))
+                        let periodizedFill: Color =
+                            w == currentWeek ? Color.appRed :
+                            (w == selectedWeek ? blockColor(w).opacity(0.8) :
+                            (w < currentWeek ? Color.appGreen.opacity(0.5) :
+                             blockColor(w).opacity(0.25)))
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(w == currentWeek ? Color.appRed :
-                                (w == selectedWeek ? blockColor(w).opacity(0.8) :
-                                (w < currentWeek ? Color.appGreen.opacity(0.5) : blockColor(w).opacity(0.25))))
+                            .fill(usesPeriodization ? periodizedFill : neutralFill)
                             .frame(height: 8)
                             .onTapGesture { withAnimation { selectedWeek = w } }
                     }
@@ -1886,7 +2079,8 @@ struct MesocycleBrowser: View {
                         week: selectedWeek,
                         templates: templates,
                         exerciseNames: exerciseNames,
-                        isCurrentWeek: selectedWeek == currentWeek
+                        isCurrentWeek: selectedWeek == currentWeek,
+                        customLabel: customLabelFor(sessionType)
                     )
                 }
             }
@@ -1895,41 +2089,29 @@ struct MesocycleBrowser: View {
 
     private func isDeloadWeek(_ w: Int) -> Bool {
         if skipDeloads { return false }
-        return deloadWeeks(for: programId, blockLength: blockLength).contains(w)
+        if !usesPeriodization { return false }  // continuous training = no deloads
+        return blockInfo(for: w).isDeloadWeek
     }
 
+    /// Block label routed through ComputedBlockInfo. Honors usesPeriodization,
+    /// customDeloadWeeks, and skippedDeloadWeeks via the same source of
+    /// truth used by Home and Program tabs.
     private func blockLabel(_ w: Int) -> String {
-        if isDeloadWeek(w) { return isHyp ? "RECOVERY" : "DELOAD" }
-        switch programId {
-        case 7:
-            if w <= 9 { return "BLOCK 1" }; if w <= 15 { return "BLOCK 2" }; return "BLOCK 3"
-        case 2:
-            return w <= 8 ? (isHyp ? "TRAINING BLOCK" : "ACCUMULATION") : (isHyp ? "GROWTH PHASE" : "INTENSIFICATION")
-        default:
-            if programId > 10 {
-                let blockNum = (w - 1) / cycleLen
-                if isHyp { return blockNum % 2 == 0 ? "TRAINING BLOCK" : "GROWTH PHASE" }
-            }
-            if w <= 8 { return isHyp ? "TRAINING BLOCK" : "ACCUMULATION" }
-            if w <= 16 { return isHyp ? "GROWTH PHASE" : "INTENSIFICATION" }
-            return isHyp ? "TRAINING BLOCK" : "PEAKING"
-        }
+        let info = blockInfo(for: w)
+        return info.displayPhaseName.uppercased()
     }
 
+    /// Block color from the same computed phase. Maps each phase to a
+    /// consistent palette across the whole app.
     private func blockColor(_ w: Int) -> Color {
-        if isDeloadWeek(w) { return .appBlue }
-        switch programId {
-        case 7:
-            if w <= 9 { return .appGreen }; if w <= 15 { return .appGold }; return .appOrange
-        case 2:
-            return w <= 8 ? .appGreen : .appGold
-        default:
-            if programId > 10 {
-                let blockNum = (w - 1) / cycleLen
-                let colors: [Color] = [.appGreen, .appGold, .appOrange, .appRed]
-                return colors[blockNum % colors.count]
-            }
-            if w <= 8 { return .appGreen }; if w <= 16 { return .appGold }; return .appRed
+        let info = blockInfo(for: w)
+        if info.isDeloadWeek { return .appBlue }
+        switch info.blockType {
+        case .accumulation:    return .appGreen
+        case .reaccumulation:  return .appGold
+        case .intensification: return .appOrange
+        case .peak:            return .appRed
+        case .deload:          return .appBlue
         }
     }
 }
@@ -1940,13 +2122,20 @@ struct MesocycleSessionCard: View {
     let templates: [ProgramSessionTemplate]
     let exerciseNames: [String: String]
     let isCurrentWeek: Bool
+    /// Caller passes from `instance.customLabel(for: sessionType)`.
+    var customLabel: String? = nil
     @State private var expanded = false
+
+    private var displayLabel: String {
+        if let l = customLabel, !l.isEmpty { return l }
+        return sessionType.shortLabel
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             Button(action: { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }) {
                 HStack(spacing: 12) {
-                    Text(sessionType.shortLabel)
+                    Text(displayLabel)
                         .font(.system(size: 13, weight: .black)).foregroundColor(isCurrentWeek ? .appRed : .appTextPrimary)
                     Spacer()
                     Text("\(templates.count) exercises")
@@ -2138,6 +2327,8 @@ struct ActiveWorkoutView: View {
     private var showRPE: Bool { profilesForSettings.first?.showRPE ?? true }
     private var showRepRange: Bool { profilesForSettings.first?.showRepRange ?? true }
     private var showRestTimer: Bool { profilesForSettings.first?.showRestTimer ?? true }
+    /// UI density (minimal/standard/advanced). Gates mid-workout cards.
+    private var density: UIDensity { profilesForSettings.first?.density ?? .advanced }
 
     @State private var currentExerciseIndex: Int = 0
     @State private var layoutMode: WorkoutLayoutMode = .scroll
@@ -2191,11 +2382,14 @@ struct ActiveWorkoutView: View {
                 Text("\(session.totalSetsLogged)/\(session.totalSets) sets")
                     .font(.system(size: 12, weight: .bold)).foregroundColor(.appTextSecondary)
 
-                // Layout toggle
-                Button(action: { withAnimation(.easeInOut(duration: 0.2)) { layoutMode = layoutMode == .card ? .scroll : .card } }) {
-                    Image(systemName: layoutMode == .card ? "list.bullet" : "square.stack")
-                        .font(.system(size: 14, weight: .bold)).foregroundColor(.appTextSecondary)
-                        .frame(width: 34, height: 34).background(Color.appSurface2).cornerRadius(8)
+                // Layout toggle — hidden in minimal. Casual users get the
+                // default scroll layout (set in @State default below).
+                if density.showsLayoutToggle {
+                    Button(action: { withAnimation(.easeInOut(duration: 0.2)) { layoutMode = layoutMode == .card ? .scroll : .card } }) {
+                        Image(systemName: layoutMode == .card ? "list.bullet" : "square.stack")
+                            .font(.system(size: 14, weight: .bold)).foregroundColor(.appTextSecondary)
+                            .frame(width: 34, height: 34).background(Color.appSurface2).cornerRadius(8)
+                    }
                 }
 
                 Button(action: onFinish) {
@@ -2219,8 +2413,10 @@ struct ActiveWorkoutView: View {
             }
             .frame(height: 3)
 
-            // Rest timer
-            if showingRestTimer {
+            // Rest timer — hidden in minimal. Engine still doesn't run a timer
+            // for you in minimal; user just rests naturally. Standard/advanced
+            // still respect the user's showRestTimer preference.
+            if density.showsRestTimerBanner && showingRestTimer {
                 RestTimerBanner(secondsRemaining: restSecondsRemaining, total: restTotal, onSkip: cancelRest)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -2393,24 +2589,28 @@ struct ActiveWorkoutView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         exerciseHeader(ex: ex, exIdx: exIdx)
-                        ProgressiveOverloadCard(
-                            exerciseKey: ex.exerciseKey,
-                            displayName: ex.displayName,
-                            exerciseTier: ex.exerciseTier,
-                            targetRepsLow: ex.targetRepsLow,
-                            targetRepsHigh: ex.targetRepsHigh,
-                            targetRPE: ex.targetRPE,
-                            allLogs: allLogs,
-                            useMetric: useMetric,
-                            isExpanded: expandedOverloadKey == ex.exerciseKey,
-                            onToggle: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
-                                    expandedOverloadKey = expandedOverloadKey == ex.exerciseKey ? nil : ex.exerciseKey
-                                }
-                            },
-                            progressionState: progressionStates.first(where: { $0.exerciseKey == ex.exerciseKey })
-                        )
-                        .padding(.horizontal, 16)
+                        // Stall diagnosis card (ProgressiveOverloadCard) — advanced only.
+                        // Engine still tracks stalls in the background.
+                        if density.showsStallDiagnosisCard {
+                            ProgressiveOverloadCard(
+                                exerciseKey: ex.exerciseKey,
+                                displayName: ex.displayName,
+                                exerciseTier: ex.exerciseTier,
+                                targetRepsLow: ex.targetRepsLow,
+                                targetRepsHigh: ex.targetRepsHigh,
+                                targetRPE: ex.targetRPE,
+                                allLogs: allLogs,
+                                useMetric: useMetric,
+                                isExpanded: expandedOverloadKey == ex.exerciseKey,
+                                onToggle: {
+                                    withAnimation(.easeInOut(duration: 0.25)) {
+                                        expandedOverloadKey = expandedOverloadKey == ex.exerciseKey ? nil : ex.exerciseKey
+                                    }
+                                },
+                                progressionState: progressionStates.first(where: { $0.exerciseKey == ex.exerciseKey })
+                            )
+                            .padding(.horizontal, 16)
+                        }
                         setsSection(ex: ex, exIdx: exIdx)
                         navButtons(exIdx: exIdx)
                     }
@@ -2431,27 +2631,31 @@ struct ActiveWorkoutView: View {
                 ForEach(Array(session.exercises.enumerated()), id: \.element.id) { idx, ex in
                     VStack(spacing: 12) {
                         exerciseHeader(ex: ex, exIdx: idx)
-                        ProgressiveOverloadCard(
-                            exerciseKey: ex.exerciseKey,
-                            displayName: ex.displayName,
-                            exerciseTier: ex.exerciseTier,
-                            targetRepsLow: ex.targetRepsLow,
-                            targetRepsHigh: ex.targetRepsHigh,
-                            targetRPE: ex.targetRPE,
-                            allLogs: allLogs,
-                            useMetric: useMetric,
-                            isExpanded: expandedOverloadKey == ex.exerciseKey,
-                            onToggle: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
-                                    expandedOverloadKey = expandedOverloadKey == ex.exerciseKey ? nil : ex.exerciseKey
-                                }
-                            },
-                            progressionState: progressionStates.first(where: { $0.exerciseKey == ex.exerciseKey })
-                        )
+                        if density.showsStallDiagnosisCard {
+                            ProgressiveOverloadCard(
+                                exerciseKey: ex.exerciseKey,
+                                displayName: ex.displayName,
+                                exerciseTier: ex.exerciseTier,
+                                targetRepsLow: ex.targetRepsLow,
+                                targetRepsHigh: ex.targetRepsHigh,
+                                targetRPE: ex.targetRPE,
+                                allLogs: allLogs,
+                                useMetric: useMetric,
+                                isExpanded: expandedOverloadKey == ex.exerciseKey,
+                                onToggle: {
+                                    withAnimation(.easeInOut(duration: 0.25)) {
+                                        expandedOverloadKey = expandedOverloadKey == ex.exerciseKey ? nil : ex.exerciseKey
+                                    }
+                                },
+                                progressionState: progressionStates.first(where: { $0.exerciseKey == ex.exerciseKey })
+                            )
+                        }
                         setsSection(ex: ex, exIdx: idx)
 
-                        // IFI Badge — shown when all sets are logged
-                        if ex.allSetsLogged, let ifi = ex.intrasetFatigueIndex, ifi > 0 {
+                        // IFI Badge — advanced only. Engine still computes IFI
+                        // for every exercise; just not surfaced unless user wants
+                        // the depth.
+                        if density.showsIFIBadge, ex.allSetsLogged, let ifi = ex.intrasetFatigueIndex, ifi > 0 {
                             let zone = IFIZone.classify(ifi)
                             Button {
                                 showIFIExplainer = true
@@ -2601,11 +2805,22 @@ struct ActiveWorkoutView: View {
                     showExerciseConfig = true
                 } label: {
                     HStack(spacing: 4) {
+                        // Density-aware target row.
+                        // Minimal: just "X reps" — single flat target, no jargon.
+                        // Standard: "X-Y reps · 90s" — rep range + rest, no RPE.
+                        // Advanced: "X-Y reps · RPE 8 · 90s" — full, follows user prefs.
                         let parts: [String] = {
+                            if density == .minimal {
+                                return ["\(ex.targetRepsHigh) reps"]
+                            }
                             var p: [String] = []
                             if showRepRange { p.append("\(ex.targetRepsLow)–\(ex.targetRepsHigh) reps") }
-                            if showRPE { p.append("RPE \(String(format: "%.0f", ex.targetRPE))") }
-                            if showRestTimer { p.append("\(restLabel(ex.restSeconds)) rest") }
+                            if showRPE && density.showsTargetRPEInline {
+                                p.append("RPE \(String(format: "%.0f", ex.targetRPE))")
+                            }
+                            if showRestTimer && density.showsTargetRestInline {
+                                p.append("\(restLabel(ex.restSeconds)) rest")
+                            }
                             return p
                         }()
                         Text(parts.isEmpty ? "Tap to configure" : parts.joined(separator: "  ·  "))
@@ -2662,10 +2877,26 @@ struct ActiveWorkoutView: View {
         .padding(.horizontal, layoutMode == .card ? 16 : 0)
         .padding(.top, layoutMode == .card ? 16 : 0)
 
+        // Exercise notes contain two kinds of info:
+        //   - PML adjustments ("Adjusted for prior chest work") — advanced jargon
+        //   - StrengthGoal phase badges ("Building phase — 4×3 RPE 7.5") — useful
+        // Minimal hides both. Standard hides PML, keeps phase. Advanced shows all.
         if !ex.notes.isEmpty {
-            Text(ex.notes).font(.system(size: 12, weight: .medium)).foregroundColor(.appBlue)
+            let isPMLNote = ex.notes.contains("Adjusted for prior")
+            let shouldShow: Bool = {
+                if density == .minimal { return false }
+                if isPMLNote && !density.showsPMLNotes { return false }
+                return true
+            }()
+            if shouldShow {
+                HStack(alignment: .top, spacing: 6) {
+                    Text(ex.notes).font(.system(size: 12, weight: .medium)).foregroundColor(.appBlue)
+                    Spacer(minLength: 0)
+                    if isPMLNote { JargonHelp(termId: "pml", size: 12) }
+                }
                 .padding(10).background(Color.appBlue.opacity(0.08)).cornerRadius(8)
                 .padding(.horizontal, layoutMode == .card ? 16 : 0)
+            }
         }
 
         // Exercise cue (persistent, from Exercise model)
@@ -2686,8 +2917,9 @@ struct ActiveWorkoutView: View {
         let firstSetWeight = session.exercises[exIdx].sets.first?.recommendedWeight ?? 0
         let canRemoveSet = session.exercises[exIdx].sets.count > 1
         return VStack(spacing: 8) {
-            // Warm-up sets (collapsible, T1/T2 only)
-            if !session.exercises[exIdx].warmupSets.isEmpty {
+            // Warm-up sets (collapsible, T1/T2 only) — hidden in minimal.
+            // Engine still generates them; just not surfaced for casual users.
+            if density.showsWarmupSection && !session.exercises[exIdx].warmupSets.isEmpty {
                 warmupSection(exIdx: exIdx)
             }
 
@@ -2829,6 +3061,7 @@ struct ActiveWorkoutView: View {
             targetRepsHigh: ex.targetRepsHigh,
             useMetric: useMetric,
             isLiveTopSet: isLiveTopSet,
+            density: density,
             onRemove: removeBlock,
             onComplete: completeBlock
         )
@@ -2949,6 +3182,10 @@ struct ActiveWorkoutView: View {
     /// pulling a real weight/reps recommendation from the exercise's own history.
     /// If no history exists, weights come back 0 — user enters the first set
     /// manually and the algorithm learns from there.
+    ///
+    /// Before this helper, swapping bench → DB bench inherited the bench's heavy
+    /// top weight, leading to unsafe first-sets. Adding a fresh exercise hardcoded
+    /// 0 lb / 10 reps, ignoring history. Now both paths consult the engine.
     private func makeRecommendedLiveExercise(
         forKey key: String,
         displayName: String,
@@ -2979,7 +3216,7 @@ struct ActiveWorkoutView: View {
             useMetric: prof?.useMetric ?? false,
             progressionState: progState,
             lastSessionIFI: progState?.lastIFI,
-            blockPhase: instance?.blockPhase ?? .earlyAccumulation,
+            blockPhase: instance?.effectiveBlockPhase(usesPeriodization: prof?.usesPeriodization ?? true) ?? .earlyAccumulation,
             progressionRate: prof?.progressionRate ?? .normal,
             pmlFactor: 1.0
         )
@@ -3627,6 +3864,7 @@ struct SetLogRow: View {
     let targetRepsHigh: Int
     let useMetric: Bool
     var isLiveTopSet: Bool = false
+    var density: UIDensity = .advanced
     let onRemove: (() -> Void)?
     let onComplete: () -> Void
 
@@ -3637,6 +3875,8 @@ struct SetLogRow: View {
     @State private var rpeInput: String = ""
     @State private var showRPE: Bool = false
     @State private var showBackoffInfo: Bool = false
+    @State private var showFeederInfo: Bool = false
+    @State private var showTopSetInfo: Bool = false
     private var hitTarget: Bool { (set.loggedReps ?? 0) >= targetRepsHigh }
     private var loggedE1RM: Double? {
         guard let w = set.loggedWeight, let r = set.loggedReps, r > 0 else { return nil }
@@ -3655,21 +3895,29 @@ struct SetLogRow: View {
     private var roleBadge: some View {
         if isLiveTopSet {
             // Live: show TOP SET only when this set IS the heaviest logged
-            HStack(spacing: 3) {
-                Image(systemName: "star.fill").font(.system(size: 7))
-                Text("TOP SET").font(.system(size: 8, weight: .black))
-            }
-            .foregroundColor(.appGold).kerning(0.5)
-            .padding(.horizontal, 5).padding(.vertical, 2)
-            .background(Color.appGold.opacity(0.12)).cornerRadius(3)
+            Button(action: { showTopSetInfo = true }) {
+                HStack(spacing: 3) {
+                    Image(systemName: "star.fill").font(.system(size: 7))
+                    Text("TOP SET").font(.system(size: 8, weight: .black))
+                    Image(systemName: "info.circle").font(.system(size: 8))
+                }
+                .foregroundColor(.appGold).kerning(0.5)
+                .padding(.horizontal, 5).padding(.vertical, 2)
+                .background(Color.appGold.opacity(0.12)).cornerRadius(3)
+            }.buttonStyle(.plain)
         } else if let role = set.role {
             switch role {
             case .topSet:
                 EmptyView()  // Suppress pre-assigned top set; computed live above
             case .feeder:
-                Text("FEEDER").font(.system(size: 8, weight: .black)).foregroundColor(.appBlue).kerning(0.5)
+                Button(action: { showFeederInfo = true }) {
+                    HStack(spacing: 3) {
+                        Text("FEEDER").font(.system(size: 8, weight: .black)).foregroundColor(.appBlue).kerning(0.5)
+                        Image(systemName: "info.circle").font(.system(size: 8)).foregroundColor(.appBlue)
+                    }
                     .padding(.horizontal, 5).padding(.vertical, 2)
                     .background(Color.appBlue.opacity(0.12)).cornerRadius(3)
+                }.buttonStyle(.plain)
             case .backoff:
                 Button(action: { showBackoffInfo = true }) {
                     HStack(spacing: 3) {
@@ -3802,7 +4050,7 @@ struct SetLogRow: View {
                                     Text("e1RM \(String(format: "%.0f", e1rm))")
                                         .font(.system(size: 11, weight: .bold)).foregroundColor(.appGold)
                                 }
-                                if let rpe = set.loggedRPE, rpe > 0 {
+                                if density.showsRPEField, let rpe = set.loggedRPE, rpe > 0 {
                                     Text("RPE \(String(format: "%.1f", rpe))")
                                         .font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
                                 }
@@ -3863,7 +4111,7 @@ struct SetLogRow: View {
                     }
                     .frame(maxWidth: .infinity)
 
-                    if showRPE {
+                    if showRPE && density.showsRPEField {
                         VStack(spacing: 4) {
                             Text("RPE").font(.system(size: 9, weight: .bold)).foregroundColor(.appTextDim).kerning(1)
                             TextField("8", text: $rpeInput)
@@ -3885,14 +4133,16 @@ struct SetLogRow: View {
                 .padding(.horizontal, 14).padding(.vertical, 10)
 
                 HStack {
-                    Button(action: { withAnimation { showRPE.toggle() } }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: showRPE ? "minus" : "plus").font(.system(size: 9, weight: .bold))
-                            Text("RPE").font(.system(size: 11, weight: .bold))
+                    if density.showsRPEField {
+                        Button(action: { withAnimation { showRPE.toggle() } }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: showRPE ? "minus" : "plus").font(.system(size: 9, weight: .bold))
+                                Text("RPE").font(.system(size: 11, weight: .bold))
+                            }
+                            .foregroundColor(.appTextDim)
                         }
-                        .foregroundColor(.appTextDim)
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                     Spacer()
                     Button(action: { set.isSkipped = true }) {
                         Text("Skip set").font(.system(size: 11, weight: .bold)).foregroundColor(.appTextDim)
@@ -3915,6 +4165,16 @@ struct SetLogRow: View {
             Button("Got it", role: .cancel) {}
         } message: {
             Text("This is a backoff set — the weight is reduced to ~92% of your top set. Backoff sets add volume at a manageable load to drive hypertrophy without excessive fatigue. Focus on controlled reps and a strong mind-muscle connection.")
+        }
+        .alert("Top Set", isPresented: $showTopSetInfo) {
+            Button("Got it", role: .cancel) {}
+        } message: {
+            Text("This is your top set — the heaviest weight you'll work with this session. It's the set that drives strength gains and that the engine watches to decide whether to add weight next time. If you hit the top of the rep range here, the next session bumps the weight.")
+        }
+        .alert("Feeder Set", isPresented: $showFeederInfo) {
+            Button("Got it", role: .cancel) {}
+        } message: {
+            Text("A feeder is a lighter ramp-up set on the way to your top set. They're not for failure — leave 3-4 reps in the tank. They warm up the movement pattern, prime your nervous system, and let you check form without pre-fatiguing the top set. You're following an ascending pyramid from your last workout.")
         }
     }
 
@@ -4421,7 +4681,55 @@ struct ProgressiveOverloadCard: View {
     let onToggle: () -> Void
     var progressionState: ProgressionState? = nil
 
+    @State private var showRecExplain: Bool = false
+
     var isMainLift: Bool { exerciseTier == .tier1 }
+
+    /// Plain-English breakdown of why the engine recommended what it did,
+    /// surfaced when the user taps the info icon next to the delta label.
+    private var recExplainText: String {
+        let rule = recommendation.progressionRule
+        let confidence = recommendation.confidence
+        let stalled = recommendation.stallDetected
+        var parts: [String] = []
+
+        switch rule {
+        case .progress:
+            parts.append("↑ PROGRESS — you hit the top of the rep range across all working sets last session, so the engine bumped the weight.")
+        case .hold:
+            parts.append("→ HOLD — you didn't hit the top of the rep range yet. Same weight, but try for more reps. The engine progresses weight only once every working set hits the top.")
+        case .backoff:
+            parts.append("↓ BACKOFF — you missed the bottom of the rep range on 2+ working sets across two sessions in a row. Engine cut the weight ~6-15% so you can rebuild capacity.")
+        }
+
+        if stalled {
+            switch recommendation.stallReason {
+            case .e1rmDecline:
+                parts.append("⚠️ Stall detected — your e1RM has declined more than 1% from recent peak.")
+            case .e1rmFlat:
+                parts.append("⚠️ Stall detected — your e1RM has been flat for 3+ sessions.")
+            case .rpeRising:
+                parts.append("⚠️ Stall detected — RPE is climbing without strength gains.")
+            case .repsFlat:
+                parts.append("⚠️ Stall detected — same reps at same load 4 sessions in a row.")
+            case .none:
+                break
+            }
+        }
+
+        switch confidence {
+        case .none:
+            parts.append("Confidence: NONE — fewer than 3 sessions of data. The engine is holding weight conservatively (G8 guard).")
+        case .low:
+            parts.append("Confidence: LOW — 3-5 sessions. Engine uses your last session's reps as the primary signal.")
+        case .medium:
+            parts.append("Confidence: MEDIUM — 6+ sessions. Engine uses the e1RM trend (EMA) as the primary signal, with rep performance as backup.")
+        case .high:
+            parts.append("Confidence: HIGH — extensive history. Engine is reading both e1RM trend and rep performance with full IFI / PML adjustment.")
+        }
+
+        return parts.joined(separator: "\n\n")
+    }
 
     private var historyEnabled: Bool {
         UserDefaults.standard.object(forKey: "historyEnabled_\(exerciseKey)") as? Bool ?? true
@@ -4510,6 +4818,11 @@ struct ProgressiveOverloadCard: View {
             .background(Color.appSurface)
             .cornerRadius(12)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
+            .alert("Why this recommendation?", isPresented: $showRecExplain) {
+                Button("Got it", role: .cancel) {}
+            } message: {
+                Text(recExplainText)
+            }
         }
     }
 
@@ -4544,10 +4857,21 @@ struct ProgressiveOverloadCard: View {
                         }
                     }
                     if !deltaLabel.isEmpty {
-                        Text(deltaLabel)
-                            .font(.system(size: 11, weight: .bold))
+                        Button(action: { showRecExplain = true }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: recommendation.progressionRule == .progress ? "arrow.up.circle.fill" :
+                                      (recommendation.progressionRule == .backoff ? "arrow.down.circle.fill" : "minus.circle.fill"))
+                                    .font(.system(size: 11, weight: .bold))
+                                Text(deltaLabel)
+                                    .font(.system(size: 11, weight: .bold))
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.appTextDim)
+                            }
                             .foregroundColor(recommendation.progressionRule == .progress ? .appGreen :
                                             (recommendation.progressionRule == .backoff ? .appRed.opacity(0.8) : .appTextSecondary))
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 Spacer()
@@ -4616,6 +4940,7 @@ struct ProgressiveOverloadCard: View {
                                     .font(.system(size: 10, weight: .black))
                                     .foregroundColor(urgencyColor)
                                     .kerning(0.5)
+                                JargonHelp(termId: "stall", size: 10)
                                 if urgency == .actionRequired {
                                     Text("ACTION REQUIRED")
                                         .font(.system(size: 8, weight: .black))

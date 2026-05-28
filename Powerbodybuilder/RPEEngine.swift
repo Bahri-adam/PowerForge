@@ -60,8 +60,13 @@ struct ProgressionEngine {
         // ─── DETERMINE DATA CONFIDENCE ───
         let confidence = dataConfidence(exposures: sessions.count)
 
-        // ─── EXTRACT LAST TOP SET (e1RM-valid reps only) ───
-        let lastTopSet = lastSession?.filter { isValidForE1RM($0.reps) }.max(by: { $0.e1rm < $1.e1rm })
+        // ─── EXTRACT LAST TOP SET ───
+        // For PRESCRIPTION purposes, the anchor is the HEAVIEST weight the
+        // user actually loaded — not the set with the highest e1RM. A mid-
+        // weight high-rep set (e.g. 225×11) can have a higher e1RM than a
+        // heavy single (245×4), which would let the heavier work disappear
+        // from future prescriptions. Use raw max weight here.
+        let lastTopSet = lastSession?.max(by: { $0.weight < $1.weight })
         let lastWorkingWeight = lastTopSet?.weight ?? 0
 
         // ─── Compute per-set reps from last session (used in all return paths) ───
@@ -128,8 +133,22 @@ struct ProgressionEngine {
         }
 
         // ─── G8: suppress signals before 3 sessions ───
+        // Exception: if every working set in the last session blew past
+        // targetRepsHigh by 5+ reps, the user has clearly outgrown the
+        // prescribed range. Honor that demonstrated capacity rather than
+        // holding weight forever — otherwise calf-raise-at-340-for-24-reps
+        // never gets a weight bump.
+        let demonstratedCapacityOverride: Bool = {
+            guard let last = lastSession, !last.isEmpty else { return false }
+            let sessionMax = last.map { $0.weight }.max() ?? 0
+            let working = last.filter { $0.weight >= sessionMax * 0.80 }
+            guard !working.isEmpty else { return false }
+            return working.allSatisfy { $0.reps >= targetRepsHigh + 5 }
+        }()
+
         guard GuardRails.allowProgressionSignal(
-            totalExposures: progressionState?.totalExposures ?? 0) else {
+            totalExposures: progressionState?.totalExposures ?? 0) ||
+              demonstratedCapacityOverride else {
             let rw = RPETable.roundToPlate(lastWorkingWeight > 0 ? lastWorkingWeight : 0, useMetric: useMetric)
             // G8: hold weight, use last session's per-set pattern (weights + reps + roles)
             let g8Prescription = computePerSetPrescription(
@@ -611,10 +630,22 @@ struct ProgressionEngine {
                 target = max(targetRepsLow, min(targetRepsHigh, lastReps + 3))
             } else {
                 let bump = i == 0 ? bumpTop : bumpSecondary
-                target = max(targetRepsLow, min(targetRepsHigh, lastReps + bump))
+                // Don't cap at targetRepsHigh when the user has already shown
+                // they can exceed the range. Otherwise calves-at-340-for-24-reps
+                // get clamped to "do 15 next time" which makes no sense.
+                let cap = lastReps >= targetRepsHigh ? lastReps + bump : targetRepsHigh
+                target = max(targetRepsLow, min(cap, lastReps + bump))
             }
 
-            let role: SetRole = (i == 0) ? .topSet : (isTier1 ? .backoff : .primary)
+            // Top-set badge follows the heaviest weight, not the index.
+            // For true straight sets all weights are equal → only i==0 gets
+            // the badge (tiebreaker). For mixed-collapsed-to-top weights,
+            // every set is at topWeight so still only i==0 — but if a future
+            // pattern variant feeds non-uniform weights through this path,
+            // weight equality is the correct rule.
+            let isTopWeight = abs(weight - topWeight) < 0.5
+            let role: SetRole = (isTopWeight && i == 0) ? .topSet
+                                                       : (isTier1 ? .backoff : .primary)
             return PerSetPrescription(
                 weight: weight, repsTarget: target,
                 repsRangeLow: nil, repsRangeHigh: nil,
@@ -1314,6 +1345,16 @@ struct ProgressionEngine {
 
         state.totalExposures += 1
 
+        // Re-anchor baseline every 6 exposures (~one training block of
+        // high-frequency work). Without this, the baseline stayed locked at
+        // the user's first-ever session forever — so after 30+ sessions the
+        // trend reported a huge positive change against ancient baseline
+        // and `.progress` fired even on plateaus or slight regressions.
+        // Re-anchoring lets the engine detect real declines / stalls.
+        if state.totalExposures % 6 == 0 && state.emaE1rm > 0 {
+            state.baselineE1rm = state.emaE1rm
+        }
+
         if state.lastCompletedWeight == state.previousWeight && state.previousWeight > 0 {
             state.weeksAtSameLoad += 1
         } else {
@@ -1624,19 +1665,29 @@ struct ProgressionRecommendation {
 
     var hasHistory: Bool { basis != .noHistory }
 
-    /// Get the rep target for a specific set index, falling back to recommendedReps
+    /// Get the rep target for a specific set index. Falls back to MIRRORING
+    /// the last available prescription rather than jumping to recommendedReps
+    /// (= targetRepsHigh) — otherwise a template asking for 4 sets when the
+    /// user logged 3 last time would show set 4 at the range upper bound,
+    /// disconnected from the user's actual capacity.
     func repsForSet(_ index: Int) -> Int {
         if index < perSetPrescription.count {
             return perSetPrescription[index].repsTarget
         }
+        if let last = perSetPrescription.last {
+            return last.repsTarget
+        }
         if index < perSetReps.count { return perSetReps[index] }
+        if let lastFallback = perSetReps.last { return lastFallback }
         return recommendedReps
     }
 
-    /// Get the full prescription for a specific set index, or nil if unavailable
+    /// Get the full prescription for a specific set index. Mirrors the last
+    /// available prescription for indices past the user's logged set count,
+    /// so an extra-set scenario doesn't lose its weight/reps/role context.
     func prescriptionForSet(_ index: Int) -> ProgressionEngine.PerSetPrescription? {
         if index < perSetPrescription.count { return perSetPrescription[index] }
-        return nil
+        return perSetPrescription.last
     }
 }
 

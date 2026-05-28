@@ -14,7 +14,11 @@ struct OnboardingView: View {
     @State private var bodyweight: String = ""
     @State private var useMetric: Bool = false
 
-    // Page 2 — Program selection (inline)
+    // Page 2 — Density preference (defaults to standard so a Skip
+    // lands somewhere sensible without exposing the full firehose).
+    @State private var selectedDensity: UIDensity = .standard
+
+    // Page 3 — Program selection (inline)
     @State private var showProgramSelection = false
 
     // App Tour
@@ -24,7 +28,7 @@ struct OnboardingView: View {
         if showProgramSelection {
             ProgramSelectionView(recommendedId: 1, onComplete: { showTour = true })
                 .fullScreenCover(isPresented: $showTour) {
-                    AppTourView()
+                    AppWalkthroughView()
                 }
         } else {
             ZStack {
@@ -37,9 +41,9 @@ struct OnboardingView: View {
                     .offset(x: 100, y: -200)
 
                 VStack(spacing: 0) {
-                    // Progress bar
+                    // Progress bar — 3 pages now (welcome → profile → density)
                     HStack(spacing: 6) {
-                        ForEach(0..<2) { i in
+                        ForEach(0..<3) { i in
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(i <= page ? Color.appRed : Color.appSurface2)
                                 .frame(height: 3)
@@ -51,8 +55,11 @@ struct OnboardingView: View {
                     if page == 0 {
                         welcomePage
                             .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-                    } else {
+                    } else if page == 1 {
                         profilePage
+                            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                    } else {
+                        densityPage
                             .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                     }
                 }
@@ -159,8 +166,8 @@ struct OnboardingView: View {
                 }
                 .padding(14).background(Color.appBlue.opacity(0.04)).cornerRadius(10)
 
-                PrimaryButton(title: "CHOOSE A PROGRAM", icon: "list.bullet.clipboard.fill") {
-                    saveProfile()
+                PrimaryButton(title: "NEXT", icon: "arrow.right") {
+                    withAnimation(.easeInOut(duration: 0.3)) { page = 2 }
                 }
                 .disabled(bodyweight.isEmpty)
                 .padding(.bottom, 40)
@@ -168,6 +175,83 @@ struct OnboardingView: View {
             .padding(.horizontal, 20)
         }
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    // ─── Page 2 — Interface density ───
+    private var densityPage: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 28) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("How much detail?")
+                        .font(.system(size: 28, weight: .black, design: .rounded))
+                        .foregroundColor(.appTextPrimary)
+                    Text("Pick a starting density — you can change this anytime in Settings.")
+                        .font(.system(size: 13)).foregroundColor(.appTextSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 20)
+
+                VStack(spacing: 10) {
+                    densityChoice(level: .minimal,
+                                  title: "Just track my workouts",
+                                  subtitle: "Log sets, see history. No jargon, no extra cards. Algorithm runs quietly.")
+                    densityChoice(level: .standard,
+                                  title: "Show me the basics",
+                                  subtitle: "Volume tracking, PRs, recovery hints — all in plain language.",
+                                  recommended: true)
+                    densityChoice(level: .advanced,
+                                  title: "Show me everything",
+                                  subtitle: "IFI, PML, MRV signals, balance ratios, predictive 1RM — the full coaching layer.")
+                }
+
+                PrimaryButton(title: "CHOOSE A PROGRAM", icon: "list.bullet.clipboard.fill") {
+                    saveProfile()
+                }
+                .padding(.bottom, 40)
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    private func densityChoice(level: UIDensity, title: String, subtitle: String, recommended: Bool = false) -> some View {
+        let selected = selectedDensity == level
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                selectedDensity = level
+            }
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .stroke(selected ? Color.appRed : Color.appBorder, lineWidth: 1.5)
+                        .frame(width: 22, height: 22)
+                    if selected {
+                        Circle().fill(Color.appRed).frame(width: 12, height: 12)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(title)
+                            .font(.system(size: 15, weight: .bold)).foregroundColor(.appTextPrimary)
+                        if recommended {
+                            Text("RECOMMENDED")
+                                .font(.system(size: 8, weight: .black)).foregroundColor(.appRed).kerning(0.8)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(Color.appRed.opacity(0.12)).cornerRadius(4)
+                        }
+                    }
+                    Text(subtitle)
+                        .font(.system(size: 11)).foregroundColor(.appTextDim)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+            }
+            .padding(14)
+            .background(Color.appSurface).cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12)
+                .stroke(selected ? Color.appRed.opacity(0.4) : Color.appBorder, lineWidth: selected ? 1.5 : 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private func saveProfile() {
@@ -181,6 +265,8 @@ struct OnboardingView: View {
             daysPerWeek: 4,
             priorityMuscles: []
         )
+        // Setter also forces algorithmMode = .full for minimal/standard.
+        profile.density = selectedDensity
         modelContext.insert(profile)
         try? modelContext.save()
         showProgramSelection = true
@@ -193,9 +279,15 @@ struct OnboardingView: View {
 
 struct AppTourView: View {
     @Environment(\.dismiss) private var dismiss
+    @Query private var profiles: [UserProfile]
     @State private var tourPage = 0
 
-    private let slides: [(icon: String, title: String, subtitle: String, detail: String, color: Color)] = [
+    /// User's UI density. Advanced users get extra slides explaining the
+    /// algorithm concepts (IFI, MRV, PML, block phases, "ⓘ" icons).
+    private var density: UIDensity { profiles.first?.density ?? .standard }
+
+    /// Base 4-slide tour shown to everyone.
+    private let baseSlides: [(icon: String, title: String, subtitle: String, detail: String, color: Color)] = [
         ("house.fill", "HOME", "Your weekly dashboard",
          "See your schedule, track volume per muscle, swap exercises, and configure your week. Tap any session to see what's planned.",
          .appRed),
@@ -203,12 +295,37 @@ struct AppTourView: View {
          "Pick a session and go. The algorithm suggests weights and reps based on your history. Log sets, adjust mid-workout, add exercises anytime.",
          .appBlue),
         ("trophy.fill", "PROGRESS", "Track everything",
-         "PRs, e1RM trends, volume charts, strength balance ratios. You can also log PRs here from workouts done outside the app.",
+         "PRs, e1RM trends, volume charts, history. Log a PR anytime from workouts done outside the app.",
          .appGold),
         ("gearshape.fill", "SETTINGS", "Make it yours",
-         "Change your experience level, muscle priorities, toggle RPE/rest timer/rep ranges, adjust algorithm intensity, and more. Everything is customizable.",
+         "Change your goal, muscle priorities, interface density, and more. Everything is adjustable later.",
          .appGreen),
     ]
+
+    /// Extra slides shown only to advanced users — introduce the algorithmic
+    /// metrics they'll see throughout the app so they're not surprised by jargon.
+    private let advancedSlides: [(icon: String, title: String, subtitle: String, detail: String, color: Color)] = [
+        ("waveform.path.ecg", "IFI",
+         "Watches how hard you're working",
+         "After all sets are logged, you'll see an IFI badge. It measures rep drop-off across the exercise. Green = optimal effort. Yellow/orange = fatigue building. The algorithm uses it to decide next session's load.",
+         .appYellow),
+        ("exclamationmark.triangle.fill", "MRV signals",
+         "Knows when to back you off",
+         "Five fatigue signals per muscle — e1RM decline, IFI trend, stuck loads, dropping volume, missed reps. When they accumulate, you'll see a 'fatigue building' banner. Take the deload when offered.",
+         .appOrange),
+        ("arrow.right.circle", "Adaptive recommendations",
+         "Weight reduces when you're pre-fatigued",
+         "If you bench heavy first, the algorithm reduces tricep weight later (PML — Prior Muscle Load). The amount adapts to your personal recovery profile over time. You'll see 'Adjusted for prior X work' as a note.",
+         .appBlue),
+        ("info.circle.fill", "Tap ⓘ for any term",
+         "In-app explanations everywhere",
+         "Look for the small 'ⓘ' icons next to IFI, MRV warnings, stall cards, balance ratios, and more. Tap any one for a clear explanation. The full glossary lives in Settings → Learn → Glossary.",
+         .appRed),
+    ]
+
+    private var slides: [(icon: String, title: String, subtitle: String, detail: String, color: Color)] {
+        density == .advanced ? baseSlides + advancedSlides : baseSlides
+    }
 
     var body: some View {
         ZStack {

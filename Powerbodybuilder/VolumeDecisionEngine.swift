@@ -103,12 +103,15 @@ struct VolumeDecisionEngine {
         var reasons: [String] = []
 
         // Signal 1: How long has load been stalled? (35% weight)
+        // Continuous training uses a neutral threshold (2 weeks) — no block
+        // phase context, so we lean toward the late-accumulation cadence.
         let requiredWeeks: Int = switch state.blockPhase {
         case .postDeloadReintro: 999
         case .earlyAccumulation: 3
         case .lateAccumulation:  2
         case .intensification:   1
         case .deload:            999
+        case .continuous:        2
         }
 
         if state.weeksAtCurrentLoad >= requiredWeeks {

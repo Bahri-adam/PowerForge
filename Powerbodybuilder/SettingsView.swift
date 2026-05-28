@@ -10,6 +10,9 @@ struct SettingsView: View {
     private var activeInstances: [UserProgramInstance]
 
     var profile: UserProfile? { profiles.first }
+    /// User's UI density — gates which Settings sections are visible.
+    /// Minimal hides advanced toggles + How-It-Works + reset.
+    private var density: UIDensity { profile?.density ?? .advanced }
     var activeProgram: UserProgram? {
         let active = programs.first(where: { $0.isActive })
         return active
@@ -33,6 +36,7 @@ struct SettingsView: View {
     @State private var exportFileURL: URL? = nil
     @State private var showDayTemplates = false
     @State private var showResetProgram = false
+    @State private var showWalkthrough = false
     @State private var iCloudStatus: (signedIn: Bool, message: String) = (false, "Checking…")
 
     private func programDef(for programId: Int) -> ProgramDef? {
@@ -98,6 +102,7 @@ struct SettingsView: View {
                             .font(.system(size: 22, weight: .black, design: .rounded))
                             .foregroundColor(.appTextPrimary)
                         Spacer()
+                        TabHelpButton(chapter: .settings)
                     }
                     .padding(20)
                     .background(Color.appSurface)
@@ -109,7 +114,78 @@ struct SettingsView: View {
                     )
                     
                     VStack(spacing: 20) {
-                        
+
+                        // INTERFACE DENSITY
+                        if let profile = profile {
+                            UIDensityPicker(profile: profile, modelContext: modelContext)
+                        }
+
+                        // PROGRAM STYLE — periodization on/off.
+                        // When OFF the app hides blocks/phases/mesocycle and
+                        // skips deloads. Engine still runs progression normally.
+                        if let profile = profile {
+                            VStack(spacing: 0) {
+                                SectionHeader(title: "TRAINING STYLE")
+                                    .padding(.bottom, 10)
+                                VStack(spacing: 0) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: profile.usesPeriodization ? "calendar.badge.clock" : "infinity")
+                                            .font(.system(size: 14)).foregroundColor(.appBlue)
+                                            .frame(width: 20)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Block Periodization")
+                                                .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
+                                            Text(profile.usesPeriodization
+                                                 ? "Cycles through accumulation, intensification, and recovery weeks"
+                                                 : "Continuous training — no block phases or scheduled deloads")
+                                                .font(.system(size: 11)).foregroundColor(.appTextDim)
+                                                .lineLimit(2).multilineTextAlignment(.leading)
+                                        }
+                                        Spacer()
+                                        Toggle("", isOn: Binding(
+                                            get: { profile.usesPeriodization },
+                                            set: { newValue in
+                                                profile.usesPeriodization = newValue
+                                                // Toggling off also disables scheduled deloads — they're
+                                                // a block-periodization concept. Toggling back on doesn't
+                                                // restore (user's preference for deloads is intentional).
+                                                if !newValue { profile.skipDeloads = true }
+                                                try? modelContext.save()
+                                            }
+                                        ))
+                                        .tint(.appRed)
+                                        .labelsHidden()
+                                    }
+                                    .padding(.horizontal, 16).padding(.vertical, 12)
+                                }
+                                .appCard()
+                            }
+                        }
+
+                        // REPLAY WALKTHROUGH — always visible, all densities.
+                        // Lets users re-watch the guided tour anytime.
+                        VStack(spacing: 0) {
+                            Button { showWalkthrough = true } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "play.rectangle.fill")
+                                        .font(.system(size: 16)).foregroundColor(.appBlue)
+                                        .frame(width: 20)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Replay Walkthrough")
+                                            .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
+                                        Text("Guided tour of every feature")
+                                            .font(.system(size: 11)).foregroundColor(.appTextDim)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12)).foregroundColor(.appTextDim)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 14)
+                            }
+                            .buttonStyle(.plain)
+                            .appCard()
+                        }
+
                         // PROFILE CARD
                         VStack(spacing: 0) {
                             SectionHeader(title: "PROFILE")
@@ -248,47 +324,51 @@ struct SettingsView: View {
                                         }
                                         .buttonStyle(.plain)
 
-                                        Button(action: { showProgramBuilder = true }) {
+                                        if density.showsBuildProgramButton {
+                                            Button(action: { showProgramBuilder = true }) {
+                                                HStack {
+                                                    Image(systemName: "hammer.fill")
+                                                        .font(.system(size: 13))
+                                                    Text("BUILD")
+                                                        .font(.system(size: 12, weight: .bold))
+                                                        .kerning(0.5)
+                                                }
+                                                .foregroundColor(.appRed)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 12)
+                                                .background(Color.appRed.opacity(0.08))
+                                                .cornerRadius(10)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 10)
+                                                        .stroke(Color.appRed.opacity(0.2), lineWidth: 1)
+                                                )
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+
+                                    // GENERATE AUTO PROGRAM — std+adv (easier "do it for me" option).
+                                    if density.showsGenerateProgramButton {
+                                        Button(action: { showGeneratedPreview = true }) {
                                             HStack {
-                                                Image(systemName: "hammer.fill")
+                                                Image(systemName: "wand.and.stars")
                                                     .font(.system(size: 13))
-                                                Text("BUILD")
+                                                Text("GENERATE PROGRAM")
                                                     .font(.system(size: 12, weight: .bold))
                                                     .kerning(0.5)
                                             }
-                                            .foregroundColor(.appRed)
+                                            .foregroundColor(.appGreen)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 12)
-                                            .background(Color.appRed.opacity(0.08))
+                                            .background(Color.appGreen.opacity(0.08))
                                             .cornerRadius(10)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 10)
-                                                    .stroke(Color.appRed.opacity(0.2), lineWidth: 1)
+                                                    .stroke(Color.appGreen.opacity(0.2), lineWidth: 1)
                                             )
                                         }
                                         .buttonStyle(.plain)
                                     }
-
-                                    // GENERATE AUTO PROGRAM
-                                    Button(action: { showGeneratedPreview = true }) {
-                                        HStack {
-                                            Image(systemName: "wand.and.stars")
-                                                .font(.system(size: 13))
-                                            Text("GENERATE PROGRAM")
-                                                .font(.system(size: 12, weight: .bold))
-                                                .kerning(0.5)
-                                        }
-                                        .foregroundColor(.appGreen)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Color.appGreen.opacity(0.08))
-                                        .cornerRadius(10)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(Color.appGreen.opacity(0.2), lineWidth: 1)
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
 
                                     // Program start date
                                     if let inst = activeInstance {
@@ -313,26 +393,28 @@ struct SettingsView: View {
                             .appCard()
                         }
 
-                        // DAY TEMPLATES
-                        VStack(spacing: 0) {
-                            SectionHeader(title: "DAY TEMPLATES")
-                                .padding(.bottom, 10)
-                            Button(action: { showDayTemplates = true }) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "square.stack.3d.up.fill")
-                                        .font(.system(size: 14)).foregroundColor(.appBlue).frame(width: 20)
-                                    Text("Manage Templates")
-                                        .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
-                                    Spacer()
-                                    Text("Reusable sessions")
-                                        .font(.system(size: 11)).foregroundColor(.appTextDim)
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.appTextDim)
+                        // DAY TEMPLATES — std+adv. Casual users won't build templates.
+                        if density.showsDayTemplatesLink {
+                            VStack(spacing: 0) {
+                                SectionHeader(title: "DAY TEMPLATES")
+                                    .padding(.bottom, 10)
+                                Button(action: { showDayTemplates = true }) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "square.stack.3d.up.fill")
+                                            .font(.system(size: 14)).foregroundColor(.appBlue).frame(width: 20)
+                                        Text("Manage Templates")
+                                            .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
+                                        Spacer()
+                                        Text("Reusable sessions")
+                                            .font(.system(size: 11)).foregroundColor(.appTextDim)
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 10, weight: .semibold)).foregroundColor(.appTextDim)
+                                    }
+                                    .padding(.horizontal, 16).padding(.vertical, 14)
                                 }
-                                .padding(.horizontal, 16).padding(.vertical, 14)
+                                .buttonStyle(.plain)
+                                .appCard()
                             }
-                            .buttonStyle(.plain)
-                            .appCard()
                         }
 
                         // PREFERENCES
@@ -350,11 +432,15 @@ struct SettingsView: View {
                             .appCard()
                         }
                         
-                        // ALGORITHM
-                        AlgorithmModePicker(profile: profile, modelContext: modelContext)
+                        // ALGORITHM — advanced only. In minimal/standard, the
+                        // density picker at the top forces algorithmMode = .full,
+                        // so showing this picker would just create user confusion.
+                        if density.showsAlgorithmModePicker {
+                            AlgorithmModePicker(profile: profile, modelContext: modelContext)
+                        }
 
-                        // WARM-UPS
-                        if let profile = profile {
+                        // WARM-UPS — std+adv.
+                        if density.showsWarmupToggle, let profile = profile {
                             VStack(spacing: 0) {
                                 HStack(spacing: 12) {
                                     Image(systemName: "flame")
@@ -379,8 +465,11 @@ struct SettingsView: View {
                             .appCard()
                         }
 
-                        // WORKOUT DISPLAY
-                        if let profile = profile {
+                        // WORKOUT DISPLAY — advanced only. These per-feature toggles
+                        // (rep range, RPE, rest timer, skip deload) duplicate the
+                        // coarser density control for casual users. In advanced the
+                        // user can fine-tune.
+                        if density.showsAdvancedDisplayToggles, let profile = profile {
                             VStack(spacing: 0) {
                                 SectionHeader(title: "WORKOUT DISPLAY")
                                     .padding(.horizontal, 16).padding(.bottom, 10)
@@ -400,28 +489,31 @@ struct SettingsView: View {
                             .appCard()
                         }
 
-                        // LEARN
-                        VStack(spacing: 0) {
-                            SectionHeader(title: "LEARN")
-                                .padding(.bottom, 10)
-                            Button(action: { showLearn = true }) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "book.fill")
-                                        .font(.system(size: 14)).foregroundColor(.appBlue)
-                                        .frame(width: 20)
-                                    Text("Guides & Education")
-                                        .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12)).foregroundColor(.appTextDim)
+                        // LEARN — std+adv. Casual users don't open RPE guides.
+                        if density.showsLearnSection {
+                            VStack(spacing: 0) {
+                                SectionHeader(title: "LEARN")
+                                    .padding(.bottom, 10)
+                                Button(action: { showLearn = true }) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "book.fill")
+                                            .font(.system(size: 14)).foregroundColor(.appBlue)
+                                            .frame(width: 20)
+                                        Text("Guides & Education")
+                                            .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 12)).foregroundColor(.appTextDim)
+                                    }
+                                    .padding(.horizontal, 16).padding(.vertical, 14)
                                 }
-                                .padding(.horizontal, 16).padding(.vertical, 14)
+                                .buttonStyle(.plain)
+                                .appCard()
                             }
-                            .buttonStyle(.plain)
-                            .appCard()
                         }
 
-                        // DATA
+                        // DATA — std+adv. Export/backup/restore is power-user territory.
+                        if density.showsExportSection {
                         VStack(spacing: 0) {
                             SectionHeader(title: "DATA")
                                 .padding(.bottom, 10)
@@ -480,34 +572,42 @@ struct SettingsView: View {
                             }
                             .appCard()
                         }
+                        } // end if density.showsExportSection
 
-                        // RESET PROGRAM
-                        VStack(spacing: 0) {
-                            SectionHeader(title: "RESET PROGRAM")
-                                .padding(.horizontal, 16).padding(.bottom, 10)
-                            Button { showResetProgram = true } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "arrow.counterclockwise.circle.fill")
-                                        .font(.system(size: 14)).foregroundColor(.appOrange)
-                                        .frame(width: 20)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Reset to Week 1")
-                                            .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
-                                        Text("Clear workout history, keep PRs and lift data")
-                                            .font(.system(size: 11)).foregroundColor(.appTextDim)
+                        // RESET PROGRAM — std+adv. Destructive action; hidden in
+                        // minimal so casual users don't accidentally wipe their data.
+                        if density.showsResetInline {
+                            VStack(spacing: 0) {
+                                SectionHeader(title: "RESET PROGRAM")
+                                    .padding(.horizontal, 16).padding(.bottom, 10)
+                                Button { showResetProgram = true } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "arrow.counterclockwise.circle.fill")
+                                            .font(.system(size: 14)).foregroundColor(.appOrange)
+                                            .frame(width: 20)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Reset to Week 1")
+                                                .font(.system(size: 15, weight: .medium)).foregroundColor(.appTextPrimary)
+                                            Text("Clear workout history, keep PRs and lift data")
+                                                .font(.system(size: 11)).foregroundColor(.appTextDim)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 12)).foregroundColor(.appTextDim)
                                     }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12)).foregroundColor(.appTextDim)
+                                    .padding(.horizontal, 16).padding(.vertical, 14)
                                 }
-                                .padding(.horizontal, 16).padding(.vertical, 14)
+                                .buttonStyle(.plain)
+                                .appCard()
                             }
-                            .buttonStyle(.plain)
-                            .appCard()
                         }
 
-                        // HOW IT WORKS
-                        AlgorithmExplainerSection()
+                        // HOW IT WORKS — advanced only. The expander walks through
+                        // IFI, PML, readiness, strength goals, volume decisions —
+                        // all jargon that doesn't exist in the minimal/standard UI.
+                        if density.showsHowItWorksFull {
+                            AlgorithmExplainerSection()
+                        }
 
                         // ICLOUD STATUS
                         VStack(spacing: 0) {
@@ -583,6 +683,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showResetProgram) {
             ResetProgramSheet(onReset: { resetProgramData() })
+        }
+        .fullScreenCover(isPresented: $showWalkthrough) {
+            AppWalkthroughView()
         }
         .fileImporter(isPresented: $showImportPicker, allowedContentTypes: [.json]) { result in
             if case .success(let url) = result {
@@ -2051,6 +2154,64 @@ struct ResetProgramSheet: View {
         HStack(alignment: .top, spacing: 8) {
             Circle().fill(color).frame(width: 4, height: 4).padding(.top, 7)
             Text(text).font(.system(size: 13)).foregroundColor(.appTextSecondary)
+        }
+    }
+}
+
+// ═══════════════════════════════════════════
+// UI DENSITY PICKER
+// Lets the user pick Minimal / Standard / Advanced. Sits at the top of
+// Settings so it's the first thing visible. Switching to minimal or
+// standard forces AlgorithmMode = .full (recommendations stay visible).
+// ═══════════════════════════════════════════
+
+struct UIDensityPicker: View {
+    let profile: UserProfile
+    let modelContext: ModelContext
+
+    var body: some View {
+        VStack(spacing: 0) {
+            SectionHeader(title: "INTERFACE")
+                .padding(.bottom, 10)
+
+            VStack(spacing: 0) {
+                ForEach(Array(UIDensity.allCases.enumerated()), id: \.element) { idx, level in
+                    Button {
+                        profile.density = level
+                        try? modelContext.save()
+                    } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .stroke(profile.density == level ? Color.appRed : Color.appBorder, lineWidth: 1.5)
+                                    .frame(width: 20, height: 20)
+                                if profile.density == level {
+                                    Circle().fill(Color.appRed).frame(width: 10, height: 10)
+                                }
+                            }
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(level.displayName)
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.appTextPrimary)
+                                Text(level.subtitle)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.appTextDim)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 14)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if idx < UIDensity.allCases.count - 1 {
+                        Divider().background(Color.appBorder).padding(.leading, 50)
+                    }
+                }
+            }
+            .appCard()
         }
     }
 }
