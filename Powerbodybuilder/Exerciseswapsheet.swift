@@ -113,9 +113,12 @@ struct ExerciseSwapSheet: View {
         return filtered.count > 4 ? Array(filtered.dropFirst(4)) : []
     }
 
-    /// 9 canonical muscle groups for filter chips (not raw anatomy names)
+    /// 9 canonical muscle groups for filter chips, plus Abs (Core) so ab work
+    /// is pickable when adding an exercise. Always offered here (unlike the
+    /// auto-revealing dashboard tile) since this is the entry point for
+    /// programming abs in the first place.
     private var allMusclesInLibrary: [String] {
-        ExerciseDictionary.trackingMuscles
+        ExerciseDictionary.trackingMuscles + ["Core"]
     }
 
     var body: some View {
@@ -191,7 +194,7 @@ struct ExerciseSwapSheet: View {
                                 selectedMuscleFilter = nil
                             }
                             ForEach(allMusclesInLibrary, id: \.self) { muscle in
-                                FilterChip(label: muscle, isSelected: selectedMuscleFilter == muscle) {
+                                FilterChip(label: muscle == "Core" ? "Abs" : muscle, isSelected: selectedMuscleFilter == muscle) {
                                     selectedMuscleFilter = selectedMuscleFilter == muscle ? nil : muscle
                                 }
                             }

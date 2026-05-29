@@ -229,7 +229,7 @@ struct ProgramTabView: View {
     private func programmedSetsForMuscle(_ muscle: String) -> Int {
         guard let inst = instance else { return 0 }
         let week = inst.currentWeek
-        var total = 0
+        var total = 0.0
         let activeSessions = activeSessionsForWeek(
             programId: inst.programId, instance: inst, profile: profile, week: week,
             templates: programTemplates)
@@ -243,42 +243,40 @@ struct ProgramTabView: View {
                 programId: inst.programId, week: week, sessionType: st,
                 allTemplates: allSessionTemplates,
                 instance: inst, totalWeeks: totalWeeks,
-                blockLength: inst.blockLength, goal: goal))
+                blockLength: inst.blockLength, goal: goal,
+                usesPeriodization: profile?.usesPeriodization ?? true,
+                skipDeloads: profile?.skipDeloads ?? false))
         }
         for t in templates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
                                          overrides: inst.overrides, week: week)
-            let targets: Bool = {
-                if let def = ExerciseDictionary.all[key] {
-                    return def.primaryMuscles.contains { ExerciseDictionary.normalizeMuscle($0) == muscle }
-                }
-                if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
-                    return ex.musclesPrimary.contains { ExerciseDictionary.normalizeMuscle($0) == muscle }
-                }
-                return false
-            }()
-            guard targets else { continue }
+            // Head-aware credit (max per muscle), matching the Home coverage card
+            // and the Volume Adjuster — so a compound like a hack squat counts its
+            // glutesMax ≈ 0.7 toward Glutes even though Glutes isn't a "primary".
+            let credit = muscleCredit(for: key, muscle: muscle)
+            guard credit >= 0.6 else { continue }
             let delta = inst.overrides
                 .filter { ov in
                     ov.targetSlotId == t.slotId && ov.sessionType == t.sessionType &&
                     ov.setCountDelta != 0 && !ov.isAddition && ov.appliesTo(week: week)
                 }
                 .reduce(0) { $0 + $1.setCountDelta }
-            total += max(0, t.targetSets + delta)
+            total += credit * Double(max(0, t.targetSets + delta))
         }
         for ov in inst.overrides where ov.isAddition && ov.appliesTo(week: week) {
-            let key = ov.replacementExerciseKey
-            if let def = ExerciseDictionary.all[key] {
-                if def.primaryMuscles.contains(where: { ExerciseDictionary.normalizeMuscle($0) == muscle }) {
-                    total += ov.addedSets
-                }
-            } else if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
-                if ex.musclesPrimary.contains(where: { ExerciseDictionary.normalizeMuscle($0) == muscle }) {
-                    total += ov.addedSets
-                }
-            }
+            let credit = muscleCredit(for: ov.replacementExerciseKey, muscle: muscle)
+            if credit >= 0.6 { total += credit * Double(ov.addedSets) }
         }
-        return total
+        return Int(round(total))
+    }
+
+    /// Head-aware per-set credit for a muscle from an exercise key (max over the
+    /// muscle's heads) — the single attribution shared by the coverage card,
+    /// Volume Adjuster, and this Program-tab counter.
+    private func muscleCredit(for key: String, muscle: String) -> Double {
+        if let def = ExerciseDictionary.all[key] { return def.musclesCredit()[muscle] ?? 0 }
+        if let ex = allExercises.first(where: { $0.exerciseKey == key }) { return ex.musclesCredit()[muscle] ?? 0 }
+        return 0
     }
 
     // ═══════════════════════════════════════
@@ -306,7 +304,9 @@ struct ProgramTabView: View {
                 programId: inst.programId, week: week, sessionType: st,
                 allTemplates: allSessionTemplates,
                 instance: inst, totalWeeks: totalWeeks,
-                blockLength: inst.blockLength, goal: goal))
+                blockLength: inst.blockLength, goal: goal,
+                usesPeriodization: profile?.usesPeriodization ?? true,
+                skipDeloads: profile?.skipDeloads ?? false))
         }
 
         var totals: [MuscleHead: Double] = [:]
@@ -657,7 +657,9 @@ struct ProgramTabView: View {
                 programId: inst.programId, week: week, sessionType: st,
                 allTemplates: allSessionTemplates,
                 instance: inst, totalWeeks: totalWeeks,
-                blockLength: inst.blockLength, goal: goal))
+                blockLength: inst.blockLength, goal: goal,
+                usesPeriodization: profile?.usesPeriodization ?? true,
+                skipDeloads: profile?.skipDeloads ?? false))
         }
 
         // Group by resolved exerciseKey, sum sets per key
@@ -1545,38 +1547,25 @@ struct ProgramTabView: View {
     private func sessionsForWeek(_ week: Int) -> [SessionType: [ProgramSessionTemplate]] {
         guard let inst = instance else { return [:] }
 
-        // Try the exact week first
-        var templates = allSessionTemplates.filter {
-            $0.programId == inst.programId && $0.week == week
-        }
-
-        // If this should be a training week (per blockLength) but templates are empty or sparse,
-        // fall back to the nearest non-deload week's templates
-        let rotation = programRotation()
-        let sessionTypesFound = Set(templates.map { $0.sessionType })
-        let missingSessionTypes = rotation.filter { !sessionTypesFound.contains($0) }
-
-        if !isRecoveryWeek(week) && !missingSessionTypes.isEmpty {
-            let bl = inst.blockLength > 0 ? inst.blockLength : 5
-            let totalWk = totalWeeks
-            for offset in [1, -1, 2, -2, 3, -3, 4, -4] {
-                let fallbackWeek = week + offset
-                guard fallbackWeek >= 1 && fallbackWeek <= totalWk else { continue }
-                guard !isRecoveryWeek(fallbackWeek) else { continue }
-                let fallbackTemplates = allSessionTemplates.filter {
-                    $0.programId == inst.programId && $0.week == fallbackWeek
-                }
-                let fallbackTypes = Set(fallbackTemplates.map { $0.sessionType })
-                // Check if this fallback week has the missing session types
-                if missingSessionTypes.allSatisfy({ fallbackTypes.contains($0) }) {
-                    // Add the missing session templates from the fallback week
-                    for missing in missingSessionTypes {
-                        let fallbackForSession = fallbackTemplates.filter { $0.sessionType == missing }
-                        templates.append(contentsOf: fallbackForSession)
-                    }
-                    break
-                }
-            }
+        // Primary fetch: per session type in the rotation, routed through the
+        // block-adaptation path. When the user EXPERIENCES this week as
+        // training (Skip Deloads on, or block reshaped) but the seeded
+        // template for the week is a deload, lookupAdaptedTemplates pulls a
+        // neighbor week's training prescriptions instead of the seeded
+        // 2-set deload ones. This is what makes the Weeks tab agree with the
+        // Train tab — the old exact-week filter showed seeded deload set
+        // counts (e.g. Bahri week 3/9 hack squat 5→2) while the workout
+        // trained. It also subsumes the old "missing session type" neighbor
+        // fallback, since the adapted lookup walks neighbors internally.
+        var templates: [ProgramSessionTemplate] = []
+        for st in programRotation() {
+            templates.append(contentsOf: lookupAdaptedTemplates(
+                programId: inst.programId, week: week, sessionType: st,
+                allTemplates: allSessionTemplates,
+                instance: inst, totalWeeks: totalWeeks,
+                blockLength: inst.blockLength, goal: profile?.goal ?? .hypertrophy,
+                usesPeriodization: profile?.usesPeriodization ?? true,
+                skipDeloads: profile?.skipDeloads ?? false))
         }
 
         // Cross-program fallback: any session type that's active for this week
@@ -1594,7 +1583,9 @@ struct ProgramTabView: View {
                 programId: inst.programId, week: week, sessionType: st,
                 allTemplates: allSessionTemplates,
                 instance: inst, totalWeeks: totalWeeks,
-                blockLength: inst.blockLength, goal: goal)
+                blockLength: inst.blockLength, goal: goal,
+                usesPeriodization: profile?.usesPeriodization ?? true,
+                skipDeloads: profile?.skipDeloads ?? false)
             templates.append(contentsOf: foreign)
         }
 

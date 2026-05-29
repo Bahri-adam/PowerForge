@@ -422,6 +422,12 @@ struct VolumeLandmark {
         "Biceps":     VolumeLandmark(mev: 4,  mavLow: 8,  mavHigh: 12, mrv: 18),
         "Triceps":    VolumeLandmark(mev: 4,  mavLow: 6,  mavHigh: 10, mrv: 16),
         "Delts":      VolumeLandmark(mev: 6,  mavLow: 10, mavHigh: 14, mrv: 20),
+        // Abs/Core — optional, auto-revealed muscle. Recovers fast, tolerates
+        // high volume. NOT iterated by the program generator (which uses
+        // ExerciseDictionary.trackingMuscles, the canonical 9), so adding it
+        // here gives consistent landmarks for display/adjust without making
+        // the generator auto-program abs.
+        "Core":       VolumeLandmark(mev: 4,  mavLow: 8,  mavHigh: 16, mrv: 25),
     ]
 
     func scaled(by tier: MuscleTier) -> VolumeLandmark {
@@ -1347,13 +1353,23 @@ class UserProgramInstance {
     }
 
     /// Profile-aware block phase. Returns `.continuous` when the user has
-    /// turned off block periodization. Engine and view code that wants to
-    /// honor the user's preference should call this instead of `blockPhase`.
-    /// The raw `blockPhase` remains usable for code that explicitly needs
-    /// the underlying block state (e.g., for migrations or auto-derived
-    /// values), but most consumers should use this.
-    func effectiveBlockPhase(usesPeriodization: Bool) -> BlockPhase {
-        usesPeriodization ? blockPhase : .continuous
+    /// turned off block periodization. When the user has Skip Deload Weeks
+    /// on AND the current block is a deload, returns `.lateAccumulation`
+    /// so the engine treats the week as a normal training week (no held
+    /// weight, no slashed reps) — matching the template substitution
+    /// upstream in buildPreview and lookupAdaptedTemplates.
+    /// Engine and view code that wants to honor the user's preferences
+    /// should call this instead of `blockPhase`.
+    func effectiveBlockPhase(usesPeriodization: Bool, skipDeloads: Bool = false) -> BlockPhase {
+        if !usesPeriodization { return .continuous }
+        if skipDeloads && blockPhase == .deload {
+            // Treat the would-be deload as continued training. Late
+            // accumulation matches what the engine does in the final week
+            // of an accumulation block — sensible default for skipped
+            // deload weeks since users typically keep pushing load.
+            return .lateAccumulation
+        }
+        return blockPhase
     }
 
     var currentWeekSets: [String: Int] {

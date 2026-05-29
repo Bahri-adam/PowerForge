@@ -71,38 +71,63 @@ struct VolumeAdjusterSheet: View {
         activeWorkouts.contains { !$0.isComplete && $0.programInstance === instance }
     }
 
+    private var avTotalWeeks: Int {
+        allProgramTemplates.first(where: { $0.programId == instance.programId })?.durationWeeks
+            ?? (instance.programId == 2 ? 16 : 24)
+    }
+
+    /// Block-adapted template lookup — matches ProgramTabView.programmedSetsForMuscle
+    /// and the Home coverage card. Without this, the Adjust Volume sheet read the
+    /// raw seeded templates for the exact week (e.g. a Bahri deload week's 4-set
+    /// chest) while the Program tab showed the adapted training week (17 sets), so
+    /// the same muscle's programmed count disagreed between the two screens.
+    private func adaptedTemplates(in session: SessionType, week w: Int) -> [ProgramSessionTemplate] {
+        lookupAdaptedTemplates(
+            programId: instance.programId, week: w, sessionType: session,
+            allTemplates: allTemplates, instance: instance,
+            totalWeeks: avTotalWeeks, blockLength: instance.blockLength,
+            goal: profile?.goal ?? .hypertrophy,
+            usesPeriodization: profile?.usesPeriodization ?? true,
+            skipDeloads: profile?.skipDeloads ?? false)
+    }
+
     // ── Volume math ────────────────────────────────────────────────────────
 
     /// Current programmed sets per session for this muscle, for the current week.
     /// Filters out sessions that have been removed via Configure Program.
-    private var sessionsWithMuscle: [(session: SessionType, currentSets: Int)] {
+    private var sessionsWithMuscle: [(session: SessionType, currentSets: Double)] {
         let active = activeSessionsForWeek(
             programId: instance.programId, instance: instance, profile: profile,
             week: week, templates: allProgramTemplates)
-        var result: [(SessionType, Int)] = []
+        var result: [(SessionType, Double)] = []
         for st in active {
             let sets = setsForMuscle(in: st, week: week)
-            if sets > 0 { result.append((st, sets)) }
+            if sets > 0.05 { result.append((st, sets)) }
         }
         return result.sorted { $0.1 > $1.1 }
     }
 
-    /// Effective sets in a session for this muscle, including deltas and additions.
-    /// Uses cross-program template lookup so imported sessions (whose templates
-    /// live under another program's pid) still count toward the muscle total.
-    private func setsForMuscle(in session: SessionType, week: Int) -> Int {
-        let templates = lookupTemplates(programId: instance.programId, week: week,
-                                        sessionType: session, allTemplates: allTemplates)
-        var count = 0
+    /// Credit-weighted programmed sets for this muscle in a session — head-aware
+    /// (a hack squat's glutesMax ≈ 0.7 contributes 0.7 per set), matching the
+    /// Home coverage card's directSetsByMuscle so the two screens agree on the
+    /// muscle's programmed volume. Counts a muscle the SAME way whether it's a
+    /// primary target or a compound's secondary head — which is why Glutes is
+    /// no longer "0 sets" here when squats/hinges build it. Uses block-adapted
+    /// templates so deload/skip weeks count consistently.
+    private func setsForMuscle(in session: SessionType, week: Int) -> Double {
+        let templates = adaptedTemplates(in: session, week: week)
+        var count = 0.0
         for t in templates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
                                          overrides: instance.overrides, week: week)
-            guard exerciseTargetsMuscle(key: key) else { continue }
+            let credit = muscleCredit(for: key)
+            guard credit >= directCreditThreshold else { continue }
             let delta = totalDelta(forSlot: t.slotId, session: session, week: week)
-            count += max(0, t.targetSets + delta)
+            count += credit * Double(max(0, t.targetSets + delta))
         }
         for ov in instance.overrides where ov.isAddition && ov.sessionType == session && ov.appliesTo(week: week) {
-            if exerciseTargetsMuscle(key: ov.replacementExerciseKey) { count += ov.addedSets }
+            let credit = muscleCredit(for: ov.replacementExerciseKey)
+            if credit >= directCreditThreshold { count += credit * Double(ov.addedSets) }
         }
         return count
     }
@@ -120,20 +145,42 @@ struct VolumeAdjusterSheet: View {
             .reduce(0) { $0 + $1.setCountDelta }
     }
 
+    /// Per-set credit threshold above which an exercise counts as a "direct"
+    /// contributor to this muscle — matches the Home coverage card's
+    /// directCreditThreshold so the two screens agree on what trains a muscle.
+    private let directCreditThreshold: Double = 0.6
+
+    /// Head-aware per-set credit for this muscle from an exercise key (max over
+    /// the muscle's heads), mirroring the coverage card's musclesCredit(). This
+    /// is why a hack squat (glutesMax ≈ 0.7) now counts toward Glutes even
+    /// though Glutes isn't one of its primary muscle strings.
+    private func muscleCredit(for key: String) -> Double {
+        if let def = ExerciseDictionary.all[key] { return def.musclesCredit()[muscle] ?? 0 }
+        if let ex = allExercises.first(where: { $0.exerciseKey == key }) { return ex.musclesCredit()[muscle] ?? 0 }
+        return 0
+    }
+
     private func exerciseTargetsMuscle(key: String) -> Bool {
-        if let def = ExerciseDictionary.all[key] {
-            for pm in def.primaryMuscles {
-                if ExerciseDictionary.normalizeMuscle(pm) == muscle { return true }
-            }
-        }
-        if let ex = allExercises.first(where: { $0.exerciseKey == key }) {
-            return ex.musclesPrimary.contains { ExerciseDictionary.normalizeMuscle($0) == muscle }
-        }
-        return false
+        muscleCredit(for: key) >= directCreditThreshold
+    }
+
+    /// The exercise's own primary tracking muscle(s), surfaced on adjuster rows
+    /// when the muscle being adjusted is only a secondary/head contributor — so
+    /// "Hack Squat" under Glutes reads "also builds Quads" and the ± isn't a
+    /// surprise (it changes the whole exercise, including its primary).
+    private func otherPrimaryLabel(for key: String) -> String? {
+        let primaries: Set<String>
+        if let def = ExerciseDictionary.all[key] { primaries = def.directTrackingMuscles }
+        else if let ex = allExercises.first(where: { $0.exerciseKey == key }) { primaries = ex.directTrackingMuscles }
+        else { return nil }
+        guard !primaries.contains(muscle), let p = primaries.sorted().first else { return nil }
+        return p
     }
 
     private var totalCurrentSets: Int {
-        sessionsWithMuscle.reduce(0) { $0 + $1.currentSets }
+        // Sum credit-weighted per-session totals, then round once — matches the
+        // coverage card's sum-then-round so the two screens land on the same number.
+        Int(round(sessionsWithMuscle.reduce(0.0) { $0 + $1.currentSets }))
     }
 
     // ── Head-level breakdown (Advanced density) ───────────────────────────
@@ -152,8 +199,7 @@ struct VolumeAdjusterSheet: View {
             week: week, templates: allProgramTemplates)
         var totals: [MuscleHead: Double] = [:]
         for session in active {
-            let templates = lookupTemplates(programId: instance.programId, week: week,
-                                            sessionType: session, allTemplates: allTemplates)
+            let templates = adaptedTemplates(in: session, week: week)
             for t in templates {
                 let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
                                              overrides: instance.overrides, week: week)
@@ -248,8 +294,7 @@ struct VolumeAdjusterSheet: View {
             for (st, _) in sessionsWithMuscle {
                 // Cross-program lookup so imported sessions' exercises are
                 // recognized as "in rotation" for suggestion sorting.
-                let templates = lookupTemplates(programId: instance.programId, week: week,
-                                                sessionType: st, allTemplates: allTemplates)
+                let templates = adaptedTemplates(in: st, week: week)
                 for t in templates { keys.insert(t.exerciseKey) }
             }
             return keys
@@ -536,7 +581,7 @@ struct VolumeAdjusterSheet: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.session.shortLabel).font(.system(size: 14, weight: .bold)).foregroundColor(.appTextPrimary)
-                        Text("\(item.currentSets) sets of \(muscle.lowercased())")
+                        Text("\(Int(round(item.currentSets))) sets of \(muscle.lowercased())")
                             .font(.system(size: 11)).foregroundColor(.appTextDim)
                     }
                     Spacer()
@@ -735,9 +780,9 @@ struct VolumeAdjusterSheet: View {
 
     private var adjustableSlots: [AdjustableRow] {
         guard let session = selectedSession else { return [] }
-        // Cross-program lookup so imported sessions show their adjustable slots.
-        let templates = lookupTemplates(programId: instance.programId, week: week,
-                                        sessionType: session, allTemplates: allTemplates)
+        // Block-adapted lookup so the adjustable slots match the deload/skip-aware
+        // counts shown elsewhere, and imported sessions still resolve.
+        let templates = adaptedTemplates(in: session, week: week)
 
         return templates.compactMap { t in
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
@@ -760,6 +805,10 @@ struct VolumeAdjusterSheet: View {
                 Text(row.displayName).font(.system(size: 14, weight: .bold)).foregroundColor(.appTextPrimary)
                 Text("Currently \(row.currentSets) set\(row.currentSets == 1 ? "" : "s")")
                     .font(.system(size: 11)).foregroundColor(.appTextDim)
+                if let other = otherPrimaryLabel(for: row.exerciseKey) {
+                    Text("also builds \(other.lowercased())")
+                        .font(.system(size: 10, weight: .medium)).foregroundColor(.appTextDim)
+                }
             }
             Spacer()
             Button {

@@ -2,6 +2,16 @@ import SwiftUI
 import SwiftData
 import Charts
 
+/// Identifiable target for `.sheet(item:)`. Bundling key + name into a
+/// single state value avoids the SwiftUI batched-write bug where two
+/// separate @State updates land out of order and the sheet's content
+/// closure evaluates with stale nils on the first tap → grey screen.
+struct ExerciseHistoryTarget: Identifiable, Equatable {
+    let key: String
+    let name: String
+    var id: String { key }
+}
+
 struct ProgressView: View {
 
     @Query(filter: #Predicate<UserProgramInstance> { $0.isActive == true })
@@ -19,9 +29,7 @@ struct ProgressView: View {
 
     @State private var selectedLiftKey: String? = nil
     @State private var selectedVolumeFilter: String = "All"
-    @State private var historyExerciseKey: String? = nil
-    @State private var historyExerciseName: String? = nil
-    @State private var showExerciseHistory = false
+    @State private var historyTarget: ExerciseHistoryTarget? = nil
     @State private var showWorkoutHistory = false
     @State private var activeSection: ProgressSection = .overview
     @State private var showPREntry = false
@@ -325,10 +333,8 @@ struct ProgressView: View {
         .onAppear {
             if selectedLiftKey == nil { selectedLiftKey = mainLiftKeys.first }
         }
-        .sheet(isPresented: $showExerciseHistory) {
-            if let key = historyExerciseKey, let name = historyExerciseName {
-                ExerciseHistorySheet(exerciseKey: key, displayName: name)
-            }
+        .sheet(item: $historyTarget) { t in
+            ExerciseHistorySheet(exerciseKey: t.key, displayName: t.name)
         }
         .sheet(isPresented: $showPREntry) {
             PREntrySheet(
@@ -450,9 +456,7 @@ struct ProgressView: View {
             VStack(spacing: 0) {
                 ForEach(Array(mostImproved.prefix(5).enumerated()), id: \.offset) { idx, item in
                     Button {
-                        historyExerciseKey = item.key
-                        historyExerciseName = item.name
-                        showExerciseHistory = true
+                        historyTarget = ExerciseHistoryTarget(key: item.key, name: item.name)
                     } label: {
                         HStack(spacing: 10) {
                             Text("\(idx + 1)").font(.system(size: 10, weight: .black, design: .monospaced))
@@ -813,9 +817,7 @@ struct ProgressView: View {
                     ForEach(exercisePRs.prefix(12)) { pr in
                         prTile(pr: pr)
                             .onTapGesture {
-                                historyExerciseKey = pr.id
-                                historyExerciseName = pr.name
-                                showExerciseHistory = true
+                                historyTarget = ExerciseHistoryTarget(key: pr.id, name: pr.name)
                             }
                     }
                 }
@@ -1340,9 +1342,7 @@ struct ProgressView: View {
                         let bestE1rm = logs.map { $0.e1rm }.max() ?? 0
 
                         Button {
-                            historyExerciseKey = key
-                            historyExerciseName = displayName(for: key)
-                            showExerciseHistory = true
+                            historyTarget = ExerciseHistoryTarget(key: key, name: displayName(for: key))
                         } label: {
                             HStack(spacing: 10) {
                                 VStack(alignment: .leading, spacing: 2) {

@@ -23,7 +23,7 @@ enum MuscleHead: String, Codable, CaseIterable, Hashable {
     case midBack           = "mid_back"
     case traps             = "traps"
     case lowerBack         = "lower_back"
-    case rearDelts         = "rear_delts"     // anatomically part of delts, mapped to Back per existing normalizeMuscle convention
+    case rearDelts         = "rear_delts"     // part of Delts — rear-delt flyes/face pulls and rows' rear-delt portion credit Delts (matches normalizeMuscle "Rear Delts" → Delts)
 
     // Delts (anterior + lateral; rear is grouped under Back above)
     case deltsFront        = "delts_front"
@@ -37,6 +37,7 @@ enum MuscleHead: String, Codable, CaseIterable, Hashable {
     // Hamstrings (grouped by function rather than individual muscle)
     case hamstringsKneeFlexion = "hams_knee_flexion"   // biceps femoris short head emphasis (curls)
     case hamstringsHipExtension = "hams_hip_extension" // long head + semi-* (hinges)
+    case adductors = "adductors"                       // inner thigh — tracked under Hamstrings (adductor magnus is a hip extensor); fed by hip adduction work
 
     // Glutes
     case glutesMax         = "glutes_max"
@@ -62,13 +63,13 @@ enum MuscleHead: String, Codable, CaseIterable, Hashable {
         switch self {
         case .chestUpper, .chestMid, .chestLower:
             return "Chest"
-        case .lats, .midBack, .traps, .lowerBack, .rearDelts:
+        case .lats, .midBack, .traps, .lowerBack:
             return "Back"
-        case .deltsFront, .deltsLateral:
+        case .deltsFront, .deltsLateral, .rearDelts:
             return "Delts"
         case .rectusFemoris, .vastusLateralis, .vastusMedialis:
             return "Quads"
-        case .hamstringsKneeFlexion, .hamstringsHipExtension:
+        case .hamstringsKneeFlexion, .hamstringsHipExtension, .adductors:
             return "Hamstrings"
         case .glutesMax, .glutesMedius:
             return "Glutes"
@@ -98,8 +99,9 @@ enum MuscleHead: String, Codable, CaseIterable, Hashable {
         case .vastusMedialis:    return "Vastus Medialis (VMO)"
         case .hamstringsKneeFlexion:  return "Hams (Knee Flexion)"
         case .hamstringsHipExtension: return "Hams (Hip Extension)"
+        case .adductors:         return "Adductors"
         case .glutesMax:         return "Glute Max"
-        case .glutesMedius:      return "Glute Medius"
+        case .glutesMedius:      return "Glute Medius (Abduction)"
         case .gastrocnemius:     return "Gastrocnemius"
         case .soleus:            return "Soleus"
         case .bicepsLong:        return "Biceps Long Head"
@@ -136,8 +138,9 @@ enum MuscleHead: String, Codable, CaseIterable, Hashable {
         // the hip-extension fibers sit higher (built by RDLs/hinges).
         case .hamstringsKneeFlexion:  return "lower hams"
         case .hamstringsHipExtension: return "upper hams"
+        case .adductors:         return "inner thigh"
         case .glutesMax:         return "glute max"
-        case .glutesMedius:      return "side glute"
+        case .glutesMedius:      return "side glute / abduction"
         case .gastrocnemius:     return "upper calf"
         case .soleus:            return "lower calf"
         case .bicepsLong:        return "outer biceps"

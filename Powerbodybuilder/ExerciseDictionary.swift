@@ -245,7 +245,12 @@ struct ExerciseDictionary {
             || l.contains("trap") || l == "back" { return "Back" }
         if l.contains("quad") || l.contains("rectus femoris") { return "Quads" }
         if l.contains("hamstring") { return "Hamstrings" }
-        if l.contains("glute") || l.contains("adductor") { return "Glutes" }
+        // Hip abduction (glute medius/minimus) → Glutes; hip adduction
+        // (adductor magnus is a hip extensor) → Hamstrings. Checked before the
+        // broad "ab" → Core rule below, since "abduct"/"adduct" contain "ab".
+        if l.contains("abduct") { return "Glutes" }
+        if l.contains("adduct") { return "Hamstrings" }
+        if l.contains("glute") { return "Glutes" }
         if l.contains("calf") || l.contains("calves") || l.contains("gastrocnemius")
             || l.contains("soleus") { return "Calves" }
         if l.contains("bicep") || l.contains("brachialis") || l.contains("brachioradialis") { return "Biceps" }
@@ -813,7 +818,11 @@ struct ExerciseDictionary {
         ExerciseDefinition(
             key: "good_morning", displayName: "Good Morning",
             movementPattern: .hinge, swapPattern: "hip_hinge",
-            primaryMuscles: ["Mid Back", "Lats"],
+            // Good Morning is a posterior-chain hinge (hamstrings + erectors),
+            // not a lat exercise — was mislabeled "Mid Back, Lats". Head credit
+            // already routes correctly (hamstrings 0.9); this fixes the metadata
+            // so it filters/selects as a hamstring movement.
+            primaryMuscles: ["Hamstrings", "Lower Back"],
             secondaryMuscles: [.init(muscle: "Hamstrings", weight: 0.7), .init(muscle: "Glutes", weight: 0.5)],
             equipment: .barbell, isCompound: true, stretchPosition: .lengthened,
             jointStressTags: ["low_back"],
@@ -1585,6 +1594,7 @@ struct ExerciseDictionary {
                 .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.7,
                 .glutesMax: 0.7,
                 .hamstringsHipExtension: 0.4,
+                .adductors: 0.3,
                 .lowerBack: 0.5
             ]),
 
@@ -1634,7 +1644,7 @@ struct ExerciseDictionary {
             rank: 1, head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
             headContributions: [
                 .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.6,
-                .glutesMax: 0.7
+                .glutesMax: 0.7, .adductors: 0.3
             ]),
 
         ExerciseDefinition(
@@ -1667,7 +1677,7 @@ struct ExerciseDictionary {
             head: "compound", generatorPattern: "squat", sessionRestriction: .lowerOnly,
             headContributions: [
                 .vastusLateralis: 1.0, .vastusMedialis: 1.0, .rectusFemoris: 0.7,
-                .glutesMax: 0.6
+                .glutesMax: 0.6, .adductors: 0.3
             ]),
 
         ExerciseDefinition(
@@ -1712,7 +1722,7 @@ struct ExerciseDictionary {
             head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly,
             headContributions: [
                 .vastusLateralis: 1.0, .vastusMedialis: 0.9, .rectusFemoris: 0.6,
-                .glutesMax: 0.6,
+                .glutesMax: 0.6, .glutesMedius: 0.3,
                 .hamstringsHipExtension: 0.3
             ]),
 
@@ -1728,7 +1738,7 @@ struct ExerciseDictionary {
             head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly,
             headContributions: [
                 .vastusLateralis: 1.0, .vastusMedialis: 0.9, .rectusFemoris: 0.6,
-                .glutesMax: 0.6,
+                .glutesMax: 0.6, .glutesMedius: 0.3,
                 .hamstringsHipExtension: 0.3
             ]),
 
@@ -1744,7 +1754,7 @@ struct ExerciseDictionary {
             rank: 3, head: "compound", generatorPattern: "lunge", sessionRestriction: .lowerOnly,
             headContributions: [
                 .vastusLateralis: 0.9, .vastusMedialis: 0.8, .rectusFemoris: 0.5,
-                .glutesMax: 0.7,
+                .glutesMax: 0.7, .glutesMedius: 0.4,
                 .hamstringsHipExtension: 0.3
             ]),
 
@@ -2081,7 +2091,7 @@ struct ExerciseDictionary {
             head: "extension", generatorPattern: "hinge", sessionRestriction: .lowerOnly,
             headContributions: [
                 .glutesMax: 1.0,
-                .hamstringsHipExtension: 0.6,
+                .hamstringsHipExtension: 0.6, .adductors: 0.6,
                 .vastusLateralis: 0.5, .vastusMedialis: 0.5, .rectusFemoris: 0.3,
                 .lowerBack: 0.7, .midBack: 0.5, .traps: 0.4, .lats: 0.4
             ]),
@@ -2099,7 +2109,7 @@ struct ExerciseDictionary {
             headContributions: [
                 .glutesMax: 1.0,
                 .vastusLateralis: 0.7, .vastusMedialis: 0.8, .rectusFemoris: 0.4,
-                .hamstringsHipExtension: 0.4
+                .hamstringsHipExtension: 0.4, .adductors: 0.5
             ]),
 
         ExerciseDefinition(
@@ -2595,7 +2605,7 @@ struct ExerciseDictionary {
         ExerciseDefinition(
             key: "adduction_machine", displayName: "Hip Adduction Machine",
             movementPattern: .isolation, swapPattern: "adduction",
-            primaryMuscles: ["Glutes"],
+            primaryMuscles: ["Adductors"],
             secondaryMuscles: [],
             equipment: .machine, isCompound: false, stretchPosition: .lengthened,
             jointStressTags: [],
@@ -2603,7 +2613,7 @@ struct ExerciseDictionary {
             swapWarning: nil, variationOfKey: nil,
             head: "adduction", generatorPattern: "glute_isolation", sessionRestriction: .lowerOnly,
             headContributions: [
-                .glutesMax: 0.3
+                .adductors: 1.0
             ]),
 
         // ── Chest ──

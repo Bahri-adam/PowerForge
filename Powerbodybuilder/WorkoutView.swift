@@ -187,11 +187,24 @@ func lookupAdaptedTemplates(programId: Int,
                             instance: UserProgramInstance,
                             totalWeeks: Int,
                             blockLength: Int,
-                            goal: GoalType) -> [ProgramSessionTemplate] {
+                            goal: GoalType,
+                            usesPeriodization: Bool = true,
+                            skipDeloads: Bool = false) -> [ProgramSessionTemplate] {
+    // userInfo reflects what the user EXPERIENCES (their toggles applied).
+    // seededInfo reflects what the PROGRAM'S TEMPLATES were designed for
+    // (always seeded schedule, no user overrides). When they disagree,
+    // we need to substitute templates from a neighbor week whose seeded
+    // phase matches userInfo.
+    //
+    // Without passing usesPeriodization+skipDeloads to userInfo, the
+    // computation matched seededInfo on every deload-week and the user's
+    // Skip Deload Weeks toggle had zero effect on template prescription.
     let userInfo = ComputedBlockInfo.compute(
         forWeek: week, programId: programId,
         blockLength: blockLength, totalWeeks: totalWeeks,
-        goal: goal, instance: instance)
+        goal: goal, instance: instance,
+        usesPeriodization: usesPeriodization,
+        skipDeloads: skipDeloads)
     let seededInfo = ComputedBlockInfo.compute(
         forWeek: week, programId: programId,
         blockLength: blockLength, totalWeeks: totalWeeks,
@@ -547,6 +560,187 @@ struct WorkoutView: View {
 
     // ── Build preview session ──────────────────────────────────────────────
 
+    /// Builds one LiveExercise for a program template slot. Extracted from
+    /// buildPreview so that function stays under the Swift actor-isolation
+    /// type-checker's crash threshold — buildPreview was at the limit and any
+    /// inline edit segfaulted swift-frontend. Threads the session-scoped
+    /// accumulators (PML history, applied strength goals, warm-up budget)
+    /// through inout so sequencing across exercises is preserved.
+    private func makeLiveExercise(
+        _ t: ProgramSessionTemplate,
+        inst: UserProgramInstance,
+        useMetric: Bool,
+        week: Int,
+        priorExercisesForPML: inout [(key: String, sets: Int)],
+        strengthGoalAppliedKeys: inout Set<String>,
+        compoundWarmupCount: inout Int
+    ) -> LiveExercise {
+        // Resolve overrides — use swapped exercise if one applies to this week
+        let effectiveKey = resolveExerciseKey(
+            slotId: t.slotId, originalKey: t.exerciseKey,
+            overrides: inst.overrides, week: week
+        )
+        let name = exerciseNames[effectiveKey] ?? effectiveKey
+            .replacingOccurrences(of: "_", with: " ").capitalized
+        let recentLogs = careerLogs
+            .filter { $0.exerciseKey == effectiveKey }
+            .sorted { $0.date > $1.date }
+        let progState = inst.progressionStates.first(where: { $0.exerciseKey == effectiveKey })
+        let tier: ExerciseTier = {
+            let def = ExerciseDictionary.all[effectiveKey]
+            if def?.isAnchorableAsTier1 == true { return .tier1 }
+            if def?.isCompound == true { return .tier2 }
+            return .tier3
+        }()
+
+        // Compute PML from prior exercises this session
+        let pml = ProgressionEngine.computePML(
+            targetExerciseKey: effectiveKey,
+            priorExercises: priorExercisesForPML,
+            personalSensitivity: progState?.personalFatigueSensitivity ?? 0.12
+        )
+
+        // ── Strength Goal override (only first occurrence per exercise) ──
+        let activeGoal: StrengthGoal? = {
+            guard !strengthGoalAppliedKeys.contains(effectiveKey) else { return nil }
+            return inst.strengthGoals.first(where: { $0.exerciseKey == effectiveKey && $0.isActive })
+        }()
+        let effectiveRepsLow: Int
+        let effectiveRepsHigh: Int
+        let effectiveRPE: Double
+        let effectiveSets: Int
+        var goalNote = ""
+
+        if let goal = activeGoal, tier == .tier1 {
+            strengthGoalAppliedKeys.insert(effectiveKey)
+            let phase = goal.phase
+            effectiveRepsLow = phase.repRange.low
+            effectiveRepsHigh = phase.repRange.high
+            effectiveRPE = phase.targetRPE
+            effectiveSets = phase.targetSets
+            goalNote = "Strength Focus — \(phase.displayName) (Wk \(goal.phaseWeek)/\(goal.currentPhaseLength))"
+        } else {
+            effectiveRepsLow = t.targetRepsLow
+            effectiveRepsHigh = t.targetRepsHigh
+            effectiveRPE = t.targetRPE
+            effectiveSets = t.targetSets
+        }
+
+        let rec = ProgressionEngine.recommend(
+            recentLogs: recentLogs,
+            targetRepsLow: effectiveRepsLow,
+            targetRepsHigh: effectiveRepsHigh,
+            targetRPE: effectiveRPE,
+            exerciseTier: tier,
+            useMetric: useMetric,
+            progressionState: progState,
+            lastSessionIFI: progState?.lastIFI,
+            blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true, skipDeloads: profile?.skipDeloads ?? false),
+            progressionRate: profile?.progressionRate ?? .normal,
+            pmlFactor: pml.factor
+        )
+
+        // For strength goals, override weight with phase-prescribed loading
+        var top = rec.recommendedWeight > 0 ? rec.recommendedWeight : 0
+        if let goal = activeGoal, tier == .tier1 {
+            let prescribed = goal.prescribeWeight(
+                currentE1RM: progState?.bestE1RM ?? top,
+                useMetric: useMetric)
+            if prescribed > 0 { top = prescribed }
+        }
+
+        let algoMode = profile?.algorithmMode ?? .full
+        let backoff = rec.backoffWeight > 0 ? rec.backoffWeight : top
+        let isTier1 = tier == .tier1
+        let sets = (0..<effectiveSets).map { i -> LiveSet in
+            // Prefer per-set prescription when available (weight-aware)
+            let prescription = rec.prescriptionForSet(i)
+
+            let weight: Double
+            let reps: Int
+            let repsHigh: Int?
+            let role: ProgressionEngine.SetRole?
+
+            switch algoMode {
+            case .full:
+                if let p = prescription, p.weight > 0 {
+                    weight = p.weight
+                    reps = p.repsTarget
+                    repsHigh = p.hasRange ? p.repsRangeHigh : nil
+                    role = p.role
+                } else {
+                    // Fallback: straight sets at top/backoff
+                    weight = (isTier1 && i > 0) ? backoff : top
+                    reps = rec.repsForSet(i)
+                    repsHigh = nil
+                    role = isTier1 ? (i > 0 ? .backoff : .primary) : .primary
+                }
+            case .suggestions:
+                weight = 0  // not pre-filled in suggestions mode
+                if let p = prescription {
+                    reps = p.repsTarget
+                    repsHigh = p.hasRange ? p.repsRangeHigh : nil
+                    role = p.role
+                } else {
+                    reps = rec.repsForSet(i)
+                    repsHigh = nil
+                    role = nil
+                }
+            case .off:
+                weight = 0
+                reps = effectiveRepsHigh
+                repsHigh = nil
+                role = nil
+            }
+            return LiveSet(
+                setIndex: i,
+                recommendedWeight: weight,
+                recommendedReps: reps,
+                recommendedRepsHigh: repsHigh,
+                role: role
+            )
+        }
+        let warmupWeight = top > 0 ? top : (progState?.lastSessionWeight ?? 0)
+        let showWarmups = profile?.showWarmups ?? true
+        let warmups: [WarmupSet]
+        if showWarmups && tier != .tier3 && compoundWarmupCount < 2 {
+            warmups = ProgressionEngine.generateWarmupSets(
+                workingWeight: warmupWeight, exerciseTier: tier, useMetric: useMetric
+            ).map { WarmupSet(weight: $0.weight, reps: $0.reps, label: $0.label) }
+            if !warmups.isEmpty { compoundWarmupCount += 1 }
+        } else {
+            warmups = []
+        }
+
+        let pmlNote = pml.factor < 0.97 && !pml.fatigueSource.isEmpty
+            ? "Adjusted for prior \(pml.fatigueSource) work" : ""
+
+        // Build combined notes: goal note + PML note + original notes
+        var allNotes: [String] = []
+        if !goalNote.isEmpty { allNotes.append(goalNote) }
+        if !pmlNote.isEmpty { allNotes.append(pmlNote) }
+        if !t.notes.isEmpty { allNotes.append(t.notes) }
+
+        // Track for subsequent PML calculations
+        priorExercisesForPML.append((key: effectiveKey, sets: t.targetSets))
+
+        return LiveExercise(
+            exerciseKey: effectiveKey,
+            displayName: name,
+            slotId: t.slotId,
+            role: t.role,
+            exerciseTier: tier,
+            targetSets: effectiveSets,
+            targetRepsLow: effectiveRepsLow,
+            targetRepsHigh: effectiveRepsHigh,
+            targetRPE: effectiveRPE,
+            restSeconds: activeGoal?.restSeconds ?? t.restSeconds,
+            notes: allNotes.joined(separator: " · "),
+            sets: sets,
+            warmupSets: warmups
+        )
+    }
+
     private func buildPreview(sessionType: SessionType) {
         guard let inst = instance else { return }
         let useMetric = profile?.useMetric ?? false
@@ -595,7 +789,7 @@ struct WorkoutView: View {
                     useMetric: useMetric,
                     progressionState: progState,
                     lastSessionIFI: progState?.lastIFI,
-                    blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true),
+                    blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true, skipDeloads: profile?.skipDeloads ?? false),
                     progressionRate: profile?.progressionRate ?? .normal
                 )
                 let algoMode2 = profile?.algorithmMode ?? .full
@@ -631,194 +825,39 @@ struct WorkoutView: View {
             return
         }
 
-        // If user opted out of deloads — either explicitly (skipDeloads) or
-        // implicitly via Continuous Training (usesPeriodization off) — and
-        // this is a seeded deload week, substitute templates from the most
-        // recent non-deload week so they keep training normally.
-        let skipDeloads = (profile?.skipDeloads ?? false)
-                       || !(profile?.usesPeriodization ?? true)
-        let dlWeeks = deloadWeeks(for: pid, blockLength: inst.blockLength, instance: inst)
-        var effectiveWeek = week
-        if skipDeloads && dlWeeks.contains(week) {
-            for w in stride(from: week - 1, through: 1, by: -1) {
-                if !dlWeeks.contains(w) {
-                    effectiveWeek = w
-                    break
-                }
-            }
-        }
-        let templates = lookupTemplates(programId: pid, week: effectiveWeek,
-                                        sessionType: sessionType, allTemplates: allTemplates)
+        // Load templates through the SAME block-adaptation path the displays
+        // use (Week Hub preview, Program Weeks tab, volume math). This makes
+        // the workout substitute the EXACT same neighbor week as the preview:
+        // when the user EXPERIENCES this week as training (Skip Deloads on, or
+        // block reshaped) but the seeded template is a deload, both pull the
+        // identical neighbor's training prescriptions. Previously buildPreview
+        // walked neighbors backward while the displays walked forward, so the
+        // workout and preview could borrow different training weeks.
+        //
+        // Safe to call here now that buildPreview's per-exercise builder is
+        // extracted into makeLiveExercise — the function is finally under the
+        // Swift actor-isolation type-checker's crash threshold (calling this
+        // inline before the extraction segfaulted swift-frontend).
+        let previewTotalWeeks = programTemplates.first(where: { $0.programId == pid })?.durationWeeks
+            ?? (pid == 2 ? 16 : 24)
+        let templates = lookupAdaptedTemplates(
+            programId: pid, week: week, sessionType: sessionType,
+            allTemplates: allTemplates, instance: inst,
+            totalWeeks: previewTotalWeeks, blockLength: inst.blockLength,
+            goal: profile?.goal ?? .hypertrophy,
+            usesPeriodization: profile?.usesPeriodization ?? true,
+            skipDeloads: profile?.skipDeloads ?? false)
 
         var priorExercisesForPML: [(key: String, sets: Int)] = []
         var liveExercises: [LiveExercise] = []
         var strengthGoalAppliedKeys: Set<String> = []  // only apply goal to first occurrence
         var compoundWarmupCount = 0
         for t in templates {
-            // Resolve overrides — use swapped exercise if one applies to this week
-            let effectiveKey = resolveExerciseKey(
-                slotId: t.slotId, originalKey: t.exerciseKey,
-                overrides: inst.overrides, week: week
-            )
-            let name = exerciseNames[effectiveKey] ?? effectiveKey
-                .replacingOccurrences(of: "_", with: " ").capitalized
-            let recentLogs = careerLogs
-                .filter { $0.exerciseKey == effectiveKey }
-                .sorted { $0.date > $1.date }
-            let progState = inst.progressionStates.first(where: { $0.exerciseKey == effectiveKey })
-            let tier: ExerciseTier = {
-                let def = ExerciseDictionary.all[effectiveKey]
-                if def?.isAnchorableAsTier1 == true { return .tier1 }
-                if def?.isCompound == true { return .tier2 }
-                return .tier3
-            }()
-
-            // Compute PML from prior exercises this session
-            let pml = ProgressionEngine.computePML(
-                targetExerciseKey: effectiveKey,
-                priorExercises: priorExercisesForPML,
-                personalSensitivity: progState?.personalFatigueSensitivity ?? 0.12
-            )
-
-            // ── Strength Goal override (only first occurrence per exercise) ──
-            let activeGoal: StrengthGoal? = {
-                guard !strengthGoalAppliedKeys.contains(effectiveKey) else { return nil }
-                return inst.strengthGoals.first(where: { $0.exerciseKey == effectiveKey && $0.isActive })
-            }()
-            let effectiveRepsLow: Int
-            let effectiveRepsHigh: Int
-            let effectiveRPE: Double
-            let effectiveSets: Int
-            var goalNote = ""
-
-            if let goal = activeGoal, tier == .tier1 {
-                strengthGoalAppliedKeys.insert(effectiveKey)
-                let phase = goal.phase
-                effectiveRepsLow = phase.repRange.low
-                effectiveRepsHigh = phase.repRange.high
-                effectiveRPE = phase.targetRPE
-                effectiveSets = phase.targetSets
-                goalNote = "Strength Focus — \(phase.displayName) (Wk \(goal.phaseWeek)/\(goal.currentPhaseLength))"
-            } else {
-                effectiveRepsLow = t.targetRepsLow
-                effectiveRepsHigh = t.targetRepsHigh
-                effectiveRPE = t.targetRPE
-                effectiveSets = t.targetSets
-            }
-
-            let rec = ProgressionEngine.recommend(
-                recentLogs: recentLogs,
-                targetRepsLow: effectiveRepsLow,
-                targetRepsHigh: effectiveRepsHigh,
-                targetRPE: effectiveRPE,
-                exerciseTier: tier,
-                useMetric: useMetric,
-                progressionState: progState,
-                lastSessionIFI: progState?.lastIFI,
-                blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true),
-                progressionRate: profile?.progressionRate ?? .normal,
-                pmlFactor: pml.factor
-            )
-
-            // For strength goals, override weight with phase-prescribed loading
-            var top = rec.recommendedWeight > 0 ? rec.recommendedWeight : 0
-            if let goal = activeGoal, tier == .tier1 {
-                let prescribed = goal.prescribeWeight(
-                    currentE1RM: progState?.bestE1RM ?? top,
-                    useMetric: useMetric)
-                if prescribed > 0 { top = prescribed }
-            }
-
-            let algoMode = profile?.algorithmMode ?? .full
-            let backoff = rec.backoffWeight > 0 ? rec.backoffWeight : top
-            let isTier1 = tier == .tier1
-            let sets = (0..<effectiveSets).map { i -> LiveSet in
-                // Prefer per-set prescription when available (weight-aware)
-                let prescription = rec.prescriptionForSet(i)
-
-                let weight: Double
-                let reps: Int
-                let repsHigh: Int?
-                let role: ProgressionEngine.SetRole?
-
-                switch algoMode {
-                case .full:
-                    if let p = prescription, p.weight > 0 {
-                        weight = p.weight
-                        reps = p.repsTarget
-                        repsHigh = p.hasRange ? p.repsRangeHigh : nil
-                        role = p.role
-                    } else {
-                        // Fallback: straight sets at top/backoff
-                        weight = (isTier1 && i > 0) ? backoff : top
-                        reps = rec.repsForSet(i)
-                        repsHigh = nil
-                        role = isTier1 ? (i > 0 ? .backoff : .primary) : .primary
-                    }
-                case .suggestions:
-                    weight = 0  // not pre-filled in suggestions mode
-                    if let p = prescription {
-                        reps = p.repsTarget
-                        repsHigh = p.hasRange ? p.repsRangeHigh : nil
-                        role = p.role
-                    } else {
-                        reps = rec.repsForSet(i)
-                        repsHigh = nil
-                        role = nil
-                    }
-                case .off:
-                    weight = 0
-                    reps = effectiveRepsHigh
-                    repsHigh = nil
-                    role = nil
-                }
-                return LiveSet(
-                    setIndex: i,
-                    recommendedWeight: weight,
-                    recommendedReps: reps,
-                    recommendedRepsHigh: repsHigh,
-                    role: role
-                )
-            }
-            let warmupWeight = top > 0 ? top : (progState?.lastSessionWeight ?? 0)
-            let showWarmups = profile?.showWarmups ?? true
-            let warmups: [WarmupSet]
-            if showWarmups && tier != .tier3 && compoundWarmupCount < 2 {
-                warmups = ProgressionEngine.generateWarmupSets(
-                    workingWeight: warmupWeight, exerciseTier: tier, useMetric: useMetric
-                ).map { WarmupSet(weight: $0.weight, reps: $0.reps, label: $0.label) }
-                if !warmups.isEmpty { compoundWarmupCount += 1 }
-            } else {
-                warmups = []
-            }
-
-            let pmlNote = pml.factor < 0.97 && !pml.fatigueSource.isEmpty
-                ? "Adjusted for prior \(pml.fatigueSource) work" : ""
-
-            // Build combined notes: goal note + PML note + original notes
-            var allNotes: [String] = []
-            if !goalNote.isEmpty { allNotes.append(goalNote) }
-            if !pmlNote.isEmpty { allNotes.append(pmlNote) }
-            if !t.notes.isEmpty { allNotes.append(t.notes) }
-
-            liveExercises.append(LiveExercise(
-                exerciseKey: effectiveKey,
-                displayName: name,
-                slotId: t.slotId,
-                role: t.role,
-                exerciseTier: tier,
-                targetSets: effectiveSets,
-                targetRepsLow: effectiveRepsLow,
-                targetRepsHigh: effectiveRepsHigh,
-                targetRPE: effectiveRPE,
-                restSeconds: activeGoal?.restSeconds ?? t.restSeconds,
-                notes: allNotes.joined(separator: " · "),
-                sets: sets,
-                warmupSets: warmups
-            ))
-
-            // Track for subsequent PML calculations
-            priorExercisesForPML.append((key: effectiveKey, sets: t.targetSets))
+            liveExercises.append(makeLiveExercise(
+                t, inst: inst, useMetric: useMetric, week: week,
+                priorExercisesForPML: &priorExercisesForPML,
+                strengthGoalAppliedKeys: &strengthGoalAppliedKeys,
+                compoundWarmupCount: &compoundWarmupCount))
         }
 
         // ── Inject volume additions (SessionOverride.isAddition=true) ─────────
@@ -851,7 +890,7 @@ struct WorkoutView: View {
                 useMetric: useMetric,
                 progressionState: progState,
                 lastSessionIFI: progState?.lastIFI,
-                blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true),
+                blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true, skipDeloads: profile?.skipDeloads ?? false),
                 progressionRate: profile?.progressionRate ?? .normal,
                 pmlFactor: pml.factor
             )
@@ -1118,7 +1157,7 @@ struct WorkoutView: View {
 
                 // Generate next block's templates
                 if blockProfile.useGeneratedPrograms, inst.isGenerated {
-                    let peakSets: [String: Int] = VolumeLandmark.defaults.keys
+                    let peakSets: [String: Int] = ExerciseDictionary.trackingMuscles
                         .reduce(into: [:]) { result, muscle in
                             let finalWeek = inst.blockLength
                             result[muscle] = inst.logs
@@ -1201,7 +1240,7 @@ struct WorkoutView: View {
                 e1rmTrend: ProgressionEngine.computeE1rmTrend(primaryState),
                 weeksAtCurrentLoad: primaryState?.weeksAtSameLoad ?? 0,
                 weeksAtCurrentVolume: 0,
-                blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true),
+                blockPhase: inst.effectiveBlockPhase(usesPeriodization: profile?.usesPeriodization ?? true, skipDeloads: profile?.skipDeloads ?? false),
                 respondsBetterTo: prof.respondsBetterTo
             )
 
@@ -1749,12 +1788,14 @@ struct ScheduleView: View {
 
     private func templatesFor(_ session: SessionType, week: Int) -> [ProgramSessionTemplate] {
         if let inst = instance {
-            let goal = profilesQuery.first?.goal ?? .hypertrophy
+            let prof = profilesQuery.first
             return lookupAdaptedTemplates(
                 programId: pid, week: week, sessionType: session,
                 allTemplates: allTemplates,
                 instance: inst, totalWeeks: totalWeeks,
-                blockLength: inst.blockLength, goal: goal)
+                blockLength: inst.blockLength, goal: prof?.goal ?? .hypertrophy,
+                usesPeriodization: prof?.usesPeriodization ?? true,
+                skipDeloads: prof?.skipDeloads ?? false)
         }
         return lookupTemplates(programId: pid, week: week, sessionType: session,
                                allTemplates: allTemplates)
@@ -3046,12 +3087,27 @@ struct ActiveWorkoutView: View {
         let backoff = ex.isMainLift && setIdx > 0 && liveSet.recommendedWeight < firstSetWeight
         let removeBlock: (() -> Void)? = canRemoveSet ? removeSetAction(exIdx: exIdx, setIdx: setIdx) : nil
         let completeBlock = completeSetAction(ex: ex, exIdx: exIdx)
-        // Compute live top set: heaviest logged weight among logged sets in this exercise
-        let loggedWeights = ex.sets.compactMap { $0.isLogged ? $0.loggedWeight : nil }
-        let maxLoggedWeight = loggedWeights.max() ?? 0
-        let isLiveTopSet = liveSet.isLogged
-            && (liveSet.loggedWeight ?? 0) == maxLoggedWeight
-            && maxLoggedWeight > 0
+        // Compute live top set: ONE set wins, even if multiple sets tie on
+        // weight. Pick the one with the highest e1RM (weight × reps proxy),
+        // then break ties by the lowest set index — so logging an equal-
+        // or-lighter-rep second set at the same weight doesn't spawn a
+        // duplicate "TOP SET" badge.
+        let topSetIndex: Int? = {
+            let scored: [(Int, Double, Double)] = ex.sets.enumerated().compactMap { (i, s) in
+                guard s.isLogged, let w = s.loggedWeight, w > 0 else { return nil }
+                let r = Double(s.loggedReps ?? 0)
+                let e1rm = w * (1.0 + r / 30.0)
+                return (i, w, e1rm)
+            }
+            guard !scored.isEmpty else { return nil }
+            // Heaviest weight wins; ties broken by max e1RM, then lowest index.
+            return scored.max(by: { a, b in
+                if a.1 != b.1 { return a.1 < b.1 }            // heavier weight wins
+                if a.2 != b.2 { return a.2 < b.2 }            // then higher e1RM
+                return a.0 > b.0                              // then earlier index
+            }).map { $0.0 }
+        }()
+        let isLiveTopSet = (topSetIndex == setIdx)
         return SetLogRow(
             set: $session.exercises[exIdx].sets[setIdx],
             setNumber: setIdx + 1,
@@ -3216,7 +3272,7 @@ struct ActiveWorkoutView: View {
             useMetric: prof?.useMetric ?? false,
             progressionState: progState,
             lastSessionIFI: progState?.lastIFI,
-            blockPhase: instance?.effectiveBlockPhase(usesPeriodization: prof?.usesPeriodization ?? true) ?? .earlyAccumulation,
+            blockPhase: instance?.effectiveBlockPhase(usesPeriodization: prof?.usesPeriodization ?? true, skipDeloads: prof?.skipDeloads ?? false) ?? .earlyAccumulation,
             progressionRate: prof?.progressionRate ?? .normal,
             pmlFactor: 1.0
         )

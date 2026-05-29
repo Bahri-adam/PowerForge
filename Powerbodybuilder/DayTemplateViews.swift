@@ -886,7 +886,7 @@ struct TemplateExercisePickerView: View {
     @State private var selectedMuscle: String? = nil
     @State private var showCreateCustom = false
 
-    private let muscles = ExerciseDictionary.trackingMuscles
+    private let muscles = ExerciseDictionary.trackingMuscles + ["Core"]
 
     private var filtered: [Exercise] {
         var result = exercises
@@ -953,7 +953,7 @@ struct TemplateExercisePickerView: View {
 
                         ForEach(muscles, id: \.self) { muscle in
                             Button { selectedMuscle = selectedMuscle == muscle ? nil : muscle } label: {
-                                Text(muscle.uppercased())
+                                Text((muscle == "Core" ? "Abs" : muscle).uppercased())
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(selectedMuscle == muscle ? .white : .appTextSecondary)
                                     .padding(.horizontal, 10).padding(.vertical, 6)

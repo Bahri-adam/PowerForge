@@ -1,6 +1,14 @@
 import SwiftUI
 import SwiftData
 
+/// Identifiable URL wrapper for `.sheet(item:)`. Single-value state
+/// avoids the SwiftUI batched-write bug where the sheet content closure
+/// fires with the URL still nil on the first tap → empty grey sheet.
+struct ExportShareTarget: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}
+
 struct SettingsView: View {
 
     @Environment(\.modelContext) private var modelContext
@@ -32,8 +40,7 @@ struct SettingsView: View {
     @State private var showLearn = false
     @State private var showImportConfirm = false
     @State private var importURL: URL? = nil
-    @State private var showExportShare = false
-    @State private var exportFileURL: URL? = nil
+    @State private var exportShareTarget: ExportShareTarget? = nil
     @State private var showDayTemplates = false
     @State private var showResetProgram = false
     @State private var showWalkthrough = false
@@ -670,10 +677,8 @@ struct SettingsView: View {
                 .presentationDetents([.medium])
             }
         }
-        .sheet(isPresented: $showExportShare) {
-            if let url = exportFileURL {
-                ShareSheet(activityItems: [url])
-            }
+        .sheet(item: $exportShareTarget) { t in
+            ShareSheet(activityItems: [t.url])
         }
         .sheet(isPresented: $showDayTemplates) {
             DayTemplateLibraryView()
@@ -803,8 +808,7 @@ struct SettingsView: View {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         do {
             try csv.write(to: tempURL, atomically: true, encoding: .utf8)
-            exportFileURL = tempURL
-            showExportShare = true
+            exportShareTarget = ExportShareTarget(url: tempURL)
         } catch {
             print("Export error: \(error)")
         }
@@ -895,8 +899,7 @@ struct SettingsView: View {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         do {
             try data.write(to: tempURL)
-            exportFileURL = tempURL
-            showExportShare = true
+            exportShareTarget = ExportShareTarget(url: tempURL)
         } catch {
             print("Backup error: \(error)")
         }

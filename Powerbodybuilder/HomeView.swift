@@ -1224,11 +1224,26 @@ struct WeekHubSheet: View {
         if let tmpl = programTemplates.first(where: { $0.programId == pid }) { return tmpl.sessionTypes }
         return [.heavyUpper, .heavyLower, .hypertrophyUpper, .hypertrophyLower]
     }
+    /// Templates for a session this week, routed through the block-adaptation
+    /// path so the preview matches what the workout will actually load. When
+    /// the user EXPERIENCES this week as training (Skip Deloads on, or block
+    /// reshaped) but the seeded template for the week is a deload, this pulls
+    /// a neighbor week's training prescriptions instead — so the Week Hub
+    /// preview no longer shows a 2-set deload while the Train tab trains.
+    private func adaptedTemplates(for st: SessionType) -> [ProgramSessionTemplate] {
+        lookupAdaptedTemplates(
+            programId: instance.programId, week: localWeek, sessionType: st,
+            allTemplates: allTemplates, instance: instance,
+            totalWeeks: totalWeeks, blockLength: instance.blockLength,
+            goal: profile?.goal ?? .hypertrophy,
+            usesPeriodization: profile?.usesPeriodization ?? true,
+            skipDeloads: profile?.skipDeloads ?? false)
+    }
+
     private var sessionsForWeek: [(SessionType, [ProgramSessionTemplate])] {
         let rotation = splitOrder(for: instance.programId)
         var result: [(SessionType, [ProgramSessionTemplate])] = rotation.compactMap { st in
-            let t = lookupTemplates(programId: instance.programId, week: localWeek,
-                                    sessionType: st, allTemplates: allTemplates)
+            let t = adaptedTemplates(for: st)
             return t.isEmpty ? nil : (st, t)
         }
         // Include session types assigned via schedule overrides that aren't in the rotation
@@ -1239,8 +1254,7 @@ struct WeekHubSheet: View {
         let uniqueExtras = Array(Set(scheduledExtras))
         for st in uniqueExtras {
             // Cross-program fallback so imported sessions show their real exercise counts
-            let t = lookupTemplates(programId: instance.programId, week: localWeek,
-                                    sessionType: st, allTemplates: allTemplates)
+            let t = adaptedTemplates(for: st)
             if !t.isEmpty { result.append((st, t)) }
         }
         return result
@@ -1284,7 +1298,13 @@ struct WeekHubSheet: View {
                         weekNavSection
                         dayAssignmentSection
                         sessionsSection
-                        deloadControlSection
+                        // Per-week deload controls only make sense when deloads
+                        // are active. With Skip Deloads on (or periodization
+                        // off) there are no deloads anywhere — hide this so
+                        // there's no resemblance of a deload week.
+                        if (profile?.usesPeriodization ?? true) && !(profile?.skipDeloads ?? false) {
+                            deloadControlSection
+                        }
                         if localWeek == instance.currentWeek { weekControlButtons }
                     }
                     .padding(16).padding(.bottom, 40)
@@ -1447,11 +1467,12 @@ struct WeekHubSheet: View {
                     HubSessionCard(sessionType: st, templates: templates, exerciseNames: exerciseNames,
                                    overrides: instance.overrides, week: localWeek,
                                    onEdit: {
-                                        let t = lookupTemplates(programId: instance.programId,
-                                                                week: localWeek,
-                                                                sessionType: st,
-                                                                allTemplates: allTemplates)
-                                        editorItem = SessionEditorItem(sessionType: st, templates: t)
+                                        // Editor follows the ADAPTED week: tapping a skipped-deload
+                                        // week opens its substituted training prescription (e.g. 5
+                                        // sets), matching the preview the user just tapped — not the
+                                        // seeded 2-set deload for the literal week.
+                                        editorItem = SessionEditorItem(sessionType: st,
+                                                                       templates: adaptedTemplates(for: st))
                                    })
                 }
             }
@@ -2131,7 +2152,19 @@ struct MuscleCoverageCard: View {
     var onAdjustVolume: ((String) -> Void)? = nil
     @Query private var programTemplates: [ProgramTemplate]
     @Query private var profilesQuery: [UserProfile]
-    private let muscles = ExerciseDictionary.trackingMuscles
+    /// The 9 tracked muscles, plus Abs (Core) auto-revealed only when there's
+    /// ab volume this week — logged or programmed — so the tile appears for
+    /// people who train abs and stays hidden (no clutter) for everyone else.
+    private var muscles: [String] {
+        var list = ExerciseDictionary.trackingMuscles
+        if (directSetsByMuscle["Core"] ?? 0) > 0 || (programmedSetsByMuscle["Core"] ?? 0) > 0 {
+            list.append("Core")
+        }
+        return list
+    }
+
+    /// Display label for a tracking-muscle key — internal "Core" shows as "Abs".
+    private func muscleLabel(_ m: String) -> String { m == "Core" ? "Abs" : m }
     @State private var selectedMuscle: String? = nil
     /// Advanced density: which muscle's head breakdown is currently expanded
     /// below the grid (nil = none). Mutually exclusive — selecting another
@@ -2180,13 +2213,16 @@ struct MuscleCoverageCard: View {
         // actually train under their current block layout. Also covers the
         // imported-session cross-program fallback.
         let goal = profilesQuery.first?.goal ?? .hypertrophy
+        let usesP = profilesQuery.first?.usesPeriodization ?? true
+        let skipD = profilesQuery.first?.skipDeloads ?? false
         var weekTemplates: [ProgramSessionTemplate] = []
         for st in activeSessions {
             weekTemplates.append(contentsOf: lookupAdaptedTemplates(
                 programId: inst.programId, week: displayWeek, sessionType: st,
                 allTemplates: allTemplates,
                 instance: inst, totalWeeks: totalWeeksForInstance,
-                blockLength: inst.blockLength, goal: goal))
+                blockLength: inst.blockLength, goal: goal,
+                usesPeriodization: usesP, skipDeloads: skipD))
         }
         for t in weekTemplates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
@@ -2224,48 +2260,61 @@ struct MuscleCoverageCard: View {
         return result
     }
 
-    /// Direct sets only (one set per UNIQUE tracking muscle in primaryMuscles).
-    /// Used for zone classification and bar display. Dedupes synonymous primary
-    /// entries (e.g. ["Lats", "Mid Back"] → one set of Back, not two).
+    /// Per-set credit threshold above which a muscle is considered "directly"
+    /// trained by an exercise (e.g. Glutes from a squat with glutesMax = 0.7
+    /// head weight). Below this it's classified as "indirect."
+    private let directCreditThreshold: Double = 0.6
+
+    /// Direct sets per muscle, derived from head-aware musclesCredit (NOT
+    /// just "primary muscle is listed"). A squat with glutesMax 0.7 head
+    /// credit now counts as 0.7 direct Glutes per set — which is why the
+    /// tile shows real Glutes work even though no exercise lists Glutes
+    /// in primaryMuscles. Matches the head breakdown panel's totals.
     private var directSetsByMuscle: [String: Int] {
         var vol: [String: Double] = [:]
         for log in weekLogs {
-            if let def = ExerciseDictionary.all[log.exerciseKey] {
-                for n in def.directTrackingMuscles { vol[n, default: 0] += 1.0 }
-            } else if let ex = exercises.first(where: { $0.exerciseKey == log.exerciseKey }) {
-                let pri = ex.directTrackingMuscles
-                if !pri.isEmpty {
-                    for m in pri { vol[m, default: 0] += 1.0 }
-                } else {
-                    // Last-resort name heuristic (no dict, no primary on Exercise)
-                    let name = log.displayName.lowercased()
-                    if name.contains("bench") || name.contains("chest") || name.contains("fly") { vol["Chest", default: 0] += 1.0 }
-                    else if name.contains("row") || name.contains("pull") || name.contains("lat") || name.contains("back") { vol["Back", default: 0] += 1.0 }
-                    else if name.contains("squat") || name.contains("leg press") || name.contains("lunge") { vol["Quads", default: 0] += 1.0 }
-                    else if name.contains("curl") && !name.contains("leg") { vol["Biceps", default: 0] += 1.0 }
-                    else if name.contains("tricep") || name.contains("pushdown") || name.contains("skull") { vol["Triceps", default: 0] += 1.0 }
-                    else if name.contains("shoulder") || name.contains("delt") || name.contains("lateral") { vol["Delts", default: 0] += 1.0 }
-                }
+            let credits = creditsForLog(log)
+            for (m, c) in credits where c >= directCreditThreshold {
+                vol[m, default: 0] += c
             }
         }
         return vol.mapValues { Int(round($0)) }
     }
 
-    /// Effective sets = direct (1.0 per unique primary tracking muscle) +
-    /// weighted indirect contribution (max secondary weight per tracking muscle,
-    /// excluding primaries). Used for informational display only.
+    /// Effective sets per muscle = total head-aware credit including both
+    /// direct AND indirect (any credit > 0). The "direct + indirect" split
+    /// on the tile is (direct count) + (effective - direct).
     private var effectiveSetsByMuscle: [String: Int] {
         var vol: [String: Double] = [:]
         for log in weekLogs {
-            if let def = ExerciseDictionary.all[log.exerciseKey] {
-                for n in def.directTrackingMuscles { vol[n, default: 0] += 1.0 }
-                for (n, w) in def.indirectTrackingMuscles { vol[n, default: 0] += w }
-            } else if let ex = exercises.first(where: { $0.exerciseKey == log.exerciseKey }) {
-                for n in ex.directTrackingMuscles { vol[n, default: 0] += 1.0 }
-                for (n, w) in ex.indirectTrackingMuscles { vol[n, default: 0] += w }
+            let credits = creditsForLog(log)
+            for (m, c) in credits where c > 0 {
+                vol[m, default: 0] += c
             }
         }
         return vol.mapValues { Int(round($0)) }
+    }
+
+    /// Per-log muscle credit map. Uses the dictionary's musclesCredit() (max
+    /// over head contributions) when available, falls back to the custom
+    /// Exercise's stored or inferred contributions, and finally to a name
+    /// heuristic for orphaned logs.
+    private func creditsForLog(_ log: WorkoutLog) -> [String: Double] {
+        if let def = ExerciseDictionary.all[log.exerciseKey] {
+            return def.musclesCredit()
+        }
+        if let ex = exercises.first(where: { $0.exerciseKey == log.exerciseKey }) {
+            return ex.musclesCredit()
+        }
+        // Last resort — name heuristic for logs whose exercise was deleted.
+        let name = log.displayName.lowercased()
+        if name.contains("bench") || name.contains("chest") || name.contains("fly") { return ["Chest": 1.0] }
+        if name.contains("row") || name.contains("pull") || name.contains("lat") || name.contains("back") { return ["Back": 1.0] }
+        if name.contains("squat") || name.contains("leg press") || name.contains("lunge") { return ["Quads": 1.0] }
+        if name.contains("curl") && !name.contains("leg") { return ["Biceps": 1.0] }
+        if name.contains("tricep") || name.contains("pushdown") || name.contains("skull") { return ["Triceps": 1.0] }
+        if name.contains("shoulder") || name.contains("delt") || name.contains("lateral") { return ["Delts": 1.0] }
+        return [:]
     }
 
     private func tier(for muscle: String) -> MuscleTier {
@@ -2349,7 +2398,7 @@ struct MuscleCoverageCard: View {
 
                     VStack(spacing: 5) {
                         HStack(spacing: 3) {
-                            Text(muscle).font(.system(size: 9, weight: .black)).foregroundColor(color).lineLimit(1).minimumScaleFactor(0.7)
+                            Text(muscleLabel(muscle)).font(.system(size: 9, weight: .black)).foregroundColor(color).lineLimit(1).minimumScaleFactor(0.7)
                             if t == .priority { Text("★").font(.system(size: 8)).foregroundColor(.appGold) }
                             if t == .maintenance { Text("▽").font(.system(size: 7)).foregroundColor(.appTextDim) }
                             if zone == .underTraining && sets > 0 {
@@ -2411,9 +2460,11 @@ struct MuscleCoverageCard: View {
                             : (zone == .optimal ? color.opacity(0.3) : Color.appBorder),
                         lineWidth: (density == .advanced && expandedHeadMuscle == muscle) ? 1.5 : 1))
                     .onTapGesture {
-                        if density == .advanced {
+                        if density == .advanced && !MuscleHead.heads(of: muscle).isEmpty {
                             // Advanced: tap toggles head breakdown below.
                             // Volume Adjuster reachable from the breakdown panel.
+                            // Muscles with no heads (Abs) skip straight to the
+                            // adjuster — no empty breakdown panel.
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 expandedHeadMuscle = expandedHeadMuscle == muscle ? nil : muscle
                             }

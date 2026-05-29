@@ -44,6 +44,7 @@ struct ContentView: View {
             MinimalistSeeder.seedIfNeeded(context: modelContext)
             migrateBrokenCustomProgramsIfNeeded(context: modelContext)
             resetStaleMRVSignalScoresIfNeeded(context: modelContext)
+            clearStaleDeloadOverridesIfNeeded(context: modelContext)
             loadCustomPrograms()
 
             // Check for backup on first launch (no profile yet) — show restore prompt
@@ -95,6 +96,30 @@ struct ContentView: View {
         for inst in instances { inst.mrvSignalScores = [:] }
         try? context.save()
         UserDefaults.standard.set(true, forKey: flag)
+    }
+
+    /// One-time cleanup: earlier sessions could leave an instance's per-week
+    /// deload overrides (skippedDeloadWeeks / customDeloadWeeks / blockLayout)
+    /// in a state that contradicted the program's seeded deload schedule — e.g.
+    /// Bahri weeks 3 & 4 both flagged as deloads after toggling Skip Deloads.
+    /// Those overrides fight the global Skip Deloads toggle and surface phantom
+    /// deloads when it's turned off. For built-in (seeded) programs the seeded
+    /// schedule is the source of truth, so clear the overrides and fall back to
+    /// it — this makes toggling Skip Deloads on/off seamless. Custom/generated
+    /// programs (pid >= 100) are left alone since their blockLayout may be the
+    /// only source of block structure.
+    private func clearStaleDeloadOverridesIfNeeded(context: ModelContext) {
+        let flag = "ProgramMigrations.clearStaleDeloadOverrides.v1"
+        if UserDefaults.standard.bool(forKey: flag) { return }
+        let instances = (try? context.fetch(FetchDescriptor<UserProgramInstance>())) ?? []
+        for inst in instances where inst.programId <= 7 {
+            inst.skippedDeloadWeeks = []
+            inst.customDeloadWeeks = []
+            inst.blockLayout = []
+        }
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: flag)
+        print("[ProgramMigrations] Cleared stale deload overrides on built-in program instances")
     }
 
     private func migrateBrokenCustomProgramsIfNeeded(context: ModelContext) {
