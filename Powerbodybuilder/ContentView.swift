@@ -42,6 +42,7 @@ struct ContentView: View {
             StrengthSeeder.seedIfNeeded(context: modelContext)
             BeginnerSeeder.seedIfNeeded(context: modelContext)
             MinimalistSeeder.seedIfNeeded(context: modelContext)
+            AestheticSplitSeeder.seedIfNeeded(context: modelContext)
             migrateBrokenCustomProgramsIfNeeded(context: modelContext)
             resetStaleMRVSignalScoresIfNeeded(context: modelContext)
             clearStaleDeloadOverridesIfNeeded(context: modelContext)

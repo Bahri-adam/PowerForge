@@ -2244,6 +2244,17 @@ struct ExerciseDictionary {
             generatorPattern: "core"),
 
         ExerciseDefinition(
+            key: "weighted_situp", displayName: "Weighted Sit-Up",
+            movementPattern: .core, swapPattern: "core",
+            primaryMuscles: ["Rectus Abdominis"],
+            secondaryMuscles: [.init(muscle: "Hip Flexors", weight: 0.3)],
+            equipment: .bodyweight, isCompound: false, stretchPosition: .mid,
+            jointStressTags: [],
+            swapKeys: ["cable_crunch", "hanging_leg_raise", "ab_wheel"],
+            swapWarning: nil, variationOfKey: nil,
+            generatorPattern: "core"),
+
+        ExerciseDefinition(
             key: "hanging_leg_raise", displayName: "Hanging Leg Raise",
             movementPattern: .core, swapPattern: "core",
             primaryMuscles: ["Rectus Abdominis", "Hip Flexors"],

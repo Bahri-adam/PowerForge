@@ -41,6 +41,7 @@ func deloadWeeks(for programId: Int, blockLength: Int, instance: UserProgramInst
         case 5: return [4, 12]                                  // Athletic
         case 6: return [4, 8]                                   // Minimalist
         case 7: return [3, 6, 9, 12, 15, 18, 21, 24]            // Bahri Split
+        case 8: return [6, 12]                                  // Aesthetic Split
         default:
             let bl = blockLength > 0 ? blockLength : 5
             let cycleLen = bl + 1
@@ -79,6 +80,9 @@ func sessionRotation(for programId: Int, templates: [ProgramTemplate] = [],
     }
     if programId == 7 {
         return [.legQuadFocus, .chestBack, .armsDelts, .legsPosterior, .chestArms, .legsVolume]
+    }
+    if programId == 8 {
+        return [.pushA, .legsA, .pullA, .pushB, .legsB]
     }
     // Generated programs (ID > 10): derive rotation from profile settings
     if let inst = instance, inst.isGenerated, programId > 10, let p = profile {
@@ -2432,10 +2436,11 @@ struct ActiveWorkoutView: View {
     @State private var showAddExercise = false
     @State private var insertExerciseAtIndex: Int? = nil
 
-    // Exercise history
-    @State private var historyExerciseKey: String? = nil
-    @State private var historyExerciseName: String? = nil
-    @State private var showExerciseHistory = false
+    // Exercise history — single Identifiable target via .sheet(item:). The old
+    // isPresented + separate key/name state hit the SwiftUI batched-write race
+    // where key/name were still nil on the sheet's first render (grey screen),
+    // which is what forced a second tap to "make it work."
+    @State private var historyTarget: ExerciseHistoryTarget? = nil
 
     private var safeIndex: Int {
         guard !session.exercises.isEmpty else { return 0 }
@@ -2598,10 +2603,8 @@ struct ActiveWorkoutView: View {
                 .foregroundColor(.appRed)
             }
         }
-        .sheet(isPresented: $showExerciseHistory) {
-            if let key = historyExerciseKey, let name = historyExerciseName {
-                ExerciseHistorySheet(exerciseKey: key, displayName: name)
-            }
+        .sheet(item: $historyTarget) { t in
+            ExerciseHistorySheet(exerciseKey: t.key, displayName: t.name)
         }
     }
 
@@ -2855,13 +2858,20 @@ struct ActiveWorkoutView: View {
             }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(ex.displayName)
-                        .font(.system(size: 16, weight: .black, design: .rounded)).foregroundColor(.appTextPrimary)
-                        .onTapGesture {
-                            historyExerciseKey = ex.exerciseKey
-                            historyExerciseName = ex.displayName
-                            showExerciseHistory = true
+                    // Tap the name (or the history glyph) to open this exercise's
+                    // past sessions. The small clock icon is the subtle signal
+                    // that history is available here.
+                    Button {
+                        historyTarget = ExerciseHistoryTarget(key: ex.exerciseKey, name: ex.displayName)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text(ex.displayName)
+                                .font(.system(size: 16, weight: .black, design: .rounded)).foregroundColor(.appTextPrimary)
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.appTextDim)
                         }
+                    }
+                    .buttonStyle(.plain)
                     if ex.isMainLift {
                         Text("MAIN").font(.system(size: 8, weight: .black)).foregroundColor(.appGold)
                             .padding(.horizontal, 5).padding(.vertical, 3)

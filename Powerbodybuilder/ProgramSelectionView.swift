@@ -257,6 +257,7 @@ struct ProgramSelectionView: View {
                 case 1: ProgramSeeder.seedPowerbuildingProgram(context: modelContext)
                 case 2: PPLSeeder.seedPPLProgram(context: modelContext)
                 case 7: BahriSplitSeeder.seedIfNeeded(context: modelContext)
+                case 8: AestheticSplitSeeder.seedIfNeeded(context: modelContext)
                 default: break
                 }
             }

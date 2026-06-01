@@ -1331,6 +1331,7 @@ class UserProgramInstance {
         switch programId {
         case 2: return [4, 12, 16]
         case 7: return Set([3,6,9,12,15,18,21,24])
+        case 8: return [6, 12]
         default: return [4, 12, 20]
         }
     }

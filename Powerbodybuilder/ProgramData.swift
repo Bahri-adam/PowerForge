@@ -170,6 +170,24 @@ let allPrograms: [ProgramDef] = [
         volumePerMuscle: "18–26 sets/week",
         whoItsFor: "Advanced lifters who want maximum hypertrophy with high-frequency leg training.",
         days_per_week_range: 6...6
+    ),
+
+    ProgramDef(
+        id: 8,
+        name: "AESTHETIC SPLIT",
+        subtitle: "5-Day Physique Split",
+        description: "A 16-week chest, quad, and arm–emphasis Push/Pull/Lower split built around the look — broad shoulders, full chest, capped delts, and a tight waist. Two push days, two lower days, one big pull day.",
+        days: "5 days/week",
+        sessionLength: "60–80 min",
+        split: "Mon Push · Tue Lower (quad) · Wed Pull · Thu Push · Fri Lower (posterior)",
+        difficulty: "Intermediate",
+        icon: "figure.arms.open",
+        accentColor: .appGold,
+        tags: ["Hypertrophy", "5-Day", "Push/Pull/Lower", "Aesthetics"],
+        repRanges: "5–8 | 8–12 | 10–15 | 12–20",
+        volumePerMuscle: "10–16 sets/week",
+        whoItsFor: "Intermediates chasing a balanced physique with extra chest, delt, and arm volume.",
+        days_per_week_range: 5...5
     )
 ]
 
