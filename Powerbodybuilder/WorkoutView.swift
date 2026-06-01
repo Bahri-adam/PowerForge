@@ -1006,12 +1006,29 @@ struct WorkoutView: View {
                     inst.progressionStates.append(state)
                 }
                 let tmpl = session.exercises.first(where: { $0.exerciseKey == key })
+                // Recompute the applied progression rule + pass the lift's recent
+                // history so updateProgressionState can (a) persist the real rule
+                // (was hardcoded .hold) and (b) update the stall diagnosis (was
+                // never updated). Both feed the VolumeDecisionEngine and the
+                // stall-urgency escalation, which were running blind without them.
+                let keyLogs = inst.logs.filter { $0.exerciseKey == key }
+                let grouped = ProgressionEngine.groupBySession(keyLogs)
+                let appliedRule = ProgressionEngine.determineProgressionRule(
+                    lastSession: grouped.first,
+                    previousSessions: Array(grouped.dropFirst()),
+                    targetRepsLow: tmpl?.targetRepsLow ?? 5,
+                    targetRepsHigh: tmpl?.targetRepsHigh ?? 10,
+                    exerciseTier: tmpl?.exerciseTier ?? .tier2,
+                    progressionState: state
+                )
                 ProgressionEngine.updateProgressionState(
                     state: state, completedSets: logs,
                     suggestedWeight: logs.first?.suggestedWeight ?? 0,
                     targetRepsLow: tmpl?.targetRepsLow ?? 5,
                     targetRepsHigh: tmpl?.targetRepsHigh ?? 10,
-                    exerciseTier: tmpl?.exerciseTier ?? .tier2
+                    allRecentLogs: keyLogs,
+                    exerciseTier: tmpl?.exerciseTier ?? .tier2,
+                    appliedRule: appliedRule
                 )
 
                 // PML sensitivity learning — compare predicted vs actual e1RM
@@ -1157,9 +1174,15 @@ struct WorkoutView: View {
 
                 // Generate next block's templates
                 if blockProfile.useGeneratedPrograms, inst.isGenerated {
+                    // Peak volume of the block we just finished = sets in its
+                    // most recent (absolute) training week. Was `inst.blockLength`
+                    // (a 1–5 relative value, also read AFTER blockLength was
+                    // reassigned), which never matched the absolute `log.week`
+                    // (1–24) — so peakSets came back ~empty and every new block
+                    // reset volume to MV instead of carrying peak forward.
+                    let finalWeek = inst.logs.map { $0.week }.max() ?? 0
                     let peakSets: [String: Int] = ExerciseDictionary.trackingMuscles
                         .reduce(into: [:]) { result, muscle in
-                            let finalWeek = inst.blockLength
                             result[muscle] = inst.logs
                                 .filter { log in
                                     log.week == finalWeek &&
@@ -1696,6 +1719,7 @@ struct ScheduleView: View {
                                 week: currentWeek,
                                 templates: templatesFor(sessionType, week: currentWeek),
                                 exerciseNames: exerciseNames,
+                                overrides: instance?.overrides ?? [],
                                 isNext: isSelected,
                                 isDone: isDone,
                                 isExpanded: isExpanded,
@@ -1881,6 +1905,10 @@ struct SessionPickerCard: View {
     let week: Int
     let templates: [ProgramSessionTemplate]
     let exerciseNames: [String: String]
+    /// SessionOverrides so the expanded preview shows the exercise you actually
+    /// swapped in — without this it showed the original template key (e.g. belt
+    /// squat) until you tapped Start and buildPreview resolved the swap.
+    var overrides: [SessionOverride] = []
     let isNext: Bool
     let isDone: Bool
     let isExpanded: Bool
@@ -1969,7 +1997,8 @@ struct SessionPickerCard: View {
                 Divider().background(Color.appBorder).padding(.horizontal, 14)
                 VStack(spacing: 0) {
                     ForEach(templates, id: \.slotId) { t in
-                        let name = exerciseNames[t.exerciseKey] ?? t.exerciseKey.replacingOccurrences(of: "_", with: " ").capitalized
+                        let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey, overrides: overrides, week: week)
+                        let name = exerciseNames[key] ?? key.replacingOccurrences(of: "_", with: " ").capitalized
                         HStack(spacing: 10) {
                             Text(t.slotId)
                                 .font(.system(size: 9, weight: .black, design: .monospaced))
@@ -2120,6 +2149,7 @@ struct MesocycleBrowser: View {
                         week: selectedWeek,
                         templates: templates,
                         exerciseNames: exerciseNames,
+                        overrides: instance?.overrides ?? [],
                         isCurrentWeek: selectedWeek == currentWeek,
                         customLabel: customLabelFor(sessionType)
                     )
@@ -2162,6 +2192,7 @@ struct MesocycleSessionCard: View {
     let week: Int
     let templates: [ProgramSessionTemplate]
     let exerciseNames: [String: String]
+    var overrides: [SessionOverride] = []
     let isCurrentWeek: Bool
     /// Caller passes from `instance.customLabel(for: sessionType)`.
     var customLabel: String? = nil
@@ -2192,7 +2223,8 @@ struct MesocycleSessionCard: View {
                 Divider().background(Color.appBorder).padding(.horizontal, 14)
                 VStack(spacing: 0) {
                     ForEach(templates, id: \.slotId) { t in
-                        let name = exerciseNames[t.exerciseKey] ?? t.exerciseKey.replacingOccurrences(of: "_", with: " ").capitalized
+                        let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey, overrides: overrides, week: week)
+                        let name = exerciseNames[key] ?? key.replacingOccurrences(of: "_", with: " ").capitalized
                         HStack(spacing: 10) {
                             Text(t.slotId)
                                 .font(.system(size: 8, weight: .black, design: .monospaced)).foregroundColor(.appRed)
@@ -4827,10 +4859,15 @@ struct ProgressiveOverloadCard: View {
         return "\(sign)\(Int(diff)) \(useMetric ? "kg" : "lbs") from last session (\(Int(last)))"
     }
 
-    // Top set per session (newest first) — actual weight × reps
+    // Top set per session (newest first) — actual weight × reps.
+    // Rank by (weight, reps): heaviest set, and when the weight ties (e.g. a
+    // high-rep accessory kept at the same load while adding reps) the set with
+    // MORE reps wins. Ranking by weight alone made every 55 lb set tie, so the
+    // "top set" was an arbitrary one — which is how 55×8 showed up as best
+    // even after 55×15 / 55×16 sessions.
     private var sessionTopSets: [(date: Date, weight: Double, reps: Int)] {
         sessions.compactMap { session in
-            guard let top = session.max(by: { $0.weight < $1.weight }),
+            guard let top = session.max(by: { ($0.weight, $0.reps) < ($1.weight, $1.reps) }),
                   let date = session.first?.date else { return nil }
             return (date: date, weight: top.weight, reps: top.reps)
         }
@@ -4846,7 +4883,7 @@ struct ProgressiveOverloadCard: View {
     }
 
     private var bestTopSet: (weight: Double, reps: Int) {
-        guard let best = sessionTopSets.max(by: { $0.weight < $1.weight }) else { return (0, 0) }
+        guard let best = sessionTopSets.max(by: { ($0.weight, $0.reps) < ($1.weight, $1.reps) }) else { return (0, 0) }
         return (best.weight, best.reps)
     }
     private var lastTopSet: (weight: Double, reps: Int) {
@@ -4854,7 +4891,7 @@ struct ProgressiveOverloadCard: View {
         return (last.weight, last.reps)
     }
     private var worstTopSet: (weight: Double, reps: Int) {
-        guard let worst = sessionTopSets.min(by: { $0.weight < $1.weight }) else { return (0, 0) }
+        guard let worst = sessionTopSets.min(by: { ($0.weight, $0.reps) < ($1.weight, $1.reps) }) else { return (0, 0) }
         return (worst.weight, worst.reps)
     }
 

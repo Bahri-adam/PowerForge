@@ -308,43 +308,21 @@ struct HomeView: View {
 
     private func templatesFor(session: SessionType) -> [ProgramSessionTemplate] {
         guard let inst = instance else { return [] }
-        let direct = allSessionTemplates
-            .filter { $0.programId == inst.programId && $0.week == displayWeek && $0.sessionType == session }
-            .sorted { $0.exerciseIndex < $1.exerciseIndex }
-
-        // If this is a training week but no templates exist for this session,
-        // fall back to the nearest training week. Use the actual deload
-        // schedule (which honors blockLayout / customDeloadWeeks) rather
-        // than the hardcoded `blockLength + 1` cycle.
-        let deloads = deloadWeeks(for: inst.programId, blockLength: inst.blockLength, instance: inst)
-        let isTrainingWeek = !deloads.contains(displayWeek)
-
-        if isTrainingWeek && direct.isEmpty {
-            let total = programTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks ?? 24
-            for offset in [1, -1, 2, -2, 3, -3] {
-                let fw = displayWeek + offset
-                guard fw >= 1 && fw <= total else { continue }
-                // Only borrow from training weeks; skip deload weeks.
-                guard !deloads.contains(fw) else { continue }
-                let fallback = allSessionTemplates
-                    .filter { $0.programId == inst.programId && $0.week == fw && $0.sessionType == session }
-                    .sorted { $0.exerciseIndex < $1.exerciseIndex }
-                if !fallback.isEmpty { return fallback }
-            }
-            // Last resort: borrow templates from any other program that has this session type
-            let foreignAtWeek = allSessionTemplates.filter { $0.sessionType == session && $0.week == displayWeek }
-            if let foreignPid = foreignAtWeek.first?.programId {
-                return foreignAtWeek.filter { $0.programId == foreignPid }
-                    .sorted { $0.exerciseIndex < $1.exerciseIndex }
-            }
-            let foreignWeek1 = allSessionTemplates.filter { $0.sessionType == session && $0.week == 1 }
-            if let foreignPid = foreignWeek1.first?.programId {
-                return foreignWeek1.filter { $0.programId == foreignPid }
-                    .sorted { $0.exerciseIndex < $1.exerciseIndex }
-            }
-        }
-
-        return direct
+        // Route through the SAME block-adaptation path the Week Hub
+        // ("Configure Week") uses, so tapping a session directly on the Home
+        // tab matches it: with Skip Deloads on, a seeded deload week (e.g.
+        // Bahri week 3) substitutes a neighbor training week instead of
+        // returning the raw 2-set deload prescription. lookupAdaptedTemplates
+        // also carries the cross-program fallback for imported sessions.
+        let total = programTemplates.first(where: { $0.programId == inst.programId })?.durationWeeks
+            ?? (inst.programId == 2 ? 16 : 24)
+        return lookupAdaptedTemplates(
+            programId: inst.programId, week: displayWeek, sessionType: session,
+            allTemplates: allSessionTemplates, instance: inst,
+            totalWeeks: total, blockLength: inst.blockLength,
+            goal: profile?.goal ?? .hypertrophy,
+            usesPeriodization: usesPeriodization,
+            skipDeloads: profile?.skipDeloads ?? false)
     }
 
     private var completedSessionTypes: Set<String> {
@@ -2205,7 +2183,6 @@ struct MuscleCoverageCard: View {
     /// contribute their real exercise counts to the volume metrics.
     private var programmedSetsByMuscle: [String: Int] {
         guard let inst = instance else { return [:] }
-        var result: [String: Int] = [:]
         let activeSessions = activeSessionsForWeek(
             programId: inst.programId, instance: inst, profile: nil, week: displayWeek,
             templates: programTemplates)
@@ -2224,6 +2201,7 @@ struct MuscleCoverageCard: View {
                 blockLength: inst.blockLength, goal: goal,
                 usesPeriodization: usesP, skipDeloads: skipD))
         }
+        var vol: [String: Double] = [:]
         for t in weekTemplates {
             let key = resolveExerciseKey(slotId: t.slotId, originalKey: t.exerciseKey,
                                          overrides: inst.overrides, week: displayWeek)
@@ -2234,30 +2212,32 @@ struct MuscleCoverageCard: View {
                 }
                 .reduce(0) { $0 + $1.setCountDelta }
             let effectiveSets = max(0, t.targetSets + delta)
-            let directs: Set<String>
-            if let def = ExerciseDictionary.all[key] {
-                directs = def.directTrackingMuscles
-            } else if let ex = exercises.first(where: { $0.exerciseKey == key }) {
-                directs = ex.directTrackingMuscles
-            } else {
-                directs = []
+            // Head-aware credit (max per muscle), so a compound credits each
+            // muscle by its real contribution — a sumo deadlift counts Glutes 1.0
+            // AND Hamstrings 0.6, not a full set to BOTH. Matches the coverage
+            // card's logged count and the Program/Volume-Adjuster surfaces (they
+            // all use musclesCredit ≥ directCreditThreshold). The old
+            // directTrackingMuscles path added a full set per listed primary,
+            // which double-counted Hamstrings once adductors fold into it.
+            for (m, c) in creditsForKey(key) where c >= directCreditThreshold {
+                vol[m, default: 0] += c * Double(effectiveSets)
             }
-            for n in directs { result[n, default: 0] += effectiveSets }
         }
         // Add isAddition overrides
         for ov in inst.overrides where ov.isAddition && ov.appliesTo(week: displayWeek) {
-            let key = ov.replacementExerciseKey
-            let directs: Set<String>
-            if let def = ExerciseDictionary.all[key] {
-                directs = def.directTrackingMuscles
-            } else if let ex = exercises.first(where: { $0.exerciseKey == key }) {
-                directs = ex.directTrackingMuscles
-            } else {
-                directs = []
+            for (m, c) in creditsForKey(ov.replacementExerciseKey) where c >= directCreditThreshold {
+                vol[m, default: 0] += c * Double(ov.addedSets)
             }
-            for n in directs { result[n, default: 0] += ov.addedSets }
         }
-        return result
+        return vol.mapValues { Int(round($0)) }
+    }
+
+    /// Head-aware per-muscle credit for an exercise key (max over heads),
+    /// mirroring `creditsForLog` but keyed off a template/override exercise key.
+    private func creditsForKey(_ key: String) -> [String: Double] {
+        if let def = ExerciseDictionary.all[key] { return def.musclesCredit() }
+        if let ex = exercises.first(where: { $0.exerciseKey == key }) { return ex.musclesCredit() }
+        return [:]
     }
 
     /// Per-set credit threshold above which a muscle is considered "directly"

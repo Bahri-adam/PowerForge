@@ -1390,8 +1390,20 @@ struct ProgramTabView: View {
             }
 
             ForEach(templates.sorted { $0.exerciseIndex < $1.exerciseIndex }) { t in
-                let name = ExerciseDictionary.all[t.exerciseKey]?.displayName ?? t.exerciseKey
-                let def = ExerciseDictionary.all[t.exerciseKey]
+                // Resolve swaps (SessionOverride) so the preview shows the
+                // exercise you actually swapped in — the detail/workout already
+                // resolve overrides, so without this the collapsed preview looked
+                // like nothing was swapped until you tapped in.
+                let resolvedKey = resolveExerciseKey(
+                    slotId: t.slotId, originalKey: t.exerciseKey,
+                    overrides: instance?.overrides ?? [], week: editingWeek)
+                // Custom exercises aren't in the static dictionary — fall back to
+                // the user's Exercise record's displayName so a swapped-in custom
+                // shows its real name, not the raw key (custom_..._1778).
+                let name = ExerciseDictionary.all[resolvedKey]?.displayName
+                    ?? allExercises.first(where: { $0.exerciseKey == resolvedKey })?.displayName
+                    ?? resolvedKey.replacingOccurrences(of: "_", with: " ").capitalized
+                let def = ExerciseDictionary.all[resolvedKey]
                 let tierLabel = t.isMainLift ? "T1" : (def?.isCompound == false ? "T3" : "T2")
                 let tierColor: Color = t.isMainLift ? .appRed : (def?.isCompound == false ? .appGreen : .appBlue)
 

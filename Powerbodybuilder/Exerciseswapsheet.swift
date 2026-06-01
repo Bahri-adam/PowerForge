@@ -314,6 +314,16 @@ struct ExerciseSwapSheet: View {
             return (0, nil)
         }
 
+        // Hip adduction/abduction isolation folds into Hamstrings/Glutes for
+        // VOLUME, but the +50 same-muscle fallback below would rank it as a top
+        // alternative to a leg curl or hip thrust. Only ever offer these via an
+        // EXPLICIT swap list — never via fallback muscle matching.
+        if let cHead = ExerciseDictionary.all[ex.exerciseKey]?.head,
+           cHead == "adduction" || cHead == "abduction" {
+            let inSwapList = ExerciseDictionary.all[slot.exerciseKey]?.swapKeys.contains(ex.exerciseKey) ?? false
+            if !inSwapList { return (0, nil) }
+        }
+
         // If slot has no muscle data, give everything a base score
         if slot.musclesPrimary.isEmpty {
             return (50, nil)

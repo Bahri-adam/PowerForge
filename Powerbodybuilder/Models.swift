@@ -1348,6 +1348,12 @@ class UserProgramInstance {
     var blockPhase: BlockPhase {
         if blockType == .deload { return .deload }
         if blockWeek == 1 && totalBlocksCompleted > 0 { return .postDeloadReintro }
+        // Intensification blocks (strength/powerbuilding) report .intensification
+        // so the engine applies the heavier load step (RPEEngine increment ×1.3)
+        // and the volume engine uses the intensification cadence. Without this the
+        // phase only ever resolved to early/late accumulation and the
+        // intensification behavior was dead code.
+        if blockType == .intensification { return .intensification }
         let midpoint = max(1, blockLength / 2)
         return blockWeek <= midpoint ? .earlyAccumulation : .lateAccumulation
     }

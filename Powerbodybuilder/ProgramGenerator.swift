@@ -226,6 +226,11 @@ struct ProgramGenerator {
             guard def.primaryMuscles.contains(where: {
                 ExerciseDictionary.normalizeMuscle($0) == muscle
             }) else { return false }
+            // Hip adduction folds into Hamstrings for volume tracking, but it's
+            // inner-thigh isolation — not a hamstring curl/hinge. Don't let the
+            // generator auto-select it to fill Hamstrings volume (the user can
+            // still add it manually).
+            if muscle == "Hamstrings" && def.head == "adduction" { return false }
             guard equipment.contains(def.equipment) ||
                   def.equipment == .bodyweight else { return false }
             if sessionContext == .upper && def.sessionRestriction == .lowerOnly { return false }
