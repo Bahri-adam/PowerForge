@@ -24,6 +24,15 @@ struct ExerciseSwapSheet: View {
     @State private var showCreateCustom = false
     @State private var selectedMuscleFilter: String? = nil
     @State private var cachedAlternatives: [RankedAlternative]? = nil
+    /// Precomputed lowercased "name + muscles + equipment" search string per
+    /// exercise key, built once on appear. Rebuilding these per keystroke
+    /// (×~140 exercises, ×several `filtered` reads per render) was the source of
+    /// the search-bar lag.
+    @State private var haystackByKey: [String: String] = [:]
+    /// Memoized filtered/sorted result list. Recomputed once when the query or
+    /// muscle filter changes — not several times per render as the computed
+    /// property was, which kept the search feeling sticky.
+    @State private var results: [RankedAlternative] = []
 
     // ── Smart ranking (cached on first access) ────────────────────────────
 
@@ -41,66 +50,69 @@ struct ExerciseSwapSheet: View {
                 return RankedAlternative(exercise: ex, score: score, swapWarning: warning)
             }
             .sorted { $0.score > $1.score }
+        // Build the search index once so typing doesn't rebuild strings per key.
+        haystackByKey = Dictionary(
+            allExercises.map { ex in
+                (ex.exerciseKey,
+                 ([ex.displayName] + ex.musclesPrimary + ex.musclesSecondary + [ex.equipmentRaw])
+                    .joined(separator: " ").lowercased())
+            },
+            uniquingKeysWith: { first, _ in first })
     }
 
     private var hasMuscleData: Bool {
         !slot.musclesPrimary.isEmpty
     }
 
-    private var filtered: [RankedAlternative] {
-        // When the user searches, ignore body-part scoping and search the FULL library.
-        // Token-based match: every word in the query must appear somewhere in the
-        // searchable text (handles "tricep extension" → "Triceps Extension" by allowing
-        // partial token match since "tricep" is a prefix of "triceps").
-        if !searchText.isEmpty {
-            let tokens = searchText
-                .lowercased()
-                .components(separatedBy: .whitespacesAndNewlines)
-                .filter { !$0.isEmpty }
-            return allExercises
+    private var filtered: [RankedAlternative] { results }
+
+    private func muscleMatches(_ ex: Exercise, _ muscle: String) -> Bool {
+        let pri = ex.musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
+        let sec = ex.musclesSecondary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
+        return pri.contains(muscle) || sec.contains(muscle)
+    }
+
+    /// Builds the result list from the current query + muscle filter. Called on
+    /// appear and whenever either changes — never per render.
+    private func recomputeResults() {
+        let tokens = searchText
+            .lowercased()
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+
+        var base: [RankedAlternative]
+        if !tokens.isEmpty {
+            // Search the full library by token match (uses the cached haystacks).
+            base = allExercises
                 .filter { $0.exerciseKey != slot.exerciseKey }
                 .filter { ex in
-                    let haystack = ([ex.displayName] + ex.musclesPrimary + ex.musclesSecondary + [ex.equipmentRaw])
-                        .joined(separator: " ")
-                        .lowercased()
+                    let haystack = haystackByKey[ex.exerciseKey] ?? ex.displayName.lowercased()
                     return tokens.allSatisfy { haystack.contains($0) }
                 }
                 .map { RankedAlternative(exercise: $0, score: 50) }
-                .sorted { $0.exercise.displayName < $1.exercise.displayName }
-        }
-
-        let base: [RankedAlternative]
-        if hasMuscleData {
+        } else if let mf = selectedMuscleFilter {
+            // Muscle chip, no search → full library for that muscle.
+            base = allExercises
+                .filter { $0.exerciseKey != slot.exerciseKey && muscleMatches($0, mf) }
+                .map { RankedAlternative(exercise: $0, score: 40) }
+        } else if hasMuscleData {
             base = alternatives
         } else {
             base = allExercises
                 .filter { $0.exerciseKey != slot.exerciseKey }
                 .map { RankedAlternative(exercise: $0, score: 50) }
-                .sorted { $0.exercise.displayName < $1.exercise.displayName }
         }
 
-        // Apply muscle filter chip (only when not searching)
-        var result = base
-        if let mf = selectedMuscleFilter {
-            let slotNorm = slot.musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
-            if slotNorm.contains(mf) {
-                result = result.filter { ex in
-                    let priNorm = ex.exercise.musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
-                    return priNorm.contains(mf)
-                }
-            } else {
-                result = allExercises
-                    .filter { $0.exerciseKey != slot.exerciseKey }
-                    .filter { ex in
-                        let priNorm = ex.musclesPrimary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
-                        let secNorm = ex.musclesSecondary.compactMap { ExerciseDictionary.normalizeMuscle($0) }
-                        return priNorm.contains(mf) || secNorm.contains(mf)
-                    }
-                    .map { RankedAlternative(exercise: $0, score: 30) }
-                    .sorted { $0.exercise.displayName < $1.exercise.displayName }
-            }
+        // Search + chip together: narrow search results by the muscle too, so the
+        // chips stay useful while typing instead of forcing you to clear the box.
+        if !tokens.isEmpty, let mf = selectedMuscleFilter {
+            base = base.filter { muscleMatches($0.exercise, mf) }
         }
-        return result
+
+        if !tokens.isEmpty || selectedMuscleFilter != nil {
+            base.sort { $0.exercise.displayName < $1.exercise.displayName }
+        }
+        results = base
     }
 
     private var smartPicks: [RankedAlternative] {
@@ -186,24 +198,23 @@ struct ExerciseSwapSheet: View {
                 .background(Color.appSurface2)
                 .overlay(Rectangle().frame(height: 1).foregroundColor(.appBorder), alignment: .bottom)
 
-                // Muscle filter chips
-                if searchText.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            FilterChip(label: "All", isSelected: selectedMuscleFilter == nil) {
-                                selectedMuscleFilter = nil
-                            }
-                            ForEach(allMusclesInLibrary, id: \.self) { muscle in
-                                FilterChip(label: muscle == "Core" ? "Abs" : muscle, isSelected: selectedMuscleFilter == muscle) {
-                                    selectedMuscleFilter = selectedMuscleFilter == muscle ? nil : muscle
-                                }
+                // Muscle filter chips — always visible (incl. while searching) so
+                // you can narrow by muscle without first clearing the search box.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        FilterChip(label: "All", isSelected: selectedMuscleFilter == nil) {
+                            selectedMuscleFilter = nil
+                        }
+                        ForEach(allMusclesInLibrary, id: \.self) { muscle in
+                            FilterChip(label: muscle == "Core" ? "Abs" : muscle, isSelected: selectedMuscleFilter == muscle) {
+                                selectedMuscleFilter = selectedMuscleFilter == muscle ? nil : muscle
                             }
                         }
-                        .padding(.horizontal, 14).padding(.vertical, 8)
                     }
-                    .background(Color.appSurface)
-                    .overlay(Rectangle().frame(height: 1).foregroundColor(.appBorder), alignment: .bottom)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
                 }
+                .background(Color.appSurface)
+                .overlay(Rectangle().frame(height: 1).foregroundColor(.appBorder), alignment: .bottom)
 
                 // Results
                 ScrollView(showsIndicators: false) {
@@ -295,7 +306,12 @@ struct ExerciseSwapSheet: View {
                 showCreateCustom = false
             }
         }
-        .onAppear { if cachedAlternatives == nil { computeAlternatives() } }
+        .onAppear {
+            if cachedAlternatives == nil { computeAlternatives() }
+            recomputeResults()
+        }
+        .onChange(of: searchText) { _, _ in recomputeResults() }
+        .onChange(of: selectedMuscleFilter) { _, _ in recomputeResults() }
     }
 
     // ── Scoring ──────────────────────────────────────────────────────────────
@@ -401,7 +417,11 @@ struct ExerciseSwapSheet: View {
             reason: "userSwap"
         )
         instance.overrides.append(override)
-        try? modelContext.save()
+        // Update the live session + dismiss immediately. Do NOT call
+        // modelContext.save() here — the store is CloudKit-backed and a
+        // synchronous save blocked the swap for seconds. The override is now
+        // tracked by the context; SwiftData autosave (and the finalize save)
+        // persist it without freezing the interaction.
         onSwapApplied(replacementKey, scope)
         onDismiss()
     }
@@ -783,7 +803,11 @@ struct SwapTarget: Identifiable {
 // ═══════════════════════════════════════════
 
 struct RankedAlternative: Identifiable {
-    let id = UUID()
+    // Stable identity = exercise key. A per-instance UUID meant every keystroke
+    // (which rebuilds the filtered array) produced all-new identities, forcing
+    // SwiftUI to tear down and rebuild every result row — the source of the
+    // search lag. With a stable id, rows are reused as the filter changes.
+    var id: String { exercise.exerciseKey }
     let exercise: Exercise
     let score: Int
     let swapWarning: String?

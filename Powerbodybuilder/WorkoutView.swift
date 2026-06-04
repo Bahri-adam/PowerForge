@@ -3366,6 +3366,9 @@ struct FreestyleSwapSheet: View {
     @State private var selectedKey: String? = nil
     @State private var showCreateCustom = false
     @State private var cachedRanked: [RankedAlternative]? = nil
+    /// Search strings precomputed once — see ExerciseSwapSheet; avoids rebuilding
+    /// per keystroke which lagged the search bar.
+    @State private var haystackByKey: [String: String] = [:]
 
     private var ranked: [RankedAlternative] {
         cachedRanked ?? []
@@ -3380,6 +3383,13 @@ struct FreestyleSwapSheet: View {
                 return RankedAlternative(exercise: ex, score: score)
             }
             .sorted { $0.score > $1.score }
+        haystackByKey = Dictionary(
+            allExercises.map { ex in
+                (ex.exerciseKey,
+                 ([ex.displayName] + ex.musclesPrimary + ex.musclesSecondary + [ex.equipmentRaw])
+                    .joined(separator: " ").lowercased())
+            },
+            uniquingKeysWith: { first, _ in first })
     }
 
     private var filtered: [RankedAlternative] {
@@ -3390,8 +3400,7 @@ struct FreestyleSwapSheet: View {
             return allExercises
                 .filter { $0.exerciseKey != slot.exerciseKey }
                 .filter { ex in
-                    let haystack = ([ex.displayName] + ex.musclesPrimary + ex.musclesSecondary + [ex.equipmentRaw])
-                        .joined(separator: " ").lowercased()
+                    let haystack = haystackByKey[ex.exerciseKey] ?? ex.displayName.lowercased()
                     return tokens.allSatisfy { haystack.contains($0) }
                 }
                 .map { RankedAlternative(exercise: $0, score: 50) }
@@ -4780,6 +4789,12 @@ struct ProgressiveOverloadCard: View {
     var progressionState: ProgressionState? = nil
 
     @State private var showRecExplain: Bool = false
+    // Cache the heavy recommend() + log filtering so they run ONCE per exercise
+    // (refreshed only when the exercise changes via a swap), not on every parent
+    // re-render. Re-running recommend() for every exercise card on each render is
+    // what made the workout view — and applying a swap — crawl.
+    @State private var cachedLogs: [WorkoutLog]? = nil
+    @State private var cachedRec: ProgressionRecommendation? = nil
 
     var isMainLift: Bool { exerciseTier == .tier1 }
 
@@ -4834,7 +4849,7 @@ struct ProgressiveOverloadCard: View {
     }
 
     private var exerciseLogs: [WorkoutLog] {
-        allLogs.filter { $0.exerciseKey == exerciseKey }.sorted { $0.date > $1.date }
+        cachedLogs ?? allLogs.filter { $0.exerciseKey == exerciseKey }.sorted { $0.date > $1.date }
     }
 
     private var sessions: [[WorkoutLog]] {
@@ -4846,6 +4861,9 @@ struct ProgressiveOverloadCard: View {
     }
 
     private var recommendation: ProgressionRecommendation {
+        cachedRec ?? computeRecommendation()
+    }
+    private func computeRecommendation() -> ProgressionRecommendation {
         ProgressionEngine.recommend(
             recentLogs: exerciseLogs,
             targetRepsLow: targetRepsLow,
@@ -4855,6 +4873,17 @@ struct ProgressiveOverloadCard: View {
             useMetric: useMetric,
             progressionState: progressionState
         )
+    }
+    /// Compute the filtered logs + recommendation once, store them. Called on
+    /// appear and whenever the exercise changes (a mid-workout swap).
+    private func refreshCache() {
+        let logs = allLogs.filter { $0.exerciseKey == exerciseKey }.sorted { $0.date > $1.date }
+        cachedLogs = logs
+        cachedRec = ProgressionEngine.recommend(
+            recentLogs: logs,
+            targetRepsLow: targetRepsLow, targetRepsHigh: targetRepsHigh,
+            targetRPE: targetRPE, exerciseTier: exerciseTier,
+            useMetric: useMetric, progressionState: progressionState)
     }
 
     private var deltaLabel: String {
@@ -4906,6 +4935,14 @@ struct ProgressiveOverloadCard: View {
     }
 
     var body: some View {
+        bodyContent
+            // Runs on first appear AND whenever the exercise changes (swap),
+            // so the cached recommendation stays correct without recomputing
+            // on every render.
+            .onChange(of: exerciseKey, initial: true) { _, _ in refreshCache() }
+    }
+
+    @ViewBuilder private var bodyContent: some View {
         if !historyEnabled {
             templateOnlyCard
         } else if exerciseLogs.isEmpty {
