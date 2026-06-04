@@ -779,6 +779,62 @@ struct E2ETests {
         #expect(rec.progressionRule == .hold)
     }
 
+    @Test("Below-range: 315×4 in an 8–10 slot drops weight to fit the range")
+    func belowRangeWeightCorrection() {
+        // Loaded 315 but only got 4 reps — too heavy for an 8–10 slot.
+        let session = makeSession(weight: 315, reps: [4, 4, 4], date: daysAgo(0))
+        let rec = ProgressionEngine.recommend(
+            recentLogs: session,
+            targetRepsLow: 8, targetRepsHigh: 10,
+            targetRPE: 8.0, exerciseTier: .tier1,
+            useMetric: false,
+            progressionState: makeProgState(exposures: 5, lastWeight: 315, bestE1RM: 357)
+        )
+        // Recommends a lighter weight you can actually hit ~8 reps with — never 315.
+        #expect(rec.recommendedWeight < 315)
+        #expect(rec.recommendedWeight > 200)
+        #expect(rec.progressionRule == .backoff)
+        // Every set targets the bottom of the range (8), not the old ceiling (10),
+        // and all sets sit at one corrected weight (straight sets, no tier1 taper).
+        #expect(rec.perSetPrescription.allSatisfy { $0.repsTarget == 8 })
+        #expect(Set(rec.perSetPrescription.map { $0.weight }).count == 1)
+    }
+
+    @Test("In-range fatigue (9/8/7) is NOT treated as below-range")
+    func inRangeFatigueNotCorrected() {
+        // Top set hit 9 — inside the 8–10 range. Across-set fatigue is normal,
+        // so the engine should hold the weight, not drop it.
+        let session = makeSession(weight: 225, reps: [9, 8, 7], date: daysAgo(0))
+        let rec = ProgressionEngine.recommend(
+            recentLogs: session,
+            targetRepsLow: 8, targetRepsHigh: 10,
+            targetRPE: 8.0, exerciseTier: .tier1,
+            useMetric: false,
+            progressionState: makeProgState(exposures: 5, lastWeight: 225, bestE1RM: 300)
+        )
+        #expect(rec.recommendedWeight == 225)
+        #expect(rec.progressionRule == .hold)
+    }
+
+    @Test("Below-range correction fires even with <3 exposures (G8 path)")
+    func belowRangeAppliesEarly() {
+        // Freshly-added custom exercise: only 2 exposures, loaded too heavy.
+        let session = makeSession(weight: 200, reps: [4, 4, 4], date: daysAgo(0),
+                                  exerciseKey: "custom_iso_lateral_press_1")
+        let rec = ProgressionEngine.recommend(
+            recentLogs: session,
+            targetRepsLow: 8, targetRepsHigh: 10,
+            targetRPE: 8.0, exerciseTier: .tier2,
+            useMetric: false,
+            progressionState: makeProgState(exerciseKey: "custom_iso_lateral_press_1",
+                                            exposures: 2, lastWeight: 200)
+        )
+        // G8 would normally hold 200; below-range overrides to a lighter weight.
+        #expect(rec.recommendedWeight < 200)
+        #expect(rec.progressionRule == .backoff)
+        #expect(rec.perSetPrescription.allSatisfy { $0.repsTarget == 8 })
+    }
+
     @Test("Backoff weight is 92% of top set for tier1")
     func backoffWeight() {
         let session = makeSession(weight: 225, reps: [10, 10, 10], date: daysAgo(0))

@@ -150,6 +150,43 @@ struct ProgressionEngine {
             totalExposures: progressionState?.totalExposures ?? 0) ||
               demonstratedCapacityOverride else {
             let rw = RPETable.roundToPlate(lastWorkingWeight > 0 ? lastWorkingWeight : 0, useMetric: useMetric)
+
+            // Below-range correction applies even before 3 sessions: an
+            // impossible rep target (loaded too heavy to reach the range) is a
+            // sanity fix, not a progression decision, so lighten it early too.
+            // This covers a freshly-added custom exercise the user overloaded.
+            if let fitted = belowRangeFittedWeight(lastSession: lastSession,
+                                                   targetRepsLow: targetRepsLow,
+                                                   currentWeight: lastWorkingWeight) {
+                let corrected = RPETable.roundToPlate(fitted, useMetric: useMetric)
+                let setCount = lastSession?.count ?? 3
+                let presc = (0..<setCount).map { i in
+                    PerSetPrescription(
+                        weight: corrected,
+                        repsTarget: targetRepsLow,
+                        repsRangeLow: targetRepsLow,
+                        repsRangeHigh: targetRepsHigh,
+                        role: i == 0 ? .topSet : .primary,
+                        note: "lightened to fit \(targetRepsLow)–\(targetRepsHigh)"
+                    )
+                }
+                return ProgressionRecommendation(
+                    recommendedWeight: corrected,
+                    topSetWeight: corrected,
+                    backoffWeight: corrected,
+                    recommendedReps: targetRepsHigh,
+                    perSetReps: Array(repeating: targetRepsLow, count: setCount),
+                    perSetPrescription: presc,
+                    targetRPE: targetRPE,
+                    basis: .lastSessionBased,
+                    confidence: confidence,
+                    stallDetected: false,
+                    stallReason: .none,
+                    progressionRule: .backoff,
+                    debugNote: "Below \(targetRepsLow)-rep floor at \(Int(lastWorkingWeight)) → lightened to \(Int(corrected)) for \(targetRepsLow)–\(targetRepsHigh) (early)"
+                )
+            }
+
             // G8: hold weight, use last session's per-set pattern (weights + reps + roles)
             let g8Prescription = computePerSetPrescription(
                 lastSession: lastSession,
@@ -274,13 +311,35 @@ struct ProgressionEngine {
             baseWeight *= pmlFactor
         }
 
+        // ─── BELOW-RANGE WEIGHT CORRECTION ───
+        // Textbook double progression: if the user couldn't reach the bottom of
+        // the rep range at the loaded weight, the weight is too heavy for this
+        // slot. Recommend a lighter, e1RM-derived weight that lands them at
+        // targetRepsLow, then normal progression climbs back up. Skip when e1RM
+        // is genuinely rising (rule == .progress — that's improvement, not a
+        // mismatch) and for intentional pyramids (reverse/ascending), where a
+        // heavy low-rep top set is the whole point.
+        var belowRangeCorrected = false
+        if rule != .progress,
+           let fitted = belowRangeFittedWeight(lastSession: lastSession,
+                                               targetRepsLow: targetRepsLow,
+                                               currentWeight: baseWeight) {
+            baseWeight = fitted
+            rule = .backoff
+            belowRangeCorrected = true
+        }
+
         // ─── ROUND TO PLATE ───
         let rounded = RPETable.roundToPlate(baseWeight, useMetric: useMetric)
 
         // ─── BACKOFF WEIGHT (tier1 only) ───
-        let backoff = exerciseTier == .tier1
-            ? RPETable.roundToPlate(rounded * 0.92, useMetric: useMetric)
-            : rounded
+        // Below-range correction prescribes straight sets at the corrected
+        // weight (every set targets the rep range), so skip the tier1 taper.
+        let backoff = belowRangeCorrected
+            ? rounded
+            : (exerciseTier == .tier1
+                ? RPETable.roundToPlate(rounded * 0.92, useMetric: useMetric)
+                : rounded)
 
         // ─── STALL DETECTION ───
         let stall: (isStalled: Bool, reason: StallReason)
@@ -302,39 +361,60 @@ struct ProgressionEngine {
             )
         }
 
-        let debugNote = buildDebugNote(
-            rule: rule,
-            lastWeight: lastWorkingWeight,
-            suggested: rounded,
-            confidence: confidence,
-            sessions: sessions.count
-        )
+        let debugNote = belowRangeCorrected
+            ? "Below \(targetRepsLow)-rep floor at \(Int(lastWorkingWeight)) → lightened to \(Int(rounded)) for \(targetRepsLow)–\(targetRepsHigh)"
+            : buildDebugNote(
+                rule: rule,
+                lastWeight: lastWorkingWeight,
+                suggested: rounded,
+                confidence: confidence,
+                sessions: sessions.count
+            )
 
         // Compute per-set rep targets (legacy) and per-set prescription (new)
         let templateSets = lastSession?.count ?? 3
         let weightWentUp = rounded > lastWorkingWeight && rule == .progress
-        let perSet = computePerSetReps(
-            lastSession: lastSession,
-            targetRepsLow: targetRepsLow,
-            targetRepsHigh: targetRepsHigh,
-            targetSets: templateSets,
-            rule: rule,
-            weightIncreased: weightWentUp,
-            lastSessionIFI: lastSessionIFI
-        )
-        let prescription = computePerSetPrescription(
-            lastSession: lastSession,
-            targetRepsLow: targetRepsLow,
-            targetRepsHigh: targetRepsHigh,
-            targetSets: templateSets,
-            tier: exerciseTier,
-            useMetric: useMetric,
-            lastSessionIFI: lastSessionIFI,
-            ruleForStraight: rule,
-            weightIncreasedForStraight: weightWentUp,
-            topWeightForStraight: rounded,
-            backoffWeightForStraight: backoff
-        )
+
+        let perSet: [Int]
+        let prescription: [PerSetPrescription]
+        if belowRangeCorrected {
+            // Straight sets at the corrected weight; every set aims for the
+            // bottom of the range, with the full range shown as the goal.
+            perSet = Array(repeating: targetRepsLow, count: templateSets)
+            prescription = (0..<templateSets).map { i in
+                PerSetPrescription(
+                    weight: rounded,
+                    repsTarget: targetRepsLow,
+                    repsRangeLow: targetRepsLow,
+                    repsRangeHigh: targetRepsHigh,
+                    role: i == 0 ? .topSet : .primary,
+                    note: "lightened to fit \(targetRepsLow)–\(targetRepsHigh)"
+                )
+            }
+        } else {
+            perSet = computePerSetReps(
+                lastSession: lastSession,
+                targetRepsLow: targetRepsLow,
+                targetRepsHigh: targetRepsHigh,
+                targetSets: templateSets,
+                rule: rule,
+                weightIncreased: weightWentUp,
+                lastSessionIFI: lastSessionIFI
+            )
+            prescription = computePerSetPrescription(
+                lastSession: lastSession,
+                targetRepsLow: targetRepsLow,
+                targetRepsHigh: targetRepsHigh,
+                targetSets: templateSets,
+                tier: exerciseTier,
+                useMetric: useMetric,
+                lastSessionIFI: lastSessionIFI,
+                ruleForStraight: rule,
+                weightIncreasedForStraight: weightWentUp,
+                topWeightForStraight: rounded,
+                backoffWeightForStraight: backoff
+            )
+        }
 
         return ProgressionRecommendation(
             recommendedWeight: rounded,
@@ -1026,6 +1106,33 @@ struct ProgressionEngine {
     // Primary: e1RM EMA trend (6+ sessions)
     // Secondary: rep performance (< 6 sessions)
     // ═══════════════════════════════════════
+
+    /// Below-range weight fit (textbook double progression). When the user's
+    /// best working set last session fell short of `targetRepsLow` at a
+    /// straight-ish load, the weight was too heavy for the slot. Returns an
+    /// e1RM-derived weight that lands them at the rep floor — always lighter
+    /// than `currentWeight`. Returns nil when they reached the range, when the
+    /// load wasn't the limiter (reverse/ascending pyramids are intentional and
+    /// a heavy low-rep top set is the point there), or when no lighter weight is
+    /// warranted. Across-set fatigue (9/8/7) is NOT below-range — the BEST
+    /// working set is what's judged, so only 7/6/5-style misses qualify.
+    static func belowRangeFittedWeight(
+        lastSession: [WorkoutLog]?,
+        targetRepsLow: Int,
+        currentWeight: Double
+    ) -> Double? {
+        guard let last = lastSession, !last.isEmpty else { return nil }
+        let pattern = detectWeightPattern(last).pattern
+        guard pattern == .straight || pattern == .mixed || pattern == .none else { return nil }
+        let sessionMax = last.map { $0.weight }.max() ?? 0
+        let working = last.filter { $0.weight >= sessionMax * 0.80 }
+        let bestReps = working.map { $0.reps }.max() ?? 0
+        guard bestReps < targetRepsLow else { return nil }
+        let bestE1rm = working.map { $0.weight * (1.0 + Double($0.reps) / 30.0) }.max() ?? 0
+        guard bestE1rm > 0 else { return nil }
+        let fitted = bestE1rm / (1.0 + Double(targetRepsLow) / 30.0)
+        return fitted < currentWeight ? fitted : nil
+    }
 
     static func determineProgressionRule(
         lastSession: [WorkoutLog]?,

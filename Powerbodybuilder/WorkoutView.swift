@@ -4806,13 +4806,20 @@ struct ProgressiveOverloadCard: View {
         let stalled = recommendation.stallDetected
         var parts: [String] = []
 
-        switch rule {
-        case .progress:
-            parts.append("↑ PROGRESS — you hit the top of the rep range across all working sets last session, so the engine bumped the weight.")
-        case .hold:
-            parts.append("→ HOLD — you didn't hit the top of the rep range yet. Same weight, but try for more reps. The engine progresses weight only once every working set hits the top.")
-        case .backoff:
-            parts.append("↓ BACKOFF — you missed the bottom of the rep range on 2+ working sets across two sessions in a row. Engine cut the weight ~6-15% so you can rebuild capacity.")
+        // Below-range correction takes precedence over the generic rule text:
+        // it's a deliberate, range-fitting drop, not the standard ~6-15% backoff.
+        let belowRange = recommendation.perSetPrescription.contains { $0.note.contains("lightened to fit") }
+        if belowRange {
+            parts.append("↓ LIGHTENED — last session you got fewer than \(targetRepsLow) reps at your top weight, so the load was too heavy for this slot's \(targetRepsLow)–\(targetRepsHigh) range. The engine dropped it to a weight you can actually hit \(targetRepsLow)+ reps with (from your estimated 1RM), then it climbs back up as you add reps — double progression.")
+        } else {
+            switch rule {
+            case .progress:
+                parts.append("↑ PROGRESS — you hit the top of the rep range across all working sets last session, so the engine bumped the weight.")
+            case .hold:
+                parts.append("→ HOLD — you didn't hit the top of the rep range yet. Same weight, but try for more reps. The engine progresses weight only once every working set hits the top.")
+            case .backoff:
+                parts.append("↓ BACKOFF — you missed the bottom of the rep range on 2+ working sets across two sessions in a row. Engine cut the weight ~6-15% so you can rebuild capacity.")
+            }
         }
 
         if stalled {
